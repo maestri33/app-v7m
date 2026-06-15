@@ -5,7 +5,7 @@ import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
 import { pickFunnelRole, readSession } from "@/lib/auth/server";
 import { djangoFetch } from "@/lib/api/client";
-import type { CandidateMe, CandidateStatus } from "@/lib/api/types";
+import type { CandidateMe, CandidateStatus, PromoterMe } from "@/lib/api/types";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +75,69 @@ export default async function PainelPage() {
               {me.status === "COMPLETED" ? "Ir pro treinamento" : "Continuar de onde parei"}
             </Link>
           </div>
+        </Container>
+      </GrainSection>
+    );
+  }
+
+  if (role === "promoter") {
+    const data = await djangoFetch<PromoterMe>("/api/v1/collaborators/promoter/me");
+    return (
+      <GrainSection className="bg-paper-soft min-h-[60vh]">
+        <Container>
+          <p className="kicker text-gold-ink">V7M · Promotor</p>
+          <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
+            Olá, {session.name ?? "promotor"}
+          </h1>
+          <p className="text-muted-on-light text-lg mb-2">
+            {data.status === "active" ? "Ativo" : "Suspenso"}
+            {data.hub_external_id ? ` · polo ${data.hub_external_id.slice(0, 8)}` : ""}
+          </p>
+          {data.ref_url && (
+            <p className="text-sm text-muted-on-light mb-8">
+              Seu link de captação: <code className="text-paper">{data.ref_url}</code>
+            </p>
+          )}
+
+          <div className="grid gap-4 max-w-2xl md:grid-cols-2">
+            <Link
+              href="/leads"
+              className="block rounded-[var(--radius)] border border-line-light/20 bg-white p-5 hover:border-gold transition"
+            >
+              <h2 className="font-display text-lg">Leads</h2>
+              <p className="text-sm text-muted-on-light mt-1">
+                Quem clicou no seu link e onde está.
+              </p>
+            </Link>
+            <Link
+              href="/comissoes"
+              className="block rounded-[var(--radius)] border border-line-light/20 bg-white p-5 hover:border-gold transition"
+            >
+              <h2 className="font-display text-lg">Comissões</h2>
+              <p className="text-sm text-muted-on-light mt-1">
+                Pagas e pendentes. Atualiza depois do fechamento da semana.
+              </p>
+            </Link>
+          </div>
+        </Container>
+      </GrainSection>
+    );
+  }
+
+  if (role === "training") {
+    return (
+      <GrainSection className="bg-paper-soft min-h-[60vh]">
+        <Container>
+          <p className="kicker text-gold-ink">V7M · Promotor</p>
+          <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
+            Olá, {session.name ?? "trainee"}
+          </h1>
+          <p className="text-muted-on-light text-lg mb-8">
+            Bora terminar o treinamento?
+          </p>
+          <Link href="/treinamento" className="btn btn-xl inline-block">
+            Ver matérias
+          </Link>
         </Container>
       </GrainSection>
     );

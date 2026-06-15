@@ -63,3 +63,30 @@ export type CandidateMe = {
   documents?: DocumentSection | null;
   selfie?: Record<string, unknown> | null;
 };
+
+export type PromoterMe = {
+  external_id: string;
+  hub_external_id: string;
+  status: "active" | "suspended";
+  ref_url: string;
+  pix_key?: string | null;
+};
+
+export type Lead = {
+  external_id: string;
+  name: string;
+  status: string;
+  payment_link?: string | null;
+  receipt_url?: string | null;
+  hub_name?: string;
+  created_at: string;
+};
+
+export type Commission = {
+  external_id: string;
+  amount: number;
+  status: "pending" | "paid" | "failed";
+  source_type: string;
+  created_at: string;
+  paid_at?: string | null;
+};
