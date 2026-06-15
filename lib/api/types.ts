@@ -14,6 +14,8 @@ export type CandidateStatus =
   | "SELFIE"
   | "COMPLETED";
 
+export type AnalysisStatus = "pending" | "approved" | "rejected" | "review";
+
 export type AddressSection = {
   zipcode: string | null;
   street: string | null;
@@ -36,11 +38,28 @@ export type ProfileSection = {
   birth_date: string | null;
 };
 
+export type DocumentSection = {
+  doc_type?: string;
+  number?: string;
+  issuing_agency?: string | null;
+  issue_date?: string | null;
+  category?: string | null;
+  national_register?: string | null;
+  date_of_birth?: string | null;
+  expires_on?: string | null;
+  analysis_status?: AnalysisStatus;
+  analysis_reason?: string | null;
+  missing_fields?: string[];
+  has_front?: boolean;
+  has_back?: boolean;
+  has_full?: boolean;
+  [k: string]: unknown;
+};
+
 export type CandidateMe = {
   status: CandidateStatus;
   profile: ProfileSection | null;
   address: AddressSection | null;
-  // M2b/M2c
-  document?: unknown;
-  selfie?: unknown;
+  documents?: DocumentSection | null;
+  selfie?: Record<string, unknown> | null;
 };
