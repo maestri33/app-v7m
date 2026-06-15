@@ -1,0 +1,277 @@
+/* =============================================================================
+   Design tokens — V7M · Promotor (mirror do landing-promotor)
+   Direção: dark luxury — dourado metálico sobre preto/grafite,
+   superfícies claras em branco/cinza quente. Sem cor de bandeira.
+   ============================================================================= */
+@import "tailwindcss";
+
+:root {
+  /* Neutros (preto → branco) */
+  --black: #0b0b0c;
+  --char: #141416; /* grafite (superfície escura principal) */
+  --char-2: #1d1d20; /* grafite mais claro (cards no escuro) */
+  --paper: #ffffff;
+  --paper-soft: #f5f4f1; /* cinza quente claro */
+  --line-light: #e7e4dd;
+
+  /* Dourado (acento único) */
+  --gold: #d9b15a;
+  --gold-soft: #f0d493;
+  --gold-deep: #a87b2e;
+  --gold-ink: #8a6526; /* dourado legível sobre fundo claro (AA) */
+  /* sheen metálico — CTA + palavra de destaque */
+  --gold-grad: linear-gradient(135deg, #f4dca0 0%, #d9b15a 42%, #b07f30 72%, #ecc97f 100%);
+
+  /* Texto secundário (contraste AA garantido) */
+  --muted-on-dark: #b4b4bb;
+  --muted-on-light: #5c5c63;
+
+  /* Tipografia — vars preenchidas pelo next/font/google no layout */
+  --font-display: var(--font-archivo-black), 'Arial Black', 'Helvetica Neue', sans-serif;
+  --font-body: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --text-base: clamp(1rem, 0.95rem + 0.35vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1.02rem + 0.55vw, 1.375rem);
+  --text-h2: clamp(2rem, 1.3rem + 3vw, 3.6rem);
+  --text-h3: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
+  --text-hero: clamp(2.85rem, 1.1rem + 8vw, 6.8rem);
+
+  /* Ritmo */
+  --space-section: clamp(4.5rem, 3rem + 6vw, 9rem);
+  --container: 68rem;
+  --gutter: clamp(1.25rem, 4vw, 2.5rem);
+
+  /* Movimento */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 0.65s;
+
+  /* Superfícies */
+  --radius: 18px;
+  --radius-lg: 28px;
+}
+
+/* =============================================================================
+   Tailwind v4: tokens viram utilities de tema (bg-gold, text-paper, etc.)
+   ============================================================================= */
+@theme inline {
+  --color-black: var(--black);
+  --color-char: var(--char);
+  --color-char-2: var(--char-2);
+  --color-paper: var(--paper);
+  --color-paper-soft: var(--paper-soft);
+  --color-line-light: var(--line-light);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-deep: var(--gold-deep);
+  --color-gold-ink: var(--gold-ink);
+  --color-muted-on-dark: var(--muted-on-dark);
+  --color-muted-on-light: var(--muted-on-light);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+
+  --radius-default: var(--radius);
+  --radius-lg-default: var(--radius-lg);
+}
+
+/* =============================================================================
+   Reset enxuto + base
+   ============================================================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 2rem;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.65;
+  color: var(--black);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 400; /* Archivo Black só tem 400 (já é black) */
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+strong {
+  font-weight: 700;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--black);
+}
+
+:focus-visible {
+  outline: 3px solid var(--char);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* =============================================================================
+   Componentes custom (espelho do landing)
+   ============================================================================= */
+@layer components {
+  .container-x {
+    width: min(100% - 2 * var(--gutter), var(--container));
+    margin-inline: auto;
+  }
+
+  .section-y {
+    padding-block: var(--space-section);
+    position: relative;
+  }
+
+  .kicker {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 1.1rem;
+  }
+
+  /* Grain sutil em seções escuras (atmosfera, anti-flat) */
+  .grain {
+    position: relative;
+    isolation: isolate;
+  }
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .grain > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Texto vazado (outline) */
+  .ghost {
+    color: transparent;
+    -webkit-text-stroke: 2.5px rgb(255 255 255 / 0.92);
+  }
+
+  /* Skip-link (acessibilidade) */
+  .skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 100;
+    background: var(--black);
+    color: var(--paper);
+    font-weight: 700;
+    padding: 0.7rem 1.2rem;
+    border-radius: 10px;
+    text-decoration: none;
+    transform: translateY(-300%);
+  }
+  .skip-link:focus-visible {
+    transform: none;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* CTA dourado (espelho do landing · .btn) */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: clamp(1.02rem, 0.95rem + 0.4vw, 1.18rem);
+    line-height: 1.15;
+    padding: 1.05em 1.9em;
+    border-radius: 999px;
+    background: var(--gold-grad);
+    color: var(--black);
+    text-decoration: none;
+    text-align: center;
+    box-shadow:
+      0 12px 32px -12px rgb(217 177 90 / 0.6),
+      inset 0 1px 0 rgb(255 255 255 / 0.45),
+      inset 0 -3px 0 rgb(11 11 12 / 0.18);
+    transition:
+      transform 0.18s var(--ease-out),
+      box-shadow 0.25s var(--ease-out);
+    position: relative;
+    overflow: clip;
+    border: 0;
+    cursor: pointer;
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 18px 40px -14px rgb(217 177 90 / 0.75),
+      inset 0 1px 0 rgb(255 255 255 / 0.45),
+      inset 0 -3px 0 rgb(11 11 12 / 0.18);
+  }
+  .btn:active {
+    transform: translateY(0) scale(0.99);
+  }
+  .btn:focus-visible {
+    outline: 3px solid var(--paper);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 7px rgb(20 20 22 / 0.85);
+  }
+}
+
+/* Kill-switch global de movimento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
