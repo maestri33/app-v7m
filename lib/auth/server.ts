@@ -16,7 +16,11 @@ export type Session = {
   name: string | null;
 };
 
-const CANDIDATE_FUNNEL_ROLES = ["coordinator", "promoter", "training", "candidate"] as const;
+// Ordem de prioridade no app-promotor: `promoter` ACIMA de `coordinator` (Victor 2026-06-16).
+// Quem acumula coordinator+promoter abre ESTE app como promotor (o coordenador tem app próprio,
+// grupo `leadership`). Sem isso, a conta-mãe (coordinator) caía no branch default do /painel e
+// não via o dashboard de promotor. Ver tests/fe-painel/m4-painel-promotor.md (achado M4-1).
+const CANDIDATE_FUNNEL_ROLES = ["promoter", "coordinator", "training", "candidate"] as const;
 
 /** Lê o cookie; se houver, consulta o whoami do Django. */
 export async function readSession(): Promise<Session | null> {

@@ -6,4 +6,4 @@
  */
 export const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:80";
 
-export const isProd = process.env.NODE_ENV === "production";
+export const isProd = process.env.NODE_ENV === "production" && BACKEND_URL.startsWith("https://");
