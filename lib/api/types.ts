@@ -5,14 +5,15 @@
  * `users/roles/candidate/service.py:me_dict` + `address/as_public_dict`.
  */
 
+// Valores exatos do backend (users/roles/candidate/models.py:Status — minúsculos).
 export type CandidateStatus =
-  | "STARTED"
-  | "PROFILE"
-  | "ADDRESS"
-  | "DOCUMENTS"
-  | "PIX"
-  | "SELFIE"
-  | "COMPLETED";
+  | "started"
+  | "profile"
+  | "address"
+  | "documents"
+  | "pix"
+  | "selfie"
+  | "completed";
 
 export type AnalysisStatus = "pending" | "approved" | "rejected" | "review";
 

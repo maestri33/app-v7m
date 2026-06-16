@@ -129,7 +129,7 @@ export function DocForm({ initial, initialStatus }: Props) {
   }
 
   // Etapa 1: escolher o tipo (RG ou CNH) e enviar o número.
-  if (initialStatus === "DOCUMENTS" && !initial.doc_type) {
+  if (initialStatus === "documents" && !initial.doc_type) {
     return (
       <form onSubmit={onMeta} className="space-y-5">
         <p className="text-muted-on-dark text-sm">

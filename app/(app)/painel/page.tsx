@@ -10,23 +10,23 @@ import type { CandidateMe, CandidateStatus, PromoterMe } from "@/lib/api/types";
 export const dynamic = "force-dynamic";
 
 const STAGE_LABEL: Record<CandidateStatus, string> = {
-  STARTED: "Complete seu perfil",
-  PROFILE: "Complete seu perfil",
-  ADDRESS: "Complete seu endereço",
-  DOCUMENTS: "Envie seu documento",
-  PIX: "Cadastre sua chave Pix",
-  SELFIE: "Tire sua selfie",
-  COMPLETED: "Você virou trainee",
+  started: "Complete seu perfil",
+  profile: "Complete seu perfil",
+  address: "Complete seu endereço",
+  documents: "Envie seu documento",
+  pix: "Cadastre sua chave Pix",
+  selfie: "Tire sua selfie",
+  completed: "Você virou trainee",
 };
 
 const STAGE_HREF: Record<CandidateStatus, string> = {
-  STARTED: "/perfil",
-  PROFILE: "/perfil",
-  ADDRESS: "/endereco",
-  DOCUMENTS: "/documento",
-  PIX: "/pix",
-  SELFIE: "/selfie",
-  COMPLETED: "/treinamento",
+  started: "/perfil",
+  profile: "/perfil",
+  address: "/endereco",
+  documents: "/documento",
+  pix: "/pix",
+  selfie: "/selfie",
+  completed: "/treinamento",
 };
 
 const ROLE_LABEL: Record<string, string> = {
@@ -72,7 +72,7 @@ export default async function PainelPage() {
 
           <div className="mt-10">
             <Link href={STAGE_HREF[me.status]} className="btn btn-xl inline-block">
-              {me.status === "COMPLETED" ? "Ir pro treinamento" : "Continuar de onde parei"}
+              {me.status === "completed" ? "Ir pro treinamento" : "Continuar de onde parei"}
             </Link>
           </div>
         </Container>
