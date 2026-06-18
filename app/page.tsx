@@ -25,7 +25,7 @@ export default function HomePage() {
               Entrar
               <span aria-hidden>→</span>
             </Button>
-            <Button href="/cadastro" size="xl" className="bg-transparent text-paper border border-gold-soft/40 hover:bg-gold-soft/10">
+            <Button href="/cadastro" size="xl" variant="ghost">
               Quero ser promotor
             </Button>
           </div>

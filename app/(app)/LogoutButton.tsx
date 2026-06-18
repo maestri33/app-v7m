@@ -23,7 +23,7 @@ export function LogoutButton() {
       type="button"
       onClick={onLogout}
       disabled={loading}
-      className="text-muted-on-light hover:text-black underline disabled:opacity-50"
+      className="text-muted-on-light hover:text-black underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
       {loading ? "Saindo…" : "Sair"}
     </button>

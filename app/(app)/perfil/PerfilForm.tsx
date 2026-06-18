@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { Field, FieldError, ReadOnlyField, SelectField } from "@/components/ui/Field";
 import type { ProfileSection } from "@/lib/api/types";
 
 const MARITAL = [
@@ -75,84 +77,10 @@ export function PerfilForm({ initial }: Props) {
         options={MARITAL}
       />
       <Field label="Nacionalidade" value={nationality} onChange={setNationality} />
-      {error && (
-        <p className="text-sm text-red-300" role="alert">
-          {error}
-        </p>
-      )}
-      <button type="submit" className="btn btn-xl w-full" disabled={pending}>
+      <FieldError>{error}</FieldError>
+      <Button type="submit" size="xl" loading={pending} className="w-full">
         {pending ? "Salvando…" : "Salvar e continuar"}
-      </button>
+      </Button>
     </form>
-  );
-}
-
-function ReadOnlyField({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-sm text-muted-on-dark mb-2">{label}</span>
-      <div className="rounded-[var(--radius)] bg-char border border-line-light/10 px-4 py-3 text-paper/70">
-        {value}
-      </div>
-      {hint && <p className="text-xs text-muted-on-dark/70 mt-1">{hint}</p>}
-    </label>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-sm text-muted-on-dark mb-2">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-      />
-    </label>
-  );
-}
-
-function SelectField<T extends string>({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: T | "";
-  onChange: (v: T) => void;
-  options: ReadonlyArray<{ value: T; label: string }>;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-sm text-muted-on-dark mb-2">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-      >
-        {options.map((o) => (
-          <option key={o.value || "none"} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }

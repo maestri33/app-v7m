@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { Field, FieldError, ReadOnlyField } from "@/components/ui/Field";
 import type { AddressSection } from "@/lib/api/types";
 
 type Props = {
@@ -52,9 +54,6 @@ export function EnderecoForm({ initial }: Props) {
           setNeighborhood(a.neighborhood ?? "");
           setCity(a.city ?? "");
           setState(a.state ?? "");
-          if (a.missing_fields.includes("number")) {
-            // ok, pede o número
-          }
         }
         setStage("rest");
       } catch {
@@ -96,25 +95,18 @@ export function EnderecoForm({ initial }: Props) {
   if (stage === "cep") {
     return (
       <form onSubmit={onCep} className="space-y-5">
-        <label className="block">
-          <span className="block text-sm text-muted-on-dark mb-2">CEP</span>
-          <input
-            inputMode="numeric"
-            required
-            value={cep}
-            onChange={(e) => setCep(formatCep(e.target.value))}
-            placeholder="00000-000"
-            className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-          />
-        </label>
-        {error && (
-          <p className="text-sm text-red-300" role="alert">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="btn btn-xl w-full" disabled={pending}>
+        <Field
+          label="CEP"
+          value={cep}
+          onChange={(v) => setCep(formatCep(v))}
+          inputMode="numeric"
+          placeholder="00000-000"
+          required
+        />
+        <FieldError>{error}</FieldError>
+        <Button type="submit" size="xl" loading={pending} className="w-full">
           {pending ? "Buscando…" : "Buscar CEP"}
-        </button>
+        </Button>
       </form>
     );
   }
@@ -122,72 +114,20 @@ export function EnderecoForm({ initial }: Props) {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid grid-cols-3 gap-3">
-        <FieldReadOnly className="col-span-2" label="CEP" value={cep} />
-        <Field
-          label="Número"
-          value={number}
-          onChange={setNumber}
-          required
-        />
+        <ReadOnlyField className="col-span-2" label="CEP" value={cep} />
+        <Field label="Número" value={number} onChange={setNumber} required inputMode="numeric" />
       </div>
       <Field label="Rua" value={street} onChange={setStreet} />
       <Field label="Complemento" value={complement} onChange={setComplement} />
       <Field label="Bairro" value={neighborhood} onChange={setNeighborhood} />
       <div className="grid grid-cols-3 gap-3">
-        <FieldReadOnly className="col-span-2" label="Cidade" value={city} />
-        <FieldReadOnly className="col-span-1" label="UF" value={state} />
+        <ReadOnlyField className="col-span-2" label="Cidade" value={city} />
+        <ReadOnlyField className="col-span-1" label="UF" value={state} />
       </div>
-      {error && (
-        <p className="text-sm text-red-300" role="alert">
-          {error}
-        </p>
-      )}
-      <button type="submit" className="btn btn-xl w-full" disabled={pending}>
+      <FieldError>{error}</FieldError>
+      <Button type="submit" size="xl" loading={pending} className="w-full">
         {pending ? "Salvando…" : "Salvar e continuar"}
-      </button>
+      </Button>
     </form>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  required = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-sm text-muted-on-dark mb-2">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-      />
-    </label>
-  );
-}
-
-function FieldReadOnly({
-  label,
-  value,
-  className = "",
-}: {
-  label: string;
-  value: string;
-  className?: string;
-}) {
-  return (
-    <label className={`block ${className}`}>
-      <span className="block text-sm text-muted-on-dark mb-2">{label}</span>
-      <div className="rounded-[var(--radius)] bg-char border border-line-light/10 px-4 py-3 text-paper/70">
-        {value || "—"}
-      </div>
-    </label>
   );
 }

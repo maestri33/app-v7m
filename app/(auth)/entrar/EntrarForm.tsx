@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { Field, FieldError } from "@/components/ui/Field";
+
 type CheckOut = {
   found: boolean;
   external_id?: string;
@@ -91,30 +94,25 @@ export function EntrarForm() {
         <p className="text-muted-on-dark text-sm">
           Mandamos um código de 6 dígitos no WhatsApp cadastrado. Digite abaixo.
         </p>
-        <label className="block">
-          <span className="block text-sm text-muted-on-dark mb-2">Código</span>
-          <input
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]{6}"
-            maxLength={6}
-            required
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-            className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper text-xl tracking-widest text-center focus-visible:border-gold focus-visible:outline-none"
-          />
-        </label>
-        {error && (
-          <p className="text-sm text-red-300" role="alert">
-            {error.detail}
-          </p>
-        )}
-        <button type="submit" className="btn btn-xl w-full" disabled={loading}>
+        <Field
+          tone="dark"
+          label="Código"
+          value={otp}
+          onChange={(v) => setOtp(v.replace(/\D/g, ""))}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9]{6}"
+          maxLength={6}
+          required
+          inputClassName="text-xl tracking-[0.4em] text-center"
+        />
+        <FieldError tone="dark">{error?.detail}</FieldError>
+        <Button type="submit" size="xl" loading={loading} className="w-full">
           {loading ? "Entrando…" : "Entrar"}
-        </button>
+        </Button>
         <button
           type="button"
-          className="text-gold-soft text-sm underline block mx-auto"
+          className="text-gold-soft text-sm underline block mx-auto cursor-pointer hover:text-gold-soft/80"
           onClick={() => setStage("check")}
         >
           Voltar
@@ -125,24 +123,20 @@ export function EntrarForm() {
 
   return (
     <form onSubmit={onCheck} className="space-y-5">
-      <label className="block">
-        <span className="block text-sm text-muted-on-dark mb-2">CPF ou telefone</span>
-        <input
-          required
-          value={cpfOrPhone}
-          onChange={(e) => setCpfOrPhone(e.target.value)}
-          placeholder="000.000.000-00 ou (00) 00000-0000"
-          className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-        />
-      </label>
-      {error && (
-        <p className="text-sm text-red-300" role="alert">
-          {error.detail}
-        </p>
-      )}
-      <button type="submit" className="btn btn-xl w-full" disabled={loading}>
+      <Field
+        tone="dark"
+        label="CPF ou telefone"
+        value={cpfOrPhone}
+        onChange={setCpfOrPhone}
+        inputMode="numeric"
+        autoComplete="username"
+        placeholder="000.000.000-00 ou (00) 00000-0000"
+        required
+      />
+      <FieldError tone="dark">{error?.detail}</FieldError>
+      <Button type="submit" size="xl" loading={loading} className="w-full">
         {loading ? "Verificando…" : "Continuar"}
-      </button>
+      </Button>
     </form>
   );
 }

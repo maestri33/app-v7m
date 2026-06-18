@@ -14,13 +14,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-[100vh] flex flex-col">
-      <header className="border-b border-line-light/30 bg-paper-soft">
-        <Container className="py-4 flex items-center justify-between">
-          <Link href="/" className="font-display text-lg">
-            V7M · Promotor
+      <header className="sticky top-0 z-40 border-b border-line-light bg-paper-soft/90 backdrop-blur-sm">
+        <Container className="py-4 flex items-center justify-between gap-4">
+          <Link
+            href="/painel"
+            className="font-display text-lg hover:text-gold-ink transition-colors"
+          >
+            V7M<span className="text-gold-ink"> · </span>Promotor
           </Link>
           <div className="flex items-center gap-4 text-sm">
-            <span className="text-muted-on-light">
+            <span className="text-muted-on-light hidden sm:inline">
               {session.name ?? "Você"} · {session.roles.join(", ") || "—"}
             </span>
             <LogoutButton />

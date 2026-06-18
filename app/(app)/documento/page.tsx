@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
+import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { FunnelStepper } from "@/components/ui/Stepper";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, DocumentSection } from "@/lib/api/types";
 import { readSession } from "@/lib/auth/server";
@@ -9,6 +12,8 @@ import { readSession } from "@/lib/auth/server";
 import { DocForm } from "./DocForm";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Seu documento" };
 
 export default async function DocumentoPage() {
   const session = await readSession();
@@ -29,18 +34,14 @@ export default async function DocumentoPage() {
   return (
     <GrainSection className="bg-paper-soft min-h-[60vh]">
       <Container>
-        <p className="kicker text-gold-ink">V7M · Promotor</p>
-        <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-          Seu documento
-        </h1>
-        <p className="text-muted-on-light mb-8">
-          RG ou CNH, com foto. A IA confere o tipo, a legibilidade e a sua
-          identidade pelo CPFHub. Se reprovar, reenvie. Se o coordenador
-          ficar em dúvida, ele decide.
-        </p>
-        <div className="max-w-xl">
+        <PageHeader
+          title="Seu documento"
+          subtitle="RG ou CNH, com foto. A IA confere o tipo, a legibilidade e a sua identidade pelo CPFHub. Se reprovar, reenvie. Se o coordenador ficar em dúvida, ele decide."
+        />
+        <FunnelStepper current="documents" />
+        <Card className="max-w-xl">
           <DocForm initial={initial} initialStatus={me.status} />
-        </div>
+        </Card>
       </Container>
     </GrainSection>
   );

@@ -17,7 +17,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Promotor V7M",
+  title: {
+    default: "Promotor V7M",
+    template: "%s · Promotor V7M",
+  },
   description: "App do promotor V7M — funil do candidato ao painel do promotor pleno.",
 };
 

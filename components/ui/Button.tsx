@@ -1,10 +1,16 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 
+import { Spinner } from "./Spinner";
+
 type Variant = "primary" | "ghost";
+type Size = "md" | "xl";
 
 type CommonProps = {
   variant?: Variant;
-  size?: "md" | "xl";
+  size?: Size;
+  /** Mostra spinner + desabilita (feedback em submit). */
+  loading?: boolean;
+  className?: string;
   children: ReactNode;
 };
 
@@ -20,33 +26,38 @@ type ButtonAsAnchor = CommonProps &
 
 type ButtonProps = ButtonAsButton | ButtonAsAnchor;
 
-const sizeMap: Record<NonNullable<CommonProps["size"]>, string> = {
-  md: "",
-  xl: "btn-xl",
-};
-
 export function Button(props: ButtonProps) {
-  const { variant = "primary", size = "md", className = "", children, ...rest } = props as ButtonProps & {
-    className?: string;
-  };
+  const {
+    variant = "primary",
+    size = "md",
+    loading = false,
+    className = "",
+    children,
+    ...rest
+  } = props as ButtonProps & { className?: string; loading?: boolean };
+
   const cls = [
     "btn",
-    sizeMap[size],
+    size === "xl" ? "btn-xl" : "",
     variant === "ghost" ? "btn-ghost" : "",
     className,
   ]
     .filter(Boolean)
     .join(" ");
 
+  // `rest` ainda contém `href` no caso âncora (não foi desestruturado).
   if ("href" in props && props.href !== undefined) {
     return (
-      <a className={cls} href={props.href}>
+      <a className={cls} {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}>
         {children}
       </a>
     );
   }
+
+  const btnRest = rest as ButtonHTMLAttributes<HTMLButtonElement>;
   return (
-    <button className={cls} {...(rest as ButtonHTMLAttributes<HTMLButtonElement>)}>
+    <button {...btnRest} className={cls} disabled={btnRest.disabled || loading}>
+      {loading && <Spinner />}
       {children}
     </button>
   );

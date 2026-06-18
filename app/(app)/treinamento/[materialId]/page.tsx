@@ -2,12 +2,16 @@ import { redirect, notFound } from "next/navigation";
 
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
+import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { djangoFetch } from "@/lib/api/client";
 import { readSession } from "@/lib/auth/server";
 
 import { SubmissionForm } from "./SubmissionForm";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Treinamento" };
 
 type Material = {
   external_id: string;
@@ -35,16 +39,14 @@ export default async function MaterialPage({ params }: Props) {
   return (
     <GrainSection className="bg-paper-soft min-h-[60vh]">
       <Container>
-        <p className="kicker text-gold-ink">V7M · Treinamento</p>
-        <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-          {material.title}
-        </h1>
-        <p className="text-muted-on-light mb-8 whitespace-pre-line">
-          {material.prompt}
-        </p>
-        <div className="max-w-2xl">
+        <PageHeader
+          kicker="V7M · Treinamento"
+          title={material.title}
+          subtitle={<span className="whitespace-pre-line">{material.prompt}</span>}
+        />
+        <Card className="max-w-2xl">
           <SubmissionForm materialExternalId={material.external_id} status={material.status} />
-        </div>
+        </Card>
       </Container>
     </GrainSection>
   );

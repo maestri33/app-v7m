@@ -1,12 +1,17 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
+import { Badge } from "@/components/ui/Badge";
+import { Card, CardLink } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Stat } from "@/components/ui/Stat";
 import { djangoFetch } from "@/lib/api/client";
 import { readSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Treinamento" };
 
 type Material = {
   external_id: string;
@@ -32,58 +37,45 @@ export default async function TreinamentoPage() {
     djangoFetch<Progress>("/api/v1/collaborators/training/progress"),
   ]);
 
-  const answeredSet = new Set(
-    (materials as unknown as Array<Material & { last_score?: number | null }>)
-      .filter((m) => m.status !== "pending")
-      .map((m) => m.external_id),
-  );
-  void answeredSet; // hint visual futuro
-
   return (
     <GrainSection className="bg-paper-soft min-h-[60vh]">
       <Container>
-        <p className="kicker text-gold-ink">V7M · Treinamento</p>
-        <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-          Suas matérias
-        </h1>
+        <PageHeader kicker="V7M · Treinamento" title="Suas matérias" />
 
         <div className="mb-8 grid gap-3 max-w-2xl sm:grid-cols-3">
-          <Stat label="Total" value={String(progress.total)} />
-          <Stat label="Respondidas" value={String(progress.answered)} />
+          <Stat label="Total" value={String(progress.total)} size="xl" />
+          <Stat label="Respondidas" value={String(progress.answered)} size="xl" />
           <Stat
             label="Média"
             value={progress.average_score != null ? progress.average_score.toFixed(1) : "—"}
+            size="xl"
           />
         </div>
 
-        <ul className="space-y-3 max-w-2xl">
-          {materials.map((m) => (
-            <li key={m.external_id}>
-              <Link
-                href={`/treinamento/${m.external_id}`}
-                className="block rounded-[var(--radius)] border border-line-light/20 bg-white p-5 hover:border-gold transition"
-              >
-                <h2 className="font-display text-lg">{m.title}</h2>
-                <p className="text-sm text-muted-on-light mt-1 line-clamp-2">
-                  {m.prompt}
-                </p>
-                <p className="text-xs uppercase tracking-wider mt-2 text-muted-on-light">
-                  {m.status === "pending" ? "Pendente" : "Respondida"}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {materials.length === 0 ? (
+          <Card className="max-w-2xl text-muted-on-light">
+            Nenhuma matéria disponível ainda. Volte em breve.
+          </Card>
+        ) : (
+          <ul className="space-y-3 max-w-2xl">
+            {materials.map((m) => (
+              <li key={m.external_id}>
+                <CardLink href={`/treinamento/${m.external_id}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="font-display text-lg">{m.title}</h2>
+                    <Badge tone={m.status === "pending" ? "muted" : "ok"}>
+                      {m.status === "pending" ? "Pendente" : "Respondida"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-on-light mt-1 line-clamp-2">
+                    {m.prompt}
+                  </p>
+                </CardLink>
+              </li>
+            ))}
+          </ul>
+        )}
       </Container>
     </GrainSection>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[var(--radius)] border border-line-light/20 bg-white p-4">
-      <p className="text-xs uppercase tracking-wider text-muted-on-light">{label}</p>
-      <p className="text-3xl font-display mt-1">{value}</p>
-    </div>
   );
 }

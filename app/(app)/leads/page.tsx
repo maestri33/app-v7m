@@ -1,13 +1,17 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
+import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { djangoFetch } from "@/lib/api/client";
 import type { Lead } from "@/lib/api/types";
 import { readSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Leads" };
 
 export default async function LeadsPage() {
   const session = await readSession();
@@ -19,55 +23,55 @@ export default async function LeadsPage() {
   return (
     <GrainSection className="bg-paper-soft min-h-[60vh]">
       <Container>
-        <p className="kicker text-gold-ink">V7M · Promotor</p>
-        <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-          Seus leads
-        </h1>
-        <p className="text-muted-on-light mb-8">
-          Quem clicou no seu link de captação.
-        </p>
+        <PageHeader
+          title="Seus leads"
+          subtitle="Quem clicou no seu link de captação."
+        />
 
         {leads.length === 0 ? (
-          <p className="text-muted-on-light">Nenhum lead ainda. Compartilhe seu link!</p>
+          <Card className="max-w-2xl text-muted-on-light">
+            Nenhum lead ainda. Compartilhe seu link de captação para começar!
+          </Card>
         ) : (
           <ul className="space-y-3 max-w-2xl">
             {leads.map((l) => (
-              <li
-                key={l.external_id}
-                className="rounded-[var(--radius)] border border-line-light/20 bg-white p-5"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-display text-lg">{l.name}</h2>
-                    <p className="text-xs text-muted-on-light mt-1">
-                      {new Date(l.created_at).toLocaleString("pt-BR")}
-                      {l.hub_name ? ` · polo ${l.hub_name}` : ""}
-                    </p>
+              <li key={l.external_id}>
+                <Card>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-lg">{l.name}</h2>
+                      <p className="text-xs text-muted-on-light mt-1">
+                        {new Date(l.created_at).toLocaleString("pt-BR")}
+                        {l.hub_name ? ` · polo ${l.hub_name}` : ""}
+                      </p>
+                    </div>
+                    <Badge tone="muted">{l.status}</Badge>
                   </div>
-                  <span className="text-xs uppercase tracking-wider text-muted-on-light">
-                    {l.status}
-                  </span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-3 text-sm">
-                  {l.payment_link && (
-                    <Link
-                      href={l.payment_link}
-                      className="text-gold-ink underline"
-                      target="_blank"
-                    >
-                      link de pagamento
-                    </Link>
+                  {(l.payment_link || l.receipt_url) && (
+                    <div className="mt-3 flex flex-wrap gap-4 text-sm">
+                      {l.payment_link && (
+                        <a
+                          href={l.payment_link}
+                          className="text-gold-ink underline hover:text-gold-deep"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          link de pagamento
+                        </a>
+                      )}
+                      {l.receipt_url && (
+                        <a
+                          href={l.receipt_url}
+                          className="text-gold-ink underline hover:text-gold-deep"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          recibo
+                        </a>
+                      )}
+                    </div>
                   )}
-                  {l.receipt_url && (
-                    <Link
-                      href={l.receipt_url}
-                      className="text-gold-ink underline"
-                      target="_blank"
-                    >
-                      recibo
-                    </Link>
-                  )}
-                </div>
+                </Card>
               </li>
             ))}
           </ul>

@@ -1,13 +1,49 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { CardLink } from "@/components/ui/Card";
+import { CopyButton } from "@/components/ui/CopyButton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { pickFunnelRole, readSession } from "@/lib/auth/server";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, CandidateStatus, PromoterMe } from "@/lib/api/types";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Painel" };
+
+// Ordem do funil (mesma do backend) — usada pra saber quais etapas já passaram.
+const FUNNEL_ORDER: CandidateStatus[] = [
+  "started",
+  "profile",
+  "address",
+  "documents",
+  "pix",
+  "selfie",
+  "completed",
+];
+
+const CANDIDATE_STAGES = [
+  { key: "profile", title: "Perfil", href: "/perfil" },
+  { key: "address", title: "Endereço", href: "/endereco" },
+  { key: "documents", title: "Documento", href: "/documento" },
+  { key: "pix", title: "Pix", href: "/pix" },
+  { key: "selfie", title: "Selfie", href: "/selfie" },
+] as const;
+
+function cardState(
+  stage: CandidateStatus,
+  current: CandidateStatus,
+): "done" | "current" | "todo" {
+  const ci = FUNNEL_ORDER.indexOf(current);
+  const si = FUNNEL_ORDER.indexOf(stage);
+  if (ci > si) return "done";
+  if (ci === si) return "current";
+  return "todo";
+}
 
 const STAGE_LABEL: Record<CandidateStatus, string> = {
   started: "Complete seu perfil",
@@ -43,37 +79,30 @@ export default async function PainelPage() {
 
   if (role === "candidate") {
     const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
+    const current: CandidateStatus = me.status === "started" ? "profile" : me.status;
     return (
       <GrainSection className="bg-paper-soft min-h-[60vh]">
         <Container>
-          <p className="kicker text-gold-ink">V7M · Promotor</p>
-          <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-            Olá, {session.name ?? "promotor"}
-          </h1>
-          <p className="text-muted-on-light text-lg mb-8">
-            {STAGE_LABEL[me.status]}
-          </p>
+          <PageHeader
+            title={`Olá, ${session.name ?? "promotor"}`}
+            subtitle={STAGE_LABEL[me.status]}
+          />
 
           <div className="grid gap-4 max-w-2xl md:grid-cols-2">
-            <StageCard
-              title="Perfil"
-              done={!!me.profile?.marital_status && !!me.profile?.nationality}
-              href="/perfil"
-            />
-            <StageCard
-              title="Endereço"
-              done={!!me.address?.zipcode && !!me.address?.city}
-              href="/endereco"
-            />
-            <StageCard title="Documento" done={false} href="/documento" hint="Próxima etapa (M2b)" />
-            <StageCard title="Pix" done={false} href="/pix" hint="Próxima etapa (M2c)" />
-            <StageCard title="Selfie" done={false} href="/selfie" hint="Próxima etapa (M2c)" />
+            {CANDIDATE_STAGES.map((s) => (
+              <StageCard
+                key={s.key}
+                title={s.title}
+                href={s.href}
+                state={cardState(s.key, current)}
+              />
+            ))}
           </div>
 
           <div className="mt-10">
-            <Link href={STAGE_HREF[me.status]} className="btn btn-xl inline-block">
+            <Button href={STAGE_HREF[me.status]} size="xl">
               {me.status === "completed" ? "Ir pro treinamento" : "Continuar de onde parei"}
-            </Link>
+            </Button>
           </div>
         </Container>
       </GrainSection>
@@ -85,39 +114,44 @@ export default async function PainelPage() {
     return (
       <GrainSection className="bg-paper-soft min-h-[60vh]">
         <Container>
-          <p className="kicker text-gold-ink">V7M · Promotor</p>
-          <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-            Olá, {session.name ?? "promotor"}
-          </h1>
-          <p className="text-muted-on-light text-lg mb-2">
-            {data.status === "active" ? "Ativo" : "Suspenso"}
-            {data.hub_external_id ? ` · polo ${data.hub_external_id.slice(0, 8)}` : ""}
-          </p>
+          <PageHeader
+            title={`Olá, ${session.name ?? "promotor"}`}
+            subtitle={
+              <span className="inline-flex items-center gap-2">
+                <Badge tone={data.status === "active" ? "ok" : "danger"}>
+                  {data.status === "active" ? "Ativo" : "Suspenso"}
+                </Badge>
+                {data.hub_external_id
+                  ? `polo ${data.hub_external_id.slice(0, 8)}`
+                  : ""}
+              </span>
+            }
+          />
           {data.ref_url && (
-            <p className="text-sm text-muted-on-light mb-8">
-              Seu link de captação: <code className="text-paper">{data.ref_url}</code>
-            </p>
+            <div className="-mt-4 mb-8 max-w-2xl">
+              <p className="text-sm text-muted-on-light mb-1">Seu link de captação</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <code className="rounded bg-paper px-2 py-1 border border-line-light text-black text-sm break-all">
+                  {data.ref_url}
+                </code>
+                <CopyButton value={data.ref_url} label="Copiar link" />
+              </div>
+            </div>
           )}
 
           <div className="grid gap-4 max-w-2xl md:grid-cols-2">
-            <Link
-              href="/leads"
-              className="block rounded-[var(--radius)] border border-line-light/20 bg-white p-5 hover:border-gold transition"
-            >
+            <CardLink href="/leads">
               <h2 className="font-display text-lg">Leads</h2>
               <p className="text-sm text-muted-on-light mt-1">
                 Quem clicou no seu link e onde está.
               </p>
-            </Link>
-            <Link
-              href="/comissoes"
-              className="block rounded-[var(--radius)] border border-line-light/20 bg-white p-5 hover:border-gold transition"
-            >
+            </CardLink>
+            <CardLink href="/comissoes">
               <h2 className="font-display text-lg">Comissões</h2>
               <p className="text-sm text-muted-on-light mt-1">
                 Pagas e pendentes. Atualiza depois do fechamento da semana.
               </p>
-            </Link>
+            </CardLink>
           </div>
         </Container>
       </GrainSection>
@@ -128,16 +162,13 @@ export default async function PainelPage() {
     return (
       <GrainSection className="bg-paper-soft min-h-[60vh]">
         <Container>
-          <p className="kicker text-gold-ink">V7M · Promotor</p>
-          <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-            Olá, {session.name ?? "trainee"}
-          </h1>
-          <p className="text-muted-on-light text-lg mb-8">
-            Bora terminar o treinamento?
-          </p>
-          <Link href="/treinamento" className="btn btn-xl inline-block">
+          <PageHeader
+            title={`Olá, ${session.name ?? "trainee"}`}
+            subtitle="Bora terminar o treinamento?"
+          />
+          <Button href="/treinamento" size="xl">
             Ver matérias
-          </Link>
+          </Button>
         </Container>
       </GrainSection>
     );
@@ -146,17 +177,13 @@ export default async function PainelPage() {
   return (
     <GrainSection className="bg-paper-soft min-h-[60vh]">
       <Container>
-        <p className="kicker text-gold-ink">V7M · Promotor</p>
-        <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-          Olá, {session.name ?? "promotor"}
-        </h1>
-        <p className="text-muted-on-light text-lg mb-8">
-          {role ? ROLE_LABEL[role] ?? `Role: ${role}` : "Bem-vindo."}
-        </p>
+        <PageHeader
+          title={`Olá, ${session.name ?? "promotor"}`}
+          subtitle={role ? (ROLE_LABEL[role] ?? `Role: ${role}`) : "Bem-vindo."}
+        />
         <p className="text-sm text-muted-on-light max-w-prose">
-          O seu dashboard entra nos próximos milestones (M3 em diante). Por ora,
-          confirmamos o login fim-a-fim (auth + cookies HttpOnly + whoami do
-          backend).
+          Sua conta está ativa. Ainda não há um painel para este perfil por aqui —
+          se você deveria ver leads ou treinamento, fale com seu coordenador.
         </p>
       </Container>
     </GrainSection>
@@ -165,31 +192,25 @@ export default async function PainelPage() {
 
 function StageCard({
   title,
-  done,
   href,
-  hint,
+  state,
 }: {
   title: string;
-  done: boolean;
   href: string;
-  hint?: string;
+  state: "done" | "current" | "todo";
 }) {
   return (
-    <Link
-      href={href}
-      className="block rounded-[var(--radius)] border border-line-light/20 bg-white p-5 hover:border-gold transition"
-    >
-      <div className="flex items-center justify-between">
+    <CardLink href={href}>
+      <div className="flex items-center justify-between gap-3">
         <h2 className="font-display text-lg">{title}</h2>
-        <span
-          className={`text-xs uppercase tracking-wider ${
-            done ? "text-green-700" : "text-muted-on-light"
-          }`}
-        >
-          {done ? "OK" : "Pendente"}
-        </span>
+        {state === "done" ? (
+          <Badge tone="ok">Concluído</Badge>
+        ) : state === "current" ? (
+          <Badge tone="warn">Agora</Badge>
+        ) : (
+          <Badge tone="muted">Pendente</Badge>
+        )}
       </div>
-      {hint && <p className="text-xs text-muted-on-light mt-1">{hint}</p>}
-    </Link>
+    </CardLink>
   );
 }

@@ -4,6 +4,10 @@ import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 
+import { Button } from "@/components/ui/Button";
+import { Field, FieldError } from "@/components/ui/Field";
+import { FileInput } from "@/components/ui/FileInput";
+import { StatusBanner } from "@/components/ui/StatusBanner";
 import type { AnalysisStatus, DocumentSection } from "@/lib/api/types";
 
 type Props = {
@@ -26,8 +30,7 @@ export function DocForm({ initial, initialStatus }: Props) {
   // Polling do /me/document enquanto pending.
   const { data: live } = useSWR<DocumentSection>(
     "/api/me/document",
-    (url: string) =>
-      fetch(url, { cache: "no-store" }).then((r) => r.json()),
+    (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
     {
       refreshInterval: (latest) =>
         latest?.analysis_status === "pending" ? POLL_MS : 0,
@@ -132,40 +135,34 @@ export function DocForm({ initial, initialStatus }: Props) {
   if (initialStatus === "documents" && !initial.doc_type) {
     return (
       <form onSubmit={onMeta} className="space-y-5">
-        <p className="text-muted-on-dark text-sm">
+        <p className="text-muted-on-light text-sm">
           Você pode enviar RG ou CNH. O tipo fica travado no primeiro upload.
         </p>
-        <fieldset className="space-y-3">
-          <legend className="block text-sm text-muted-on-dark mb-2">Tipo</legend>
+        <fieldset className="space-y-2">
+          <legend className="label">Tipo</legend>
           {(["rg", "cnh"] as const).map((t) => (
-            <label key={t} className="flex items-center gap-3 text-paper">
+            <label
+              key={t}
+              className="flex items-center gap-3 rounded-[var(--radius-sm)] border border-line-light bg-paper px-4 py-3 cursor-pointer hover:border-gold-deep has-[:checked]:border-gold has-[:checked]:bg-gold-soft/10 transition-colors"
+            >
               <input
                 type="radio"
                 name="doc_type"
                 value={t}
                 checked={docType === t}
                 onChange={() => setDocType(t)}
-                className="accent-gold"
+                className="accent-gold-deep"
               />
               {t === "rg" ? "RG" : "CNH"}
             </label>
           ))}
         </fieldset>
-        <Field
-          label="Número"
-          value={number}
-          onChange={setNumber}
-          required
-        />
+        <Field label="Número" value={number} onChange={setNumber} required />
         <Field label="Órgão emissor (SSP, etc.)" value={issuing} onChange={setIssuing} />
-        {error && (
-          <p className="text-sm text-red-300" role="alert">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="btn btn-xl w-full" disabled={pending || !docType}>
+        <FieldError>{error}</FieldError>
+        <Button type="submit" size="xl" loading={pending} disabled={!docType} className="w-full">
           {pending ? "Salvando…" : "Próximo"}
-        </button>
+        </Button>
       </form>
     );
   }
@@ -178,17 +175,8 @@ export function DocForm({ initial, initialStatus }: Props) {
       <StatusBanner status={status} reason={live?.analysis_reason ?? null} />
 
       <form onSubmit={onPatch} className="space-y-5">
-        <Field
-          label="Número"
-          value={number}
-          onChange={setNumber}
-          required
-        />
-        <Field
-          label="Órgão emissor"
-          value={issuing}
-          onChange={setIssuing}
-        />
+        <Field label="Número" value={number} onChange={setNumber} required />
+        <Field label="Órgão emissor" value={issuing} onChange={setIssuing} />
         {/* Campos extras que o OCR não trouxe e o backend marcou como faltando */}
         {missing
           .filter((f) => f !== "doc_type" && f !== "number" && f !== "issuing_agency")
@@ -201,90 +189,31 @@ export function DocForm({ initial, initialStatus }: Props) {
               required
             />
           ))}
-        <button type="submit" className="btn w-full" disabled={pending}>
+        <Button type="submit" loading={pending} className="w-full">
           {pending ? "Salvando…" : "Salvar dados do documento"}
-        </button>
+        </Button>
       </form>
 
-      <div className="border-t border-line-light/20 pt-6 space-y-3">
-        <p className="text-sm text-muted-on-dark">
+      <div className="border-t border-line-light pt-6 space-y-3">
+        <p className="text-sm text-muted-on-light">
           Foto do documento (frente e verso juntos, num PDF ou numa foto só):
         </p>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*,application/pdf"
-          className="block w-full text-sm text-paper file:mr-3 file:rounded file:border-0 file:bg-gold file:px-4 file:py-2 file:text-char file:font-display"
-        />
-        <button
+        <FileInput ref={fileRef} accept="image/*,application/pdf" />
+        <Button
           type="button"
+          size="xl"
           onClick={() => onUpload(slot)}
-          className="btn btn-xl w-full"
-          disabled={pending}
+          loading={pending}
+          className="w-full"
         >
           {pending ? "Enviando…" : status === "rejected" ? "Reenviar foto" : "Enviar foto"}
-        </button>
-        {error && (
-          <p className="text-sm text-red-300" role="alert">
-            {error}
-          </p>
-        )}
+        </Button>
+        <FieldError>{error}</FieldError>
       </div>
     </div>
   );
 }
 
-function StatusBanner({ status, reason }: { status: AnalysisStatus; reason: string | null }) {
-  const tone =
-    status === "approved"
-      ? "border-green-500/50 bg-green-500/10 text-green-200"
-      : status === "rejected"
-        ? "border-red-500/50 bg-red-500/10 text-red-200"
-        : status === "review"
-          ? "border-yellow-500/50 bg-yellow-500/10 text-yellow-200"
-          : "border-blue-500/50 bg-blue-500/10 text-blue-200";
-  const label =
-    status === "approved"
-      ? "Aprovado"
-      : status === "rejected"
-        ? "Reprovado"
-        : status === "review"
-          ? "Em revisão"
-          : "Analisando…";
-  return (
-    <div className={`rounded-[var(--radius)] border ${tone} p-4`}>
-      <p className="font-display">{label}</p>
-      {reason && <p className="text-sm mt-1 opacity-90">{reason}</p>}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  required = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-sm text-muted-on-dark mb-2">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-      />
-    </label>
-  );
-}
-
 function humanize(f: string) {
-  return f
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return f.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }

@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { Field, FieldError } from "@/components/ui/Field";
+
 type Stage = "register" | "otp";
 
 export function CadastroForm() {
@@ -75,26 +78,28 @@ export function CadastroForm() {
         <p className="text-muted-on-dark text-sm">
           Mandamos um código de 6 dígitos no WhatsApp. Digite abaixo pra começar.
         </p>
-        <label className="block">
-          <span className="block text-sm text-muted-on-dark mb-2">Código</span>
-          <input
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]{6}"
-            maxLength={6}
-            required
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-            className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper text-xl tracking-widest text-center focus-visible:border-gold focus-visible:outline-none"
-          />
-        </label>
-        {error && (
-          <p className="text-sm text-red-300" role="alert">
-            {error.detail}
-          </p>
-        )}
-        <button type="submit" className="btn btn-xl w-full" disabled={loading}>
+        <Field
+          tone="dark"
+          label="Código"
+          value={otp}
+          onChange={(v) => setOtp(v.replace(/\D/g, ""))}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9]{6}"
+          maxLength={6}
+          required
+          inputClassName="text-xl tracking-[0.4em] text-center"
+        />
+        <FieldError tone="dark">{error?.detail}</FieldError>
+        <Button type="submit" size="xl" loading={loading} className="w-full">
           {loading ? "Entrando…" : "Entrar"}
+        </Button>
+        <button
+          type="button"
+          className="text-gold-soft text-sm underline block mx-auto cursor-pointer hover:text-gold-soft/80"
+          onClick={() => setStage("register")}
+        >
+          Corrigir meus dados
         </button>
       </form>
     );
@@ -102,44 +107,40 @@ export function CadastroForm() {
 
   return (
     <form onSubmit={onRegister} className="space-y-5">
-      <label className="block">
-        <span className="block text-sm text-muted-on-dark mb-2">CPF</span>
-        <input
-          required
-          value={cpf}
-          onChange={(e) => setCpf(e.target.value)}
-          placeholder="000.000.000-00"
-          className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-        />
-      </label>
-      <label className="block">
-        <span className="block text-sm text-muted-on-dark mb-2">Telefone (WhatsApp)</span>
-        <input
-          required
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="(00) 00000-0000"
-          className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-        />
-      </label>
-      <label className="block">
-        <span className="block text-sm text-muted-on-dark mb-2">E-mail</span>
-        <input
-          required
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-        />
-      </label>
-      {error && (
-        <p className="text-sm text-red-300" role="alert">
-          {error.detail}
-        </p>
-      )}
-      <button type="submit" className="btn btn-xl w-full" disabled={loading}>
+      <Field
+        tone="dark"
+        label="CPF"
+        value={cpf}
+        onChange={setCpf}
+        inputMode="numeric"
+        placeholder="000.000.000-00"
+        required
+      />
+      <Field
+        tone="dark"
+        label="Telefone (WhatsApp)"
+        value={phone}
+        onChange={setPhone}
+        type="tel"
+        inputMode="tel"
+        placeholder="(00) 00000-0000"
+        required
+      />
+      <Field
+        tone="dark"
+        label="E-mail"
+        value={email}
+        onChange={setEmail}
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        placeholder="voce@email.com"
+        required
+      />
+      <FieldError tone="dark">{error?.detail}</FieldError>
+      <Button type="submit" size="xl" loading={loading} className="w-full">
         {loading ? "Enviando…" : "Começar"}
-      </button>
+      </Button>
     </form>
   );
 }

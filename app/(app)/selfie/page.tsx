@@ -2,11 +2,16 @@ import { redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
+import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { FunnelStepper } from "@/components/ui/Stepper";
 import { readSession } from "@/lib/auth/server";
 
 import { SelfieForm } from "./SelfieForm";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Sua selfie" };
 
 export default async function SelfiePage() {
   const session = await readSession();
@@ -16,17 +21,14 @@ export default async function SelfiePage() {
   return (
     <GrainSection className="bg-paper-soft min-h-[60vh]">
       <Container>
-        <p className="kicker text-gold-ink">V7M · Promotor</p>
-        <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-          Sua selfie
-        </h1>
-        <p className="text-muted-on-light mb-8">
-          Foto ao vivo, sem óculos escuros. A IA confere a vivacidade e compara
-          com o rosto do documento. Se reprovar, ela te explica como refazer.
-        </p>
-        <div className="max-w-xl">
+        <PageHeader
+          title="Sua selfie"
+          subtitle="Foto ao vivo, sem óculos escuros. A IA confere a vivacidade e compara com o rosto do documento. Se reprovar, ela te explica como refazer."
+        />
+        <FunnelStepper current="selfie" />
+        <Card className="max-w-xl">
           <SelfieForm />
-        </div>
+        </Card>
       </Container>
     </GrainSection>
   );

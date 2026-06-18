@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { FieldError, TextareaField } from "@/components/ui/Field";
+
 type Props = {
   materialExternalId: string;
   status: string;
@@ -44,32 +47,28 @@ export function SubmissionForm({ materialExternalId, status }: Props) {
 
   if (submitted) {
     return (
-      <p className="text-paper">
-        Resposta enviada. A IA tá corrigindo e o coordenador confere.
-      </p>
+      <div className="banner banner-ok" role="status">
+        <p className="font-display">Resposta enviada</p>
+        <p className="text-sm mt-1 opacity-90">
+          A IA tá corrigindo e o coordenador confere.
+        </p>
+      </div>
     );
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <label className="block">
-        <span className="block text-sm text-muted-on-dark mb-2">Sua resposta</span>
-        <textarea
-          required
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          rows={10}
-          className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-        />
-      </label>
-      {error && (
-        <p className="text-sm text-red-300" role="alert">
-          {error}
-        </p>
-      )}
-      <button type="submit" className="btn btn-xl w-full" disabled={pending || !answer.trim()}>
+      <TextareaField
+        label="Sua resposta"
+        value={answer}
+        onChange={setAnswer}
+        rows={10}
+        required
+      />
+      <FieldError>{error}</FieldError>
+      <Button type="submit" size="xl" loading={pending} disabled={!answer.trim()} className="w-full">
         {pending ? "Enviando…" : "Enviar resposta"}
-      </button>
+      </Button>
     </form>
   );
 }

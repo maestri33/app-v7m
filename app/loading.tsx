@@ -6,7 +6,10 @@ export default function Loading() {
     <GrainSection className="bg-paper-soft min-h-[40vh] flex items-center">
       <Container>
         <p className="kicker text-gold-ink">V7M</p>
-        <p className="text-muted-on-light animate-pulse">Carregando…</p>
+        <p className="flex items-center gap-2 text-muted-on-light">
+          <span className="spinner" aria-hidden />
+          Carregando…
+        </p>
       </Container>
     </GrainSection>
   );

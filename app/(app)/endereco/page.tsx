@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
+import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { FunnelStepper } from "@/components/ui/Stepper";
 import { djangoFetch } from "@/lib/api/client";
 import type { AddressSection } from "@/lib/api/types";
 import { readSession } from "@/lib/auth/server";
@@ -9,6 +12,8 @@ import { readSession } from "@/lib/auth/server";
 import { EnderecoForm } from "./EnderecoForm";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Seu endereço" };
 
 export default async function EnderecoPage() {
   const session = await readSession();
@@ -22,16 +27,14 @@ export default async function EnderecoPage() {
   return (
     <GrainSection className="bg-paper-soft min-h-[60vh]">
       <Container>
-        <p className="kicker text-gold-ink">V7M · Promotor</p>
-        <h1 className="mb-3" style={{ fontSize: "var(--text-h2-sm)" }}>
-          Seu endereço
-        </h1>
-        <p className="text-muted-on-light mb-8">
-          A gente busca o CEP e você só completa o que faltar (número, complemento).
-        </p>
-        <div className="max-w-xl">
+        <PageHeader
+          title="Seu endereço"
+          subtitle="A gente busca o CEP e você só completa o que faltar (número, complemento)."
+        />
+        <FunnelStepper current="address" />
+        <Card className="max-w-xl">
           <EnderecoForm initial={data} />
-        </div>
+        </Card>
       </Container>
     </GrainSection>
   );

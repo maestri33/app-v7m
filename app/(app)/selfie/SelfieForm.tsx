@@ -4,6 +4,10 @@ import { useRef, useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 
+import { Button } from "@/components/ui/Button";
+import { FieldError } from "@/components/ui/Field";
+import { FileInput } from "@/components/ui/FileInput";
+import { StatusBanner } from "@/components/ui/StatusBanner";
 import type { AnalysisStatus } from "@/lib/api/types";
 
 type SelfieSection = {
@@ -23,8 +27,7 @@ export function SelfieForm() {
 
   const { data, mutate } = useSWR<SelfieSection>(
     "/api/me/selfie",
-    (url: string) =>
-      fetch(url, { cache: "no-store" }).then((r) => r.json()),
+    (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
     {
       refreshInterval: (latest) =>
         latest?.analysis_status === "pending" ? POLL_MS : 0,
@@ -68,68 +71,31 @@ export function SelfieForm() {
 
   return (
     <div className="space-y-6">
-      {takenAt && <StatusBanner status={status} reason={reason} takenAt={takenAt} />}
+      {takenAt && (
+        <StatusBanner
+          status={status}
+          reason={reason}
+          subject="f"
+          footnote={`Enviada em ${new Date(takenAt).toLocaleString("pt-BR")}`}
+        />
+      )}
 
       <div className="space-y-3">
-        <p className="text-sm text-muted-on-dark">
+        <p className="text-sm text-muted-on-light">
           Selfie ao vivo, bem iluminada, sem óculos/chapéu:
         </p>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          capture="user"
-          className="block w-full text-sm text-paper file:mr-3 file:rounded file:border-0 file:bg-gold file:px-4 file:py-2 file:text-char file:font-display"
-        />
-        <button
+        <FileInput ref={fileRef} accept="image/*" capture="user" />
+        <Button
           type="button"
+          size="xl"
           onClick={onUpload}
-          className="btn btn-xl w-full"
-          disabled={pending}
+          loading={pending}
+          className="w-full"
         >
           {pending ? "Enviando…" : status === "rejected" ? "Reenviar selfie" : "Enviar selfie"}
-        </button>
-        {error && (
-          <p className="text-sm text-red-300" role="alert">
-            {error}
-          </p>
-        )}
+        </Button>
+        <FieldError>{error}</FieldError>
       </div>
-    </div>
-  );
-}
-
-function StatusBanner({
-  status,
-  reason,
-  takenAt,
-}: {
-  status: AnalysisStatus;
-  reason: string | null;
-  takenAt: string;
-}) {
-  const tone =
-    status === "approved"
-      ? "border-green-500/50 bg-green-500/10 text-green-200"
-      : status === "rejected"
-        ? "border-red-500/50 bg-red-500/10 text-red-200"
-        : status === "review"
-          ? "border-yellow-500/50 bg-yellow-500/10 text-yellow-200"
-          : "border-blue-500/50 bg-blue-500/10 text-blue-200";
-  const label =
-    status === "approved"
-      ? "Aprovada"
-      : status === "rejected"
-        ? "Reprovada"
-        : status === "review"
-          ? "Em revisão"
-          : "Analisando…";
-  const when = new Date(takenAt).toLocaleString("pt-BR");
-  return (
-    <div className={`rounded-[var(--radius)] border ${tone} p-4`}>
-      <p className="font-display">{label}</p>
-      <p className="text-xs mt-1 opacity-70">Enviada em {when}</p>
-      {reason && <p className="text-sm mt-2 opacity-90">{reason}</p>}
     </div>
   );
 }

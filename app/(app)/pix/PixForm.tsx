@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { Field, FieldError, SelectField } from "@/components/ui/Field";
+
 const KEY_TYPES = [
   { value: "CPF", label: "CPF" },
   { value: "CNPJ", label: "CNPJ" },
@@ -49,46 +52,32 @@ export function PixForm({ initial }: Props) {
 
   if (success) {
     return (
-      <p className="text-paper">
-        Chave validada. Vamos pra próxima etapa.
-      </p>
+      <div className="banner banner-ok" role="status">
+        <p className="font-display">Chave validada</p>
+        <p className="text-sm mt-1 opacity-90">Vamos pra próxima etapa.</p>
+      </div>
     );
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <label className="block">
-        <span className="block text-sm text-muted-on-dark mb-2">Tipo</span>
-        <select
-          value={keyType}
-          onChange={(e) => setKeyType(e.target.value)}
-          className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-        >
-          {KEY_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block">
-        <span className="block text-sm text-muted-on-dark mb-2">Chave</span>
-        <input
-          required
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder={placeholderFor(keyType)}
-          className="w-full rounded-[var(--radius)] bg-char-2 border border-line-light/20 px-4 py-3 text-paper focus-visible:border-gold focus-visible:outline-none"
-        />
-      </label>
-      {error && (
-        <p className="text-sm text-red-300" role="alert">
-          {error}
-        </p>
-      )}
-      <button type="submit" className="btn btn-xl w-full" disabled={pending || !key}>
+      <SelectField
+        label="Tipo"
+        value={keyType}
+        onChange={setKeyType}
+        options={KEY_TYPES}
+      />
+      <Field
+        label="Chave"
+        value={key}
+        onChange={setKey}
+        placeholder={placeholderFor(keyType)}
+        required
+      />
+      <FieldError>{error}</FieldError>
+      <Button type="submit" size="xl" loading={pending} disabled={!key} className="w-full">
         {pending ? "Validando (R$0,01)…" : "Validar chave"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -26,6 +26,17 @@
   --muted-on-dark: #b4b4bb;
   --muted-on-light: #5c5c63;
 
+  /* Status semânticos — legíveis em fundo CLARO (texto) e ESCURO (-soft).
+     Acento da marca segue sendo o dourado; estes são só para feedback. */
+  --ok: #2f8f5b; /* verde AA sobre claro */
+  --ok-soft: #79d39b; /* verde legível sobre escuro */
+  --danger: #c0392b; /* vermelho AA sobre claro */
+  --danger-soft: #ff9a8f; /* vermelho legível sobre escuro */
+  --warn: #b07a13; /* âmbar AA sobre claro */
+  --warn-soft: #f0c361; /* âmbar legível sobre escuro */
+  --info: #2f6fb0; /* azul AA sobre claro */
+  --info-soft: #93c2ee; /* azul legível sobre escuro */
+
   /* Tipografia — vars preenchidas pelo next/font/google no layout */
   --font-display: var(--font-archivo-black), 'Arial Black', 'Helvetica Neue', sans-serif;
   --font-body: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -33,6 +44,7 @@
   --text-base: clamp(1rem, 0.95rem + 0.35vw, 1.125rem);
   --text-lg: clamp(1.125rem, 1.02rem + 0.55vw, 1.375rem);
   --text-h2: clamp(2rem, 1.3rem + 3vw, 3.6rem);
+  --text-h2-sm: clamp(1.65rem, 1.2rem + 1.9vw, 2.5rem); /* título de página interna */
   --text-h3: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
   --text-hero: clamp(2.85rem, 1.1rem + 8vw, 6.8rem);
 
@@ -48,6 +60,14 @@
   /* Superfícies */
   --radius: 18px;
   --radius-lg: 28px;
+  --radius-sm: 12px;
+
+  /* Foco (anel dourado consistente em inputs/cards/links) */
+  --ring: 0 0 0 4px rgb(217 177 90 / 0.45);
+
+  /* Elevação (cartões em superfície clara) */
+  --shadow-card: 0 1px 2px rgb(11 11 12 / 0.04), 0 10px 28px -18px rgb(11 11 12 / 0.22);
+  --shadow-card-hover: 0 2px 6px rgb(11 11 12 / 0.07), 0 20px 44px -22px rgb(11 11 12 / 0.32);
 }
 
 /* =============================================================================
@@ -66,6 +86,15 @@
   --color-gold-ink: var(--gold-ink);
   --color-muted-on-dark: var(--muted-on-dark);
   --color-muted-on-light: var(--muted-on-light);
+
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);
@@ -143,7 +172,7 @@ strong {
 }
 
 /* =============================================================================
-   Componentes custom (espelho do landing)
+   Componentes custom (espelho do landing + sistema do app)
    ============================================================================= */
 @layer components {
   .container-x {
@@ -162,6 +191,15 @@ strong {
     letter-spacing: 0.16em;
     text-transform: uppercase;
     margin-bottom: 1.1rem;
+  }
+
+  /* Título de página interna (substitui o style inline com --text-h2-sm) */
+  .page-title {
+    font-family: var(--font-display);
+    font-size: var(--text-h2-sm);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
   }
 
   /* Grain sutil em seções escuras (atmosfera, anti-flat) */
@@ -219,7 +257,9 @@ strong {
     border: 0;
   }
 
-  /* CTA dourado (espelho do landing · .btn) */
+  /* ---------------------------------------------------------------------------
+     CTA dourado (espelho do landing · .btn) + variantes/estados
+     --------------------------------------------------------------------------- */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -261,6 +301,308 @@ strong {
     outline: 3px solid var(--paper);
     outline-offset: 2px;
     box-shadow: 0 0 0 7px rgb(20 20 22 / 0.85);
+  }
+  /* Estado desabilitado (faltava — botões "Enviando…" pareciam ativos) */
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
+  }
+
+  /* Tamanho grande (faltava — Button usava .btn-xl sem CSS) */
+  .btn-xl {
+    padding: 1.15em 2.15em;
+    font-size: clamp(1.05rem, 0.97rem + 0.45vw, 1.25rem);
+  }
+
+  /* Variante fantasma p/ superfícies escuras (faltava — Button usava .btn-ghost) */
+  .btn-ghost {
+    background: transparent;
+    color: var(--paper);
+    border: 1px solid rgb(240 212 147 / 0.4);
+    box-shadow: none;
+  }
+  .btn-ghost:hover {
+    background: rgb(240 212 147 / 0.1);
+    border-color: rgb(240 212 147 / 0.65);
+    box-shadow: none;
+  }
+  .btn-ghost:focus-visible {
+    outline: 3px solid var(--gold-soft);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Campos de formulário — tom CLARO (default, telas /app) e ESCURO (auth)
+     --------------------------------------------------------------------------- */
+  .label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted-on-light);
+    margin-bottom: 0.5rem;
+  }
+  .label-dark {
+    color: var(--muted-on-dark);
+  }
+
+  .input {
+    width: 100%;
+    border-radius: var(--radius);
+    padding: 0.8rem 1rem;
+    font: inherit;
+    color: var(--black);
+    background: var(--paper);
+    border: 1px solid var(--line-light);
+    transition:
+      border-color 0.15s var(--ease-out),
+      box-shadow 0.15s var(--ease-out);
+  }
+  .input::placeholder {
+    color: var(--muted-on-light);
+    opacity: 0.65;
+  }
+  .input:hover:not(:disabled) {
+    border-color: var(--gold-deep);
+  }
+  .input:focus-visible {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: var(--ring);
+  }
+  .input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  /* Tom escuro (telas de auth sobre grafite) */
+  .input-dark {
+    color: var(--paper);
+    background: var(--char-2);
+    border-color: rgb(231 228 221 / 0.2);
+  }
+  .input-dark::placeholder {
+    color: var(--muted-on-dark);
+    opacity: 0.6;
+  }
+  .input-dark:hover:not(:disabled) {
+    border-color: var(--gold-soft);
+  }
+
+  /* Campo somente-leitura (vem do CPFHub/ViaCEP) */
+  .input-readonly {
+    width: 100%;
+    border-radius: var(--radius);
+    padding: 0.8rem 1rem;
+    background: var(--paper-soft);
+    border: 1px solid var(--line-light);
+    color: var(--muted-on-light);
+  }
+  .input-readonly.input-dark {
+    background: var(--char);
+    border-color: rgb(231 228 221 / 0.1);
+    color: rgb(255 255 255 / 0.7);
+  }
+
+  .field-hint {
+    font-size: 0.75rem;
+    color: var(--muted-on-light);
+    margin-top: 0.4rem;
+  }
+  .field-hint-dark {
+    color: rgb(180 180 187 / 0.75);
+  }
+
+  .field-error {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--danger);
+    margin-top: 0.5rem;
+  }
+  .field-error-dark {
+    color: var(--danger-soft);
+  }
+
+  /* Input de arquivo (selfie/documento) */
+  .file-input {
+    width: 100%;
+    font-size: 0.9rem;
+    color: var(--black);
+  }
+  .file-input::file-selector-button {
+    margin-right: 0.75rem;
+    border: 0;
+    border-radius: 10px;
+    background: var(--gold-grad);
+    color: var(--black);
+    font-family: var(--font-body);
+    font-weight: 700;
+    padding: 0.55rem 1.1rem;
+    cursor: pointer;
+    transition: filter 0.15s var(--ease-out);
+  }
+  .file-input::file-selector-button:hover {
+    filter: brightness(1.05);
+  }
+  .file-input-dark {
+    color: var(--paper);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Cartões (substitui os ~8 divs repetidos border+bg-white+hover)
+     --------------------------------------------------------------------------- */
+  .card {
+    border-radius: var(--radius);
+    background: var(--paper);
+    border: 1px solid var(--line-light);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-card);
+  }
+  .card-interactive {
+    cursor: pointer;
+    transition:
+      border-color 0.2s var(--ease-out),
+      box-shadow 0.2s var(--ease-out),
+      transform 0.2s var(--ease-out);
+  }
+  .card-interactive:hover {
+    border-color: var(--gold);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+  }
+  .card-interactive:focus-visible {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: var(--ring);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Badge de status (pílula) — substitui spans inline com cores cruas
+     --------------------------------------------------------------------------- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.28rem 0.62rem;
+    border-radius: 999px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .badge-ok {
+    color: var(--ok);
+    border-color: rgb(47 143 91 / 0.35);
+    background: rgb(47 143 91 / 0.1);
+  }
+  .badge-danger {
+    color: var(--danger);
+    border-color: rgb(192 57 43 / 0.35);
+    background: rgb(192 57 43 / 0.09);
+  }
+  .badge-warn {
+    color: var(--warn);
+    border-color: rgb(176 122 19 / 0.4);
+    background: rgb(176 122 19 / 0.1);
+  }
+  .badge-muted {
+    color: var(--muted-on-light);
+    border-color: var(--line-light);
+    background: transparent;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Banner de status de análise (selfie/documento) — tom p/ superfície clara
+     --------------------------------------------------------------------------- */
+  .banner {
+    border-radius: var(--radius);
+    border: 1px solid;
+    padding: 1rem 1.15rem;
+  }
+  .banner-ok {
+    color: var(--ok);
+    border-color: rgb(47 143 91 / 0.3);
+    background: rgb(47 143 91 / 0.08);
+  }
+  .banner-danger {
+    color: var(--danger);
+    border-color: rgb(192 57 43 / 0.3);
+    background: rgb(192 57 43 / 0.07);
+  }
+  .banner-warn {
+    color: var(--warn);
+    border-color: rgb(176 122 19 / 0.32);
+    background: rgb(176 122 19 / 0.09);
+  }
+  .banner-info {
+    color: var(--info);
+    border-color: rgb(47 111 176 / 0.3);
+    background: rgb(47 111 176 / 0.08);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Stepper do funil (recomendação ui-ux-pro-max: indicador de progresso)
+     --------------------------------------------------------------------------- */
+  .stepper {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+    margin-bottom: 2rem;
+  }
+  .step {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted-on-light);
+  }
+  .step-dot {
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--line-light);
+    background: var(--paper);
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+  .step[data-state='done'] {
+    color: var(--gold-ink);
+  }
+  .step[data-state='done'] .step-dot {
+    background: var(--gold-ink);
+    border-color: var(--gold-ink);
+    color: var(--paper);
+  }
+  .step[data-state='current'] {
+    color: var(--black);
+  }
+  .step[data-state='current'] .step-dot {
+    border-color: var(--gold);
+    box-shadow: var(--ring);
+    color: var(--black);
+  }
+
+  /* Spinner inline (feedback em ações > 300ms) */
+  .spinner {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    animation: spin 0.6s linear infinite;
+    vertical-align: -0.15em;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 }
 
