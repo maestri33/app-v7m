@@ -106,6 +106,10 @@
 /* =============================================================================
    Reset enxuto + base
    ============================================================================= */
+/* DENTRO de @layer base: sem isso, estas regras sem-layer vencem o
+   @layer components e zeram margin-inline:auto (.container-x), .kicker,
+   .label, .field-hint, .stepper… (unlayered > layered na cascata). */
+@layer base {
 *,
 *::before,
 *::after {
@@ -170,6 +174,7 @@ strong {
   outline-offset: 3px;
   border-radius: 4px;
 }
+} /* @layer base */
 
 /* =============================================================================
    Componentes custom (espelho do landing + sistema do app)
