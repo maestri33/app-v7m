@@ -81,10 +81,15 @@ export function SelfieForm() {
       )}
 
       <div className="space-y-3">
-        <p className="text-sm text-muted-on-light">
+        <p id="selfie-photo-label" className="text-sm text-muted-on-light">
           Selfie ao vivo, bem iluminada, sem óculos/chapéu:
         </p>
-        <FileInput ref={fileRef} accept="image/*" capture="user" />
+        <FileInput
+          ref={fileRef}
+          accept="image/*"
+          capture="user"
+          aria-labelledby="selfie-photo-label"
+        />
         <Button
           type="button"
           size="xl"

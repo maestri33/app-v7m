@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+import Link from "next/link";
 
 import { Spinner } from "./Spinner";
 
@@ -47,8 +48,18 @@ export function Button(props: ButtonProps) {
 
   // `rest` ainda contém `href` no caso âncora (não foi desestruturado).
   if ("href" in props && props.href !== undefined) {
+    const { href, ...anchorRest } = rest as AnchorHTMLAttributes<HTMLAnchorElement>;
+    // Rota interna (/painel, /entrar…) → <Link> (nav client-side, sem reload).
+    // Externo/mailto/âncora (#) → <a> normal.
+    if (href && href.startsWith("/")) {
+      return (
+        <Link href={href} className={cls} {...anchorRest}>
+          {children}
+        </Link>
+      );
+    }
     return (
-      <a className={cls} {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}>
+      <a href={href} className={cls} {...anchorRest}>
         {children}
       </a>
     );

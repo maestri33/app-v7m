@@ -81,7 +81,7 @@ export default async function PainelPage() {
     const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
     const current: CandidateStatus = me.status === "started" ? "profile" : me.status;
     return (
-      <GrainSection className="bg-paper-soft min-h-[60vh]">
+      <GrainSection className="bg-paper-soft min-h-[60dvh]">
         <Container>
           <PageHeader
             title={`Olá, ${session.name ?? "promotor"}`}
@@ -112,7 +112,7 @@ export default async function PainelPage() {
   if (role === "promoter") {
     const data = await djangoFetch<PromoterMe>("/api/v1/collaborators/promoter/me");
     return (
-      <GrainSection className="bg-paper-soft min-h-[60vh]">
+      <GrainSection className="bg-paper-soft min-h-[60dvh]">
         <Container>
           <PageHeader
             title={`Olá, ${session.name ?? "promotor"}`}
@@ -160,7 +160,7 @@ export default async function PainelPage() {
 
   if (role === "training") {
     return (
-      <GrainSection className="bg-paper-soft min-h-[60vh]">
+      <GrainSection className="bg-paper-soft min-h-[60dvh]">
         <Container>
           <PageHeader
             title={`Olá, ${session.name ?? "trainee"}`}
@@ -175,7 +175,7 @@ export default async function PainelPage() {
   }
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader
           title={`Olá, ${session.name ?? "promotor"}`}

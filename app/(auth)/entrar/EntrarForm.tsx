@@ -20,7 +20,7 @@ type Stage = "check" | "otp";
 export function EntrarForm() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("check");
-  const [cpfOrPhone, setCpfOrPhone] = useState("");
+  const [phone, setPhone] = useState("");
   const [externalId, setExternalId] = useState<string | null>(null);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,14 +31,10 @@ export function EntrarForm() {
     setError(null);
     setLoading(true);
     try {
-      const isCpf = /^\d+$/.test(cpfOrPhone.replace(/\D/g, ""));
-      const payload = isCpf
-        ? { cpf: cpfOrPhone.replace(/\D/g, "") }
-        : { phone: cpfOrPhone.replace(/\D/g, "") };
       const res = await fetch("/api/auth/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ phone: phone.replace(/\D/g, "") }),
       });
       const data: CheckOut | { detail: string; code?: string } = await res.json();
       if (!res.ok) {
@@ -104,6 +100,7 @@ export function EntrarForm() {
           pattern="[0-9]{6}"
           maxLength={6}
           required
+          autoFocus
           inputClassName="text-xl tracking-[0.4em] text-center"
         />
         <FieldError tone="dark">{error?.detail}</FieldError>
@@ -112,7 +109,7 @@ export function EntrarForm() {
         </Button>
         <button
           type="button"
-          className="text-gold-soft text-sm underline block mx-auto cursor-pointer hover:text-gold-soft/80"
+          className="text-gold-soft text-sm underline block w-fit mx-auto px-3 py-3 cursor-pointer hover:text-gold-soft/80"
           onClick={() => setStage("check")}
         >
           Voltar
@@ -125,12 +122,13 @@ export function EntrarForm() {
     <form onSubmit={onCheck} className="space-y-5">
       <Field
         tone="dark"
-        label="CPF ou telefone"
-        value={cpfOrPhone}
-        onChange={setCpfOrPhone}
-        inputMode="numeric"
-        autoComplete="username"
-        placeholder="000.000.000-00 ou (00) 00000-0000"
+        label="Telefone (WhatsApp)"
+        value={phone}
+        onChange={setPhone}
+        type="tel"
+        inputMode="tel"
+        autoComplete="tel"
+        placeholder="(00) 00000-0000"
         required
       />
       <FieldError tone="dark">{error?.detail}</FieldError>

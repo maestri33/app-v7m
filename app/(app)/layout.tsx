@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-[100vh] flex flex-col">
+    <div className="min-h-[100dvh] flex flex-col">
       <header className="sticky top-0 z-40 border-b border-line-light bg-paper-soft/90 backdrop-blur-sm">
         <Container className="py-4 flex items-center justify-between gap-4">
           <Link

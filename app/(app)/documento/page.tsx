@@ -32,7 +32,7 @@ export default async function DocumentoPage() {
   };
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Seu documento"

@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function NotFound() {
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh] flex items-center">
+    <GrainSection className="bg-paper-soft min-h-[60dvh] flex items-center">
       <Container>
         <PageHeader
           kicker="V7M · 404"

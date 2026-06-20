@@ -7,7 +7,7 @@ export default function HomePage() {
     <main id="main">
       <GrainSection
         id="hero"
-        className="bg-char text-paper min-h-[88vh] flex items-center"
+        className="bg-char text-paper min-h-[88dvh] flex items-center"
       >
         <Container>
           <p className="kicker text-gold-soft">V7M · Promotor</p>

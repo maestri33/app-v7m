@@ -37,7 +37,7 @@ export default async function MaterialPage({ params }: Props) {
   if (!material) notFound();
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader
           kicker="V7M · Treinamento"

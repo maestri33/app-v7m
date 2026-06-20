@@ -19,7 +19,7 @@ export default async function SelfiePage() {
   if (!session.roles.includes("candidate")) redirect("/painel");
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Sua selfie"

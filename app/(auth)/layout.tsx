@@ -5,7 +5,7 @@ import { Container } from "@/components/layout/Container";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <GrainSection className="bg-char text-paper min-h-[100vh] flex items-center">
+    <GrainSection className="bg-char text-paper min-h-[100dvh] flex items-center">
       <Container narrow>
         <div className="mb-10">
           <Link href="/" className="kicker text-gold-soft inline-block">

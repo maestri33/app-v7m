@@ -183,7 +183,7 @@ export function DocForm({ initial, initialStatus }: Props) {
           .map((f) => (
             <Field
               key={f}
-              label={humanize(f)}
+              label={fieldLabel(f)}
               value={extras[f] ?? ""}
               onChange={(v) => setExtras((p) => ({ ...p, [f]: v }))}
               required
@@ -195,10 +195,14 @@ export function DocForm({ initial, initialStatus }: Props) {
       </form>
 
       <div className="border-t border-line-light pt-6 space-y-3">
-        <p className="text-sm text-muted-on-light">
+        <p id="doc-photo-label" className="text-sm text-muted-on-light">
           Foto do documento (frente e verso juntos, num PDF ou numa foto só):
         </p>
-        <FileInput ref={fileRef} accept="image/*,application/pdf" />
+        <FileInput
+          ref={fileRef}
+          accept="image/*,application/pdf"
+          aria-labelledby="doc-photo-label"
+        />
         <Button
           type="button"
           size="xl"
@@ -214,6 +218,19 @@ export function DocForm({ initial, initialStatus }: Props) {
   );
 }
 
-function humanize(f: string) {
-  return f.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+// Rótulos pt-BR dos campos que o backend pode marcar como faltando (regra do
+// CLAUDE.md: texto voltado a humano em pt-BR). Fallback humaniza a chave crua
+// para qualquer campo novo que o backend venha a exigir.
+const FIELD_LABELS: Record<string, string> = {
+  issue_date: "Data de emissão",
+  category: "Categoria (CNH)",
+  national_register: "Registro nacional (CNH)",
+  date_of_birth: "Data de nascimento",
+  expires_on: "Validade",
+};
+
+function fieldLabel(f: string) {
+  return (
+    FIELD_LABELS[f] ?? f.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 }

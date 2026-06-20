@@ -35,7 +35,7 @@ export default async function ComissoesPage() {
     .reduce((s, c) => s + c.amount, 0);
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader title="Suas comissões" />
 

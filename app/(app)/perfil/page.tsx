@@ -32,7 +32,7 @@ export default async function PerfilPage() {
   };
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Seu perfil"

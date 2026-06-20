@@ -28,7 +28,7 @@ export default async function PixPage() {
   const initial: PixSection = {};
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Sua chave Pix"

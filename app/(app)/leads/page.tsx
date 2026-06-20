@@ -21,7 +21,7 @@ export default async function LeadsPage() {
   const leads = await djangoFetch<Lead[]>("/api/v1/collaborators/promoter/me/leads");
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Seus leads"

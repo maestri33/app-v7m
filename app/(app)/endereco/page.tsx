@@ -25,7 +25,7 @@ export default async function EnderecoPage() {
   );
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Seu endereço"

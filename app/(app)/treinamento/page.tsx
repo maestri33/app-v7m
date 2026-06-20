@@ -38,7 +38,7 @@ export default async function TreinamentoPage() {
   ]);
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh]">
+    <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader kicker="V7M · Treinamento" title="Suas matérias" />
 

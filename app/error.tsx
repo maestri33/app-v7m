@@ -19,7 +19,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <GrainSection className="bg-paper-soft min-h-[60vh] flex items-center">
+    <GrainSection className="bg-paper-soft min-h-[60dvh] flex items-center">
       <Container>
         <PageHeader
           kicker="V7M · Erro"
