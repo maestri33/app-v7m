@@ -1,0 +1,27 @@
+name: CI
+# Gate do front (Next.js standalone). Roda no runner SELF-HOSTED do LXC do app-promotor.
+# Só verifica (tsc + lint + build) — não reinicia nada. O Deploy só dispara DEPOIS deste passar.
+on:
+  push:
+    branches: [main]
+  pull_request:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: [self-hosted, app-promotor]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependências (lockfile exato)
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (standalone)
+        run: npm run build
