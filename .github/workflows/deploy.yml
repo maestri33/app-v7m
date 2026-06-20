@@ -38,7 +38,7 @@ jobs:
           [ -d public ] && cp -r public .next/standalone/public || true
           sudo systemctl restart app-promotor
           # health no LOOPBACK (a URL pública de dentro do LXC pode ser bloqueada — egress)
-          curl -fsS -o /dev/null --retry 5 --retry-delay 2 http://127.0.0.1:3001/
+          curl -fsS -o /dev/null --retry 10 --retry-delay 2 --retry-connrefused http://127.0.0.1:3001/
           echo "deploy OK @ ${{ github.event.workflow_run.head_sha }}"
 
       - name: Rollback de código em falha
