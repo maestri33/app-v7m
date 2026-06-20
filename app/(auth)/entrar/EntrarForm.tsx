@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
-import { Field, FieldError } from "@/components/ui/Field";
+import { Field, FieldError, ReadOnlyField } from "@/components/ui/Field";
 
 type CheckOut = {
   found: boolean;
@@ -15,17 +15,33 @@ type CheckOut = {
   roles?: string[];
 };
 
-type Stage = "check" | "otp";
+// check → (login | cadastro inline) → otp. Um fluxo só, a partir do telefone.
+type Stage = "check" | "register" | "otp";
 
 export function EntrarForm() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("check");
   const [phone, setPhone] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
   const [externalId, setExternalId] = useState<string | null>(null);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ detail: string; code?: string } | null>(null);
 
+  function restart() {
+    setStage("check");
+    setOtp("");
+    setCpf("");
+    setEmail("");
+    setExternalId(null);
+    setError(null);
+  }
+
+  // Etapa 1 — telefone. O check decide o caminho:
+  //   found=true            → já cadastrado, OTP disparado → vai pro código
+  //   found=false, !whatsapp → número sem WhatsApp → erro
+  //   found=false, whatsapp  → número novo válido → cadastro (telefone travado)
   async function onCheck(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -41,16 +57,48 @@ export function EntrarForm() {
         setError(data as { detail: string; code?: string });
         return;
       }
-      const ok = data as CheckOut;
-      if (!ok.found) {
+      const out = data as CheckOut;
+      if (out.found) {
+        setExternalId(out.external_id ?? null);
+        setStage("otp");
+        return;
+      }
+      if (!out.whatsapp) {
         setError({
-          detail:
-            "Não encontramos cadastro. Se for novo, cadastre-se na página de cadastro.",
-          code: "NOT_FOUND",
+          detail: "Esse número não tem WhatsApp. Confira o DDD e tente de novo.",
         });
         return;
       }
-      setExternalId(ok.external_id ?? null);
+      setStage("register");
+    } catch {
+      setError({ detail: "Falha de rede. Tente de novo." });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Etapa 2 (só número novo) — CPF + e-mail. O register dispara o OTP.
+  async function onRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: phone.replace(/\D/g, ""),
+          cpf: cpf.replace(/\D/g, ""),
+          email: email.trim().toLowerCase(),
+        }),
+      });
+      const data: { external_id?: string; detail?: string; code?: string } =
+        await res.json();
+      if (!res.ok) {
+        setError({ detail: data.detail ?? "Falha no cadastro.", code: data.code });
+        return;
+      }
+      setExternalId(data.external_id ?? null);
       setStage("otp");
     } catch {
       setError({ detail: "Falha de rede. Tente de novo." });
@@ -59,6 +107,7 @@ export function EntrarForm() {
     }
   }
 
+  // Etapa 3 — código do WhatsApp → login.
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!externalId) return;
@@ -88,7 +137,7 @@ export function EntrarForm() {
     return (
       <form onSubmit={onLogin} className="space-y-5">
         <p className="text-muted-on-dark text-sm">
-          Mandamos um código de 6 dígitos no WhatsApp cadastrado. Digite abaixo.
+          Mandamos um código de 6 dígitos no WhatsApp. Digite abaixo.
         </p>
         <Field
           tone="dark"
@@ -110,10 +159,51 @@ export function EntrarForm() {
         <button
           type="button"
           className="text-gold-soft text-sm underline block w-fit mx-auto px-3 py-3 cursor-pointer hover:text-gold-soft/80"
-          onClick={() => setStage("check")}
+          onClick={restart}
         >
-          Voltar
+          Usar outro número
         </button>
+      </form>
+    );
+  }
+
+  if (stage === "register") {
+    return (
+      <form onSubmit={onRegister} className="space-y-5">
+        <p className="text-muted-on-dark text-sm">
+          Número novo por aqui. Confirme seus dados pra criar seu cadastro.
+        </p>
+        <ReadOnlyField
+          tone="dark"
+          label="Telefone (WhatsApp)"
+          value={phone}
+          hint="É pra onde vai o código — por isso fica travado."
+        />
+        <Field
+          tone="dark"
+          label="CPF"
+          value={cpf}
+          onChange={setCpf}
+          inputMode="numeric"
+          placeholder="000.000.000-00"
+          required
+          autoFocus
+        />
+        <Field
+          tone="dark"
+          label="E-mail"
+          value={email}
+          onChange={setEmail}
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="voce@email.com"
+          required
+        />
+        <FieldError tone="dark">{error?.detail}</FieldError>
+        <Button type="submit" size="xl" loading={loading} className="w-full">
+          {loading ? "Criando…" : "Criar cadastro"}
+        </Button>
       </form>
     );
   }
@@ -130,6 +220,7 @@ export function EntrarForm() {
         autoComplete="tel"
         placeholder="(00) 00000-0000"
         required
+        autoFocus
       />
       <FieldError tone="dark">{error?.detail}</FieldError>
       <Button type="submit" size="xl" loading={loading} className="w-full">
