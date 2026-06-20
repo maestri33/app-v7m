@@ -38,10 +38,11 @@ export function EntrarForm() {
     setError(null);
   }
 
-  // Etapa 1 — telefone. O check decide o caminho:
-  //   found=true            → já cadastrado, OTP disparado → vai pro código
-  //   found=false, !whatsapp → número sem WhatsApp → erro
-  //   found=false, whatsapp  → número novo válido → cadastro (telefone travado)
+  // Etapa 1 — telefone. check() (users/auth/service.py → CheckOut) decide o caminho:
+  //   found=true                  → já cadastrado, OTP disparado → vai pro código
+  //   found=false, whatsapp=true  → número novo com zap → cadastro (telefone travado)
+  //   found=false, whatsapp=false → número sem WhatsApp → não vale
+  //   found=false, whatsapp=null  → WhatsApp fora do ar → pede pra tentar de novo
   async function onCheck(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -59,17 +60,25 @@ export function EntrarForm() {
       }
       const out = data as CheckOut;
       if (out.found) {
+        // external_id do CheckOut já é o do USER (o que o login espera).
         setExternalId(out.external_id ?? null);
         setStage("otp");
         return;
       }
-      if (!out.whatsapp) {
+      if (out.whatsapp === true) {
+        setStage("register");
+        return;
+      }
+      if (out.whatsapp === false) {
         setError({
-          detail: "Esse número não tem WhatsApp. Confira o DDD e tente de novo.",
+          detail: "Esse número não tem WhatsApp. Confira o DDD e tente outro.",
         });
         return;
       }
-      setStage("register");
+      // whatsapp == null → validação do WhatsApp fora do ar (≠ "sem zap").
+      setError({
+        detail: "Não deu pra validar o WhatsApp agora. Tente de novo em instantes.",
+      });
     } catch {
       setError({ detail: "Falha de rede. Tente de novo." });
     } finally {
@@ -92,13 +101,19 @@ export function EntrarForm() {
           email: email.trim().toLowerCase(),
         }),
       });
-      const data: { external_id?: string; detail?: string; code?: string } =
-        await res.json();
+      const data: {
+        external_id?: string;
+        user_external_id?: string;
+        detail?: string;
+        code?: string;
+      } = await res.json();
       if (!res.ok) {
         setError({ detail: data.detail ?? "Falha no cadastro.", code: data.code });
         return;
       }
-      setExternalId(data.external_id ?? null);
+      // register devolve external_id do CANDIDATO + user_external_id do USER;
+      // o login espera o do USER (CandidateOut em api/collaborators.py).
+      setExternalId(data.user_external_id ?? null);
       setStage("otp");
     } catch {
       setError({ detail: "Falha de rede. Tente de novo." });
