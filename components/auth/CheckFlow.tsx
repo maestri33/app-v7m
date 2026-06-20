@@ -16,9 +16,10 @@ type CheckOut = {
 };
 
 // check → (login | cadastro inline) → otp. Um fluxo só, a partir do telefone.
+// É a entrada do app — vive na home (/).
 type Stage = "check" | "register" | "otp";
 
-export function EntrarForm() {
+export function CheckFlow() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("check");
   const [phone, setPhone] = useState("");

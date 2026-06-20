@@ -17,7 +17,7 @@ export const metadata = { title: "Seu endereço" };
 
 export default async function EnderecoPage() {
   const session = await readSession();
-  if (!session) redirect("/entrar");
+  if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
 
   const data = await djangoFetch<AddressSection>(

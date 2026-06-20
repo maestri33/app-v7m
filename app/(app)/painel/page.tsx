@@ -74,7 +74,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 export default async function PainelPage() {
   const session = await readSession();
-  if (!session) redirect("/entrar");
+  if (!session) redirect("/");
   const role = pickFunnelRole(session.roles);
 
   if (role === "candidate") {

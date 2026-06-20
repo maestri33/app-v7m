@@ -29,7 +29,7 @@ type Progress = {
 
 export default async function TreinamentoPage() {
   const session = await readSession();
-  if (!session) redirect("/entrar");
+  if (!session) redirect("/");
   if (!session.roles.includes("training")) redirect("/painel");
 
   const [materials, progress] = await Promise.all([

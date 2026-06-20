@@ -15,7 +15,7 @@ export const metadata = { title: "Leads" };
 
 export default async function LeadsPage() {
   const session = await readSession();
-  if (!session) redirect("/entrar");
+  if (!session) redirect("/");
   if (!session.roles.includes("promoter")) redirect("/painel");
 
   const leads = await djangoFetch<Lead[]>("/api/v1/collaborators/promoter/me/leads");

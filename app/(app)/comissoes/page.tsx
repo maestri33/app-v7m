@@ -20,7 +20,7 @@ function brl(n: number) {
 
 export default async function ComissoesPage() {
   const session = await readSession();
-  if (!session) redirect("/entrar");
+  if (!session) redirect("/");
   if (!session.roles.includes("promoter")) redirect("/painel");
 
   const commissions = await djangoFetch<Commission[]>(

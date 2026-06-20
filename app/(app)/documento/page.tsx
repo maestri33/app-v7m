@@ -17,7 +17,7 @@ export const metadata = { title: "Seu documento" };
 
 export default async function DocumentoPage() {
   const session = await readSession();
-  if (!session) redirect("/entrar");
+  if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
 
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");

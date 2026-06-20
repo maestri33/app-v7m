@@ -21,7 +21,7 @@ type PixSection = {
 
 export default async function PixPage() {
   const session = await readSession();
-  if (!session) redirect("/entrar");
+  if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
 
   // Pix ainda não vem no me_dict do candidato — o form valida/preenche do zero.

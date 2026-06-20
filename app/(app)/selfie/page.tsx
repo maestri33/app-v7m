@@ -15,7 +15,7 @@ export const metadata = { title: "Sua selfie" };
 
 export default async function SelfiePage() {
   const session = await readSession();
-  if (!session) redirect("/entrar");
+  if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
 
   return (
