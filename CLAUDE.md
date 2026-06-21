@@ -2,21 +2,29 @@
 
 # CLAUDE.md — App do Promotor (V7M)
 
-Frontend Next.js (repo NOVO `maestri33/app-promotor`). Este é o app do
-**colaborador** (candidato → treinamento → promotor pleno). NÃO toca no
-`~/mvp/backend/` (que é o monólito Django+Ninja); o backend é uma dependência
-externa, consumida via HTTP em `/api/v1/collaborators/...`.
+Frontend Next.js (repo NOVO `maestri33/app-promotor`). É o app do **lado
+interno/V7M**, **role-gated**, com 3 superfícies sobre 3 grupos da API:
+**collaborators** (base — candidato → treinamento → promotor pleno),
+**leadership** (painel do coordenador, aberto por botão conforme o papel) e
+**staff** (painel global, qualquer polo/hub). NÃO toca no `~/mvp/backend/` (que
+é o monólito Django+Ninja); o backend é uma dependência externa, consumida via
+HTTP em `/api/v1/{collaborators,leadership,staff}/...`.
 
 ## Fonte da verdade
 
 - **Palavra do Victor** nesta sessão > este arquivo.
+- **Escopo expandido pelo Victor (2026-06-21):** o app cobre os **3 grupos**
+  (collaborators + leadership/coordenador + staff), superfícies role-gated por
+  botão. Isso **substitui** o recorte antigo "só collaborators / telas do
+  coordenador são FUTURO proibido" dos planos antigos. A área do coordenador
+  (leadership: leads + auth) está **em produção desde o PR #4 (2026-06-21)**.
 - **Plano do projeto:** `.claude/plan/16-frontend-promotor.md` (CONFIRMADO,
-  Portões 1+2 em 2026-06-15). Régua: o plano + o código de hoje. **Não
-  confiar em PRD/doc de IA antigo.**
+  Portões 1+2 em 2026-06-15) — válido para a base **collaborators**; para
+  leadership/staff vale a expansão acima. **Não confiar em PRD/doc de IA antigo.**
 - **Backend consumido:** `~/mvp/.claude/CONVENTION.md` §1/§3 + `~/mvp/backend/wiki/api/collaborators.md`
-  + OpenAPI vivo em `/api/v1/collaborators/docs` (NÃO uma spec congelada).
+  + OpenAPI vivo em `/api/v1/{collaborators,leadership,staff}/docs` (NÃO uma spec congelada).
 - **Workflow (3 portões):** `~/mvp/.claude/WORKFLOW.md` (questionário →
-  plano confirmado → testes aprovados). **Sem pressa.** Cada milestone (M0–M5)
+  plano confirmado → testes aprovados). **Sem pressa.** Cada milestone
   vai ao Portão 3 separado.
 
 ## Regras do monólito que valem aqui
@@ -47,13 +55,14 @@ externa, consumida via HTTP em `/api/v1/collaborators/...`.
 
 ## Fora do escopo (proibido, mesmo que pareça boa ideia)
 
-- Telas do coordenador (FUTURO, atrás da Fatia D do plan/15).
 - Testes automatizados (vitest/playwright) — decisão futura.
 - Storybook / Figma / observability / CMS.
 - Banco local / persistência no front.
 - Refactor "preventivo" sem pedido.
 
 ## Tarefas do Victor
+
+Base **collaborators**:
 
 - M0: scaffold (este commit).
 - M1: auth (entrar/validar/cadastro + role-router) — mexer OTP no zap.
@@ -63,3 +72,10 @@ externa, consumida via HTTP em `/api/v1/collaborators/...`.
 - M3: treinamento (depende de IA grade).
 - M4: painel do promotor (só leitura).
 - M5: polish + a11y.
+
+Superfícies **leadership / staff** (expansão 2026-06-21):
+
+- L1 (leadership/coordenador): leads + auth — **EM PRODUÇÃO desde 2026-06-21 (PR #4)**.
+- Próximas leadership (enrollments, reviews, candidatos, alunos, promotores) e
+  **staff** (hubs, finance, integrações, views globais) entram conforme o
+  Victor priorizar.
