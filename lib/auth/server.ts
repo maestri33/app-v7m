@@ -42,3 +42,23 @@ export function pickFunnelRole(roles: string[]): string | null {
   }
   return null;
 }
+
+/**
+ * Sessão da área `leadership`: lê o cookie e consulta o whoami do sub-router do
+ * coordenador. Só conta como sessão válida se a conta tiver a role `coordinator`
+ * (o gate duro — coordenar um Hub — o back impõe no login e nos endpoints de
+ * dados via `require_roles` + `_coordinator_hub`; aqui só conferimos a role).
+ */
+export async function readLeadershipSession(): Promise<Session | null> {
+  const cookieStore = await cookies();
+  const access = cookieStore.get("v7m_access")?.value;
+  if (!access) return null;
+
+  try {
+    const me = await djangoFetch<Session>("/api/v1/leadership/whoami");
+    if (!me.roles?.includes("coordinator")) return null;
+    return me;
+  } catch {
+    return null;
+  }
+}
