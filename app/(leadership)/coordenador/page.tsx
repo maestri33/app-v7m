@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { Container } from "@/components/layout/Container";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -73,7 +71,7 @@ export default async function RevisoesPage() {
       {/* O back ainda não publica o contrato dos itens de /reviews — visão crua
           temporária pra conferirmos os campos de cada item com um coordenador
           logado. Remover quando o response=Schema existir. */}
-      {data != null && (
+      {process.env.NODE_ENV !== "production" && data != null && (
         <details className="mt-8 text-sm text-muted-on-light">
           <summary className="cursor-pointer">Ver dados crus (debug)</summary>
           <pre className="mt-2 overflow-auto rounded border border-line-light bg-paper p-3 text-xs text-black">
