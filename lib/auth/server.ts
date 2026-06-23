@@ -7,8 +7,10 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { djangoFetch } from "@/lib/api/client";
+import { isTrainingLocked } from "@/lib/auth/roles";
 
 export type Session = {
   external_id: string;
@@ -16,13 +18,12 @@ export type Session = {
   name: string | null;
 };
 
-// Ordem de prioridade no app-promotor: `promoter` ACIMA de `coordinator` (Victor 2026-06-16).
-// Quem acumula coordinator+promoter abre ESTE app como promotor (o coordenador tem app próprio,
-// grupo `leadership`). Sem isso, a conta-mãe (coordinator) caía no branch default do /painel e
-// não via o dashboard de promotor. Ver tests/fe-painel/m4-painel-promotor.md (achado M4-1).
-const CANDIDATE_FUNNEL_ROLES = ["promoter", "coordinator", "training", "candidate"] as const;
+// Roteamento por role vive em `lib/auth/roles.ts` (eixos stage/gate/grant). NÃO
+// colapsamos pra uma role só: coordinator+promoter veem as DUAS áreas no mesmo
+// shell (reverte a regra de 2026-06-16 "coordenador tem app próprio" — decisão
+// do Victor em 2026-06-23: login único, shell único liberado por role).
 
-/** Lê o cookie; se houver, consulta o whoami do Django. */
+/** Lê o cookie; se houver, consulta o whoami do Django (devolve TODAS as roles). */
 export async function readSession(): Promise<Session | null> {
   const cookieStore = await cookies();
   const access = cookieStore.get("v7m_access")?.value;
@@ -35,30 +36,16 @@ export async function readSession(): Promise<Session | null> {
   }
 }
 
-/** Role mais avançada do funil do colaborador (do mais pro menos). */
-export function pickFunnelRole(roles: string[]): string | null {
-  for (const r of CANDIDATE_FUNNEL_ROLES) {
-    if (roles.includes(r)) return r;
-  }
-  return null;
-}
-
 /**
- * Sessão da área `leadership`: lê o cookie e consulta o whoami do sub-router do
- * coordenador. Só conta como sessão válida se a conta tiver a role `coordinator`
- * (o gate duro — coordenar um Hub — o back impõe no login e nos endpoints de
- * dados via `require_roles` + `_coordinator_hub`; aqui só conferimos a role).
+ * Sessão com a TRAVA de treinamento aplicada. Use nas telas de promotor e
+ * coordenação: se `training` está nas roles, manda a pessoa pro LMS e não deixa
+ * sair até o back parar de devolver `training` (curso inicial OU atualização/
+ * recado obrigatório). As telas do LMS (`/treinamento`) usam `readSession`, não
+ * esta — senão entram em loop de redirect.
  */
-export async function readLeadershipSession(): Promise<Session | null> {
-  const cookieStore = await cookies();
-  const access = cookieStore.get("v7m_access")?.value;
-  if (!access) return null;
-
-  try {
-    const me = await djangoFetch<Session>("/api/v1/leadership/whoami");
-    if (!me.roles?.includes("coordinator")) return null;
-    return me;
-  } catch {
-    return null;
-  }
+export async function readUnlockedSession(): Promise<Session | null> {
+  const session = await readSession();
+  if (!session) return null;
+  if (isTrainingLocked(session.roles)) redirect("/treinamento");
+  return session;
 }

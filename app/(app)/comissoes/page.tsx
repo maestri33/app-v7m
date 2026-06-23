@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Stat } from "@/components/ui/Stat";
 import { djangoFetch } from "@/lib/api/client";
 import type { Commission } from "@/lib/api/types";
-import { readSession } from "@/lib/auth/server";
+import { readUnlockedSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ function brl(n: number) {
 }
 
 export default async function ComissoesPage() {
-  const session = await readSession();
+  const session = await readUnlockedSession();
   if (!session) redirect("/");
   if (!session.roles.includes("promoter")) redirect("/painel");
 

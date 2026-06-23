@@ -33,7 +33,7 @@ export function LeadershipNav() {
               key={it.href}
               title="Em breve"
               aria-disabled="true"
-              className="pb-1 border-b-2 border-transparent text-muted-on-light/50 cursor-not-allowed"
+              className="inline-flex items-center min-h-11 border-b-2 border-transparent text-muted-on-light/50 cursor-not-allowed"
             >
               {it.label}
             </span>
@@ -47,8 +47,8 @@ export function LeadershipNav() {
             aria-current={active ? "page" : undefined}
             className={
               active
-                ? "pb-1 border-b-2 border-gold-ink text-gold-ink font-medium"
-                : "pb-1 border-b-2 border-transparent text-muted-on-light hover:text-black transition-colors"
+                ? "inline-flex items-center min-h-11 border-b-2 border-gold-ink text-gold-ink font-medium"
+                : "inline-flex items-center min-h-11 border-b-2 border-transparent text-muted-on-light hover:text-black transition-colors"
             }
           >
             {it.label}

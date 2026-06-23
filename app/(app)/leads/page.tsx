@@ -7,14 +7,14 @@ import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { djangoFetch } from "@/lib/api/client";
 import type { Lead } from "@/lib/api/types";
-import { readSession } from "@/lib/auth/server";
+import { readUnlockedSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Leads" };
 
 export default async function LeadsPage() {
-  const session = await readSession();
+  const session = await readUnlockedSession();
   if (!session) redirect("/");
   if (!session.roles.includes("promoter")) redirect("/painel");
 

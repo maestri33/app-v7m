@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { CardLink } from "@/components/ui/Card";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { pickFunnelRole, readSession } from "@/lib/auth/server";
+import { readUnlockedSession } from "@/lib/auth/server";
+import { isOnboarding, isPromoter } from "@/lib/auth/roles";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, CandidateStatus, PromoterMe } from "@/lib/api/types";
 
@@ -65,19 +66,11 @@ const STAGE_HREF: Record<CandidateStatus, string> = {
   completed: "/treinamento",
 };
 
-const ROLE_LABEL: Record<string, string> = {
-  candidate: "Candidato · começando o cadastro",
-  training: "Trainee · em treinamento",
-  promoter: "Promotor · painel completo",
-  coordinator: "Coordenador · tela do coordenador (futuro)",
-};
-
 export default async function PainelPage() {
-  const session = await readSession();
+  const session = await readUnlockedSession();
   if (!session) redirect("/");
-  const role = pickFunnelRole(session.roles);
 
-  if (role === "candidate") {
+  if (isOnboarding(session.roles)) {
     const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
     const current: CandidateStatus = me.status === "started" ? "profile" : me.status;
     return (
@@ -109,7 +102,7 @@ export default async function PainelPage() {
     );
   }
 
-  if (role === "promoter") {
+  if (isPromoter(session.roles)) {
     const data = await djangoFetch<PromoterMe>("/api/v1/collaborators/promoter/me");
     return (
       <GrainSection className="bg-paper-soft min-h-[60dvh]">
@@ -158,28 +151,12 @@ export default async function PainelPage() {
     );
   }
 
-  if (role === "training") {
-    return (
-      <GrainSection className="bg-paper-soft min-h-[60dvh]">
-        <Container>
-          <PageHeader
-            title={`Olá, ${session.name ?? "trainee"}`}
-            subtitle="Bora terminar o treinamento?"
-          />
-          <Button href="/treinamento" size="xl">
-            Ver matérias
-          </Button>
-        </Container>
-      </GrainSection>
-    );
-  }
-
   return (
     <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
         <PageHeader
           title={`Olá, ${session.name ?? "promotor"}`}
-          subtitle={role ? (ROLE_LABEL[role] ?? `Role: ${role}`) : "Bem-vindo."}
+          subtitle="Bem-vindo."
         />
         <p className="text-sm text-muted-on-light max-w-prose">
           Sua conta está ativa. Ainda não há um painel para este perfil por aqui —

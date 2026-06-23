@@ -10,7 +10,7 @@ export const metadata = { title: "Revisões" };
 /**
  * Baldes reais de GET /leadership/reviews (confirmado no back, leadership.py:201).
  * Objeto de 7 baldes (não array plano). Os campos de cada item ainda não estão
- * publicados no OpenAPI — renderizamos só a contagem por balde + visão crua.
+ * publicados no OpenAPI — renderizamos só a contagem por balde.
  */
 const BUCKETS = [
   { key: "candidates_awaiting_approval", label: "Candidatos aguardando aprovação" },
@@ -67,18 +67,6 @@ export default async function RevisoesPage() {
         As seções de decisão (Candidatos, Matrículas, Alunos, Promotores) entram nos
         próximos marcos. Por ora esta tela mostra a fila agregada.
       </p>
-
-      {/* O back ainda não publica o contrato dos itens de /reviews — visão crua
-          temporária pra conferirmos os campos de cada item com um coordenador
-          logado. Remover quando o response=Schema existir. */}
-      {process.env.NODE_ENV !== "production" && data != null && (
-        <details className="mt-8 text-sm text-muted-on-light">
-          <summary className="cursor-pointer">Ver dados crus (debug)</summary>
-          <pre className="mt-2 overflow-auto rounded border border-line-light bg-paper p-3 text-xs text-black">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        </details>
-      )}
     </Container>
   );
 }

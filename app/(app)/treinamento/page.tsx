@@ -40,7 +40,11 @@ export default async function TreinamentoPage() {
   return (
     <GrainSection className="bg-paper-soft min-h-[60dvh]">
       <Container>
-        <PageHeader kicker="V7M · Treinamento" title="Suas matérias" />
+        <PageHeader
+          kicker="V7M · Treinamento"
+          title="Suas matérias"
+          subtitle="Conclua o treinamento para liberar o painel de promotor. Vale para o curso inicial e para atualizações ou recados obrigatórios."
+        />
 
         <div className="mb-8 grid gap-3 max-w-2xl sm:grid-cols-3">
           <Stat label="Total" value={String(progress.total)} size="xl" />
