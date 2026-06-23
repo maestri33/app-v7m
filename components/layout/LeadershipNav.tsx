@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 const ITEMS: { href: string; label: string; exact?: boolean; soon?: boolean }[] = [
   { href: "/coordenador", label: "Revisões", exact: true },
   { href: "/coordenador/leads", label: "Leads" },
-  { href: "/coordenador/candidatos", label: "Candidatos", soon: true },
+  { href: "/coordenador/candidatos", label: "Candidatos" },
   { href: "/coordenador/matriculas", label: "Matrículas", soon: true },
   { href: "/coordenador/alunos", label: "Alunos", soon: true },
   { href: "/coordenador/promotores", label: "Promotores", soon: true },

@@ -33,12 +33,13 @@ export function AppShell({
 }) {
   const locked = isTrainingLocked(session.roles);
   const showSwitcher = isCoordinator(session.roles) && !locked;
-  const nav =
-    context === "coordination" ? (
-      <LeadershipNav />
-    ) : isPromoter(session.roles) && !locked ? (
-      <AppNav />
-    ) : null;
+  const coordination = context === "coordination";
+  // bottom-nav de promotor SÓ no contexto promotor. No contexto coordenação a
+  // navegação é a LeadershipNav (topo) — sem o bottom-nav de promotor, senão
+  // "Leads" duplica (um → /coordenador/leads, outro → /leads) e embaralha o
+  // contexto. O seletor já leva de volta ao promotor.
+  const showPromoterNav = !coordination && isPromoter(session.roles) && !locked;
+  const topNav = coordination ? <LeadershipNav /> : null;
 
   return (
     <div className="min-h-[100dvh] flex flex-col">
@@ -51,24 +52,24 @@ export function AppShell({
           >
             V7M<span className="text-gold-ink"> · </span>
             <span className="text-muted-on-light">
-              {context === "coordination" ? "Coordenação" : "Promotor"}
+              {coordination ? "Coordenação" : "Promotor"}
             </span>
           </Link>
           <span className="text-sm text-muted-on-light hidden sm:inline">
             {session.name ?? "Você"}
           </span>
         </Container>
-        {(showSwitcher || nav) && (
+        {(showSwitcher || topNav) && (
           <Container className="pb-2 flex flex-col gap-2">
             {showSwitcher && <ContextSwitcher context={context} />}
-            {nav}
+            {topNav}
           </Container>
         )}
       </header>
-      <main id="main" className="flex-1 pb-20">
+      <main id="main" className={showPromoterNav ? "flex-1 pb-20" : "flex-1"}>
         {children}
       </main>
-      {nav && <AppNav />}
+      {showPromoterNav && <AppNav />}
     </div>
   );
 }
