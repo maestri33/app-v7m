@@ -4,7 +4,9 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
 import { PageHeader } from "@/components/ui/PageHeader";
+import Link from "next/link";
 import { CandidatosList } from "@/components/leadership/CandidatosList";
+import { CandidatoDetailBody } from "@/components/leadership/CandidatoDetailBody";
 import type { Session } from "@/lib/auth/server";
 
 // Preview dev-only do shell unificado: renderiza o AppShell com sessões FALSAS
@@ -53,6 +55,15 @@ const MOCKS: Record<string, Mock> = {
     },
     context: "coordination",
   },
+  // coordenação · detalhe de candidato (L2 read-only) com objeto livre falso
+  candidato: {
+    session: {
+      external_id: "demo",
+      name: "Cau Coordenador",
+      roles: ["promoter", "coordinator"],
+    },
+    context: "coordination",
+  },
   // training travado: a casca esconde nav/seletor; o overlay do TrainingGate cobre
   // a tela. Aqui mostramos o overlay ESTÁTICO (sem o redirect real, que num
   // preview sem sessão bateria de volta no login).
@@ -79,7 +90,28 @@ export default async function DevPreviewPage({
 
   return (
     <AppShell session={mock.session} context={mock.context}>
-      {role === "candidatos" ? (
+      {role === "candidato" ? (
+        <Container className="py-10">
+          <Link
+            href="/coordenador/candidatos"
+            className="inline-flex items-center min-h-11 text-sm text-muted-on-light hover:text-black transition-colors"
+          >
+            ← Candidatos
+          </Link>
+          <PageHeader kicker="V7M · Coordenador" title="Marina Alves" />
+          <CandidatoDetailBody
+            data={{
+              name: "Marina Alves",
+              cpf: "123.456.789-00",
+              phone: "(42) 99817-1770",
+              status: "aguardando aprovação",
+              endereco: { cidade: "Ponta Grossa", uf: "PR", cep: "84010-000" },
+              documento: { tipo: "CNH", ocr_status: "aprovado" },
+            }}
+            errorCode={null}
+          />
+        </Container>
+      ) : role === "candidatos" ? (
         <Container className="py-10">
           <PageHeader
             kicker="V7M · Coordenador"
