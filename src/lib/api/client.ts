@@ -10,6 +10,11 @@ import "server-only";
 import { cookies } from "next/headers";
 
 import { BACKEND_URL } from "./config";
+import {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  setAuthCookies,
+} from "../auth/cookies";
 
 export type DjangoFetchOptions = Omit<RequestInit, "headers"> & {
   headers?: Record<string, string>;
@@ -65,22 +70,34 @@ export async function djangoFetch<T = unknown>(
 ): Promise<T> {
   const { authenticated = true, headers: extraHeaders, ...rest } = opts;
 
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(extraHeaders ?? {}),
-  };
-  if (rest.body && !headers["Content-Type"]) {
-    headers["Content-Type"] = "application/json";
-  }
-  if (authenticated) {
-    const cookieStore = await cookies();
-    const access = cookieStore.get("v7m_access")?.value;
-    if (access) headers.Authorization = `Bearer ${access}`;
+  function buildHeaders(access?: string): Record<string, string> {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      ...(extraHeaders ?? {}),
+    };
+    if (rest.body && !headers["Content-Type"]) {
+      headers["Content-Type"] = "application/json";
+    }
+    if (authenticated && access) headers.Authorization = `Bearer ${access}`;
+    return headers;
   }
 
-  const res = await fetch(`${BACKEND_URL}${path}`, { ...rest, headers, cache: "no-store" });
-  const text = await res.text();
-  const body: unknown = text ? safeJson(text) : null;
+  const cookieStore = authenticated ? await cookies() : null;
+  const access = cookieStore?.get(ACCESS_COOKIE)?.value;
+
+  let { res, body } = await rawFetch(path, rest, buildHeaders(access));
+
+  // Refresh-on-401: o access (15 min) expira antes do refresh (14 dias). Ao tomar
+  // 401 numa chamada autenticada, tentamos rotacionar o par UMA vez (com o cookie
+  // v7m_refresh) e refazemos a chamada. Se o refresh falhar (refresh expirado ou
+  // token_version subiu — ex.: pós-conclude), o 401 propaga: o layout cai pra "/"
+  // (sessão nula) e os route handlers devolvem o code pro switch do client.
+  if (res.status === 401 && authenticated && cookieStore) {
+    const newAccess = await tryRefresh(cookieStore);
+    if (newAccess) {
+      ({ res, body } = await rawFetch(path, rest, buildHeaders(newAccess)));
+    }
+  }
 
   if (!res.ok) {
     const errBody =
@@ -88,6 +105,56 @@ export async function djangoFetch<T = unknown>(
     throw new DjangoError(res.status, errBody);
   }
   return body as T;
+}
+
+/** Uma ida ao Django (sem retry). Lê o corpo como texto e tenta JSON. */
+async function rawFetch(
+  path: string,
+  rest: Omit<DjangoFetchOptions, "headers" | "authenticated">,
+  headers: Record<string, string>,
+): Promise<{ res: Response; body: unknown }> {
+  const res = await fetch(`${BACKEND_URL}${path}`, { ...rest, headers, cache: "no-store" });
+  const text = await res.text();
+  const body: unknown = text ? safeJson(text) : null;
+  return { res, body };
+}
+
+/**
+ * Rotaciona o par de tokens com o refresh do cookie (chama o Django direto, sem
+ * passar por `djangoFetch` — evita recursão). Devolve o novo access em caso de
+ * sucesso (e persiste o par novo, best-effort: `cookies().set` só funciona em
+ * Route Handler/Server Action; durante o render de Server Component ele lança, mas
+ * o access novo ainda serve pra refazer a chamada atual). `null` = refresh falhou.
+ */
+async function tryRefresh(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+): Promise<string | null> {
+  const refresh = cookieStore.get(REFRESH_COOKIE)?.value;
+  if (!refresh) return null;
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/v1/collaborators/auth/refresh`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refresh }),
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    const data = text ? (safeJson(text) as Record<string, unknown>) : null;
+    const accessToken = data?.access_token;
+    const refreshToken = data?.refresh_token;
+    if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
+      return null;
+    }
+    try {
+      await setAuthCookies(accessToken, refreshToken);
+    } catch {
+      // render de Server Component não pode setar cookie — segue com o access novo
+    }
+    return accessToken;
+  } catch {
+    return null;
+  }
 }
 
 function safeJson(text: string): unknown {
