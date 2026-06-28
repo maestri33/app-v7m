@@ -13,9 +13,9 @@ const ITEMS: { href: string; label: string; exact?: boolean; soon?: boolean }[] 
   { href: "/coordenador/leads", label: "Leads" },
   { href: "/coordenador/candidatos", label: "Candidatos" },
   { href: "/coordenador/matriculas", label: "Matrículas" },
-  { href: "/coordenador/alunos", label: "Alunos", soon: true },
-  { href: "/coordenador/promotores", label: "Promotores", soon: true },
-  { href: "/coordenador/treinamento", label: "Treinamento", soon: true },
+  { href: "/coordenador/alunos", label: "Alunos" },
+  { href: "/coordenador/promotores", label: "Promotores" },
+  { href: "/coordenador/treinamento", label: "Treinamento" },
 ];
 
 export function LeadershipNav() {

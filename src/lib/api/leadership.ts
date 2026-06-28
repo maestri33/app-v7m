@@ -187,3 +187,162 @@ export type ConcludeIn = {
 
 /** `EnrollmentActionOut` — resposta de conclude. */
 export type EnrollmentAction = { external_id: string; status: string };
+
+/* ---------------------------------------------------------------------------
+ * Aluno (student) — funil que o coordenador conduz (student → veteran). Lista
+ * paginada + detalhe rico. As mutações (corrigir prova, decidir documento, abrir/
+ * resolver pendência, liberar documentação, emitir diploma) mexem em identidade/
+ * status reais → Portão 3 com o Victor, confirmação em 2 passos no AlunoActions.
+ * Contratos espelham os schemas REAIS de api/leadership.py (HubStudentRowOut,
+ * HubStudentDetailOut e os *Out de cada ação).
+ * ------------------------------------------------------------------------- */
+
+/** `HubStudentRowOut` — item de GET /students (envelope PaginatedStudentsOut). */
+export type HubStudentRow = {
+  external_id: string;
+  name: string | null;
+  phone: string | null;
+  status: string;
+  created_at: string;
+};
+
+/** `StudentPlatformOut` — credenciais da instituição parceira (visão do coordenador). */
+export type StudentPlatform = {
+  url?: string | null;
+  login?: string | null;
+  password?: string | null;
+  notes?: string | null;
+};
+
+/** `StudentDocItemOut` — um documento do aluno. NÃO traz external_id: a decisão de
+ *  documento é disparada a partir da fila de Revisões, que carrega o document_external_id. */
+export type StudentDocItem = {
+  doc_type: string;
+  validation_status: string;
+  has_photo: boolean;
+};
+
+/** `StudentPendencyOut` — pendência (documento ou taxa) aberta pelo coordenador. */
+export type StudentPendency = {
+  external_id: string;
+  kind: string;
+  description: string;
+  amount_cents?: number | null;
+  resolved: boolean;
+};
+
+/** `StudentDiplomaOut` — `null` enquanto o diploma não foi emitido. */
+export type StudentDiploma = {
+  issued_at?: string | null;
+  picked_up: boolean;
+};
+
+/** `StudentUserOut` aninhado em HubStudentDetailOut. */
+export type StudentUser = {
+  external_id: string;
+  name?: string | null;
+  cpf?: string | null;
+  phone?: string | null;
+  email?: string | null;
+};
+
+/** `HubStudentDetailOut` — GET /students/{id}. */
+export type StudentDetail = {
+  external_id: string;
+  status: string;
+  hub_external_id: string;
+  blood_type?: string | null;
+  self_study: boolean;
+  platform: StudentPlatform;
+  documents: StudentDocItem[];
+  pendencies: StudentPendency[];
+  diploma: StudentDiploma | null;
+  user: StudentUser;
+};
+
+/** Body de POST /students/{id}/exam/grade — `ExamGradeIn`. */
+export type ExamGradeIn = { passed: boolean; notes?: string | null };
+
+/** Body de POST /students/{id}/documents/{doc}/decide — `DocDecideIn`. */
+export type DocDecideIn = { approve: boolean; reason?: string | null };
+
+/** Body de POST /students/{id}/pendencies — `PendencyIn`. `amount_cents` só pra kind=fee. */
+export type PendencyIn = {
+  kind: "document" | "fee";
+  description: string;
+  amount_cents?: number | null;
+};
+
+/* ---------------------------------------------------------------------------
+ * Promotores do polo — listar/suspender/reativar + aprovar matéria em aberto de
+ * quem está travado no treino. `HubPromoterRowOut` + `MaterialApproveOut`.
+ * ------------------------------------------------------------------------- */
+
+/** `HubPromoterRowOut` — item de GET /promoters. `external_id` é o do User-promotor. */
+export type HubPromoterRow = {
+  external_id: string;
+  name: string | null;
+  status: string;
+  locked: boolean;
+};
+
+/** Uma matéria de treino pendente de um promotor travado (vem em /reviews → locked_promoters). */
+export type PendingMaterial = {
+  material_external_id: string;
+  title: string;
+  blocking: boolean;
+  kind: string;
+};
+
+/** `MaterialApproveOut` — resposta de aprovar matéria em aberto. */
+export type MaterialApprove = {
+  promoter_external_id: string;
+  material_external_id: string;
+  locked: boolean;
+};
+
+/* ---------------------------------------------------------------------------
+ * Treinamento — autoria de matéria (mesmo contrato do staff). `MaterialOut` é a
+ * visão de autoria (com gabarito); MaterialIn/MaterialUpdateIn os bodies.
+ * ------------------------------------------------------------------------- */
+
+/** `MaterialOut` — matéria com gabarito (visão de autoria do coordenador). */
+export type Material = {
+  external_id: string;
+  title: string;
+  text_content: string;
+  content_blocks: Record<string, unknown>[];
+  question: string;
+  video?: string | null;
+  photo?: string | null;
+  kind: string;
+  blocking: boolean;
+  ephemeral: boolean;
+  order: number;
+  active: boolean;
+  expected_answer: string;
+};
+
+/** Body de POST /training/materials — `MaterialIn`. */
+export type MaterialCreateIn = {
+  title: string;
+  question: string;
+  expected_answer: string;
+  text_content?: string;
+  content_blocks?: Record<string, unknown>[];
+  order?: number;
+  kind?: string;
+  blocking?: boolean;
+  ephemeral?: boolean;
+  video?: string | null;
+  photo?: string | null;
+};
+
+/** Body de PUT /training/materials/{id} — `MaterialUpdateIn` (só campos enviados). */
+export type MaterialUpdateIn = Partial<MaterialCreateIn> & { active?: boolean };
+
+/** `kind` da matéria (TextChoices do back): fixa (todo promotor novo) | transitória (só os já existentes). */
+export const MATERIAL_KINDS = [
+  { value: "fixed", label: "Fixa (todo promotor novo recebe)" },
+  { value: "transitory", label: "Transitória (só os promotores já existentes)" },
+] as const;
