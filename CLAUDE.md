@@ -2,17 +2,20 @@
 
 # CLAUDE.md — App do Promotor (V7M) · `/root/app-v7m`
 
-Frontend Next.js **institucional** — o app de quem trabalha com a gente:
-**candidato a promotor** (afiliado em onboarding) → **promotor pleno** (com
-treinamento obrigatório) → **coordenador de polo** (papel aditivo: é um
-promotor com acesso a mais áreas do app).
+Frontend Next.js — o app do **lado interno/V7M**, **role-gated**: quem trabalha
+com a gente. **candidato a promotor** (afiliado em onboarding) → **promotor
+pleno** (com treinamento obrigatório) → **coordenador de polo** (papel aditivo:
+é um promotor com acesso a mais áreas do app). Cobre os grupos da API
+**collaborators** (base — candidato → treinamento → promotor) e **leadership**
+(painel do coordenador, aberto por botão conforme o papel); **staff** (painel
+global, qualquer polo/hub) é superfície prevista (expansão 2026-06-21).
 
 NÃO é o app do **cliente** final — esse mora em `/root/app-supletivo` (cliente =
 lead → enrollment → student → veteran; é outra base de código, mesmo backend).
 
 NÃO toca no `~/mvp/backend/` (monólito Django+Ninja); o backend é dependência
-externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor) e
-`/api/v1/leadership/` (papel do coordenador).
+externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor),
+`/api/v1/leadership/` (papel do coordenador) e `/api/v1/staff/` (futuro).
 
 ## Vocabulário travado (NÃO renomear sem perguntar)
 
@@ -21,7 +24,7 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor) e
 | **candidato** | `app-v7m` | `candidates` (candidato a virar promotor) |
 | **promotor** | `app-v7m` | `promoter` (afiliado pleno) |
 | **coordenador** | `app-v7m` | aditivo em cima de promotor (`coordinator` role) — todo coordenador é promotor, sempre |
-| **staff** | outro app (futuro) | fora daqui — `staff` só é reconhecida pra rotear pra fora |
+| **staff** | `app-v7m` (superfície futura) | `staff` — painel global, role-gated por botão (expansão 2026-06-21) |
 | **lead / enrollment / student / veteran** | `app-supletivo` | cliente final, este app **NÃO mexe** |
 
 **Vínculos do ciclo do cliente** (referência, não implementado aqui):
@@ -60,17 +63,22 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor) e
 - **gate**: `training` (trava — força `/treinamento` enquanto o LMS não libera).
 - **grant**: `coordinator` (aditivo, empilha sobre `promoter`).
 
-`staff` só é reconhecida pra rotear pra fora (`/staff` futuro).
+`staff` é reconhecida pra rotear pra superfície global (expansão 2026-06-21).
 
 ## Fonte da verdade
 
 - **Palavra do Victor nesta sessão** > este arquivo.
+- **Escopo expandido pelo Victor (2026-06-21):** o app cobre os **3 grupos**
+  (collaborators + leadership/coordenador + staff), superfícies role-gated por
+  botão. Isso **substitui** o recorte antigo "só collaborators / telas do
+  coordenador são FUTURO proibido" dos planos antigos. A área do coordenador
+  (leadership) está **em produção desde o PR #4 (2026-06-21)**.
 - **Plano:** `.claude/plan/16-frontend-promotor.md` (CONFIRMADO Portões 1+2 em
-  2026-06-15). **Não confiar em PRD/doc de IA antigo.**
+  2026-06-15) — válido para a base **collaborators**; para leadership/staff vale
+  a expansão acima. **Não confiar em PRD/doc de IA antigo.**
 - **Backend consumido:** `~/mvp/.claude/CONVENTION.md` §1/§3 +
   `~/mvp/backend/wiki/api/collaborators.md` + OpenAPI vivo em
-  `/api/v1/collaborators/docs` e `/api/v1/leadership/openapi.json` (NÃO uma spec
-  congelada).
+  `/api/v1/{collaborators,leadership,staff}/docs` (NÃO uma spec congelada).
 - **Workflow (3 portões):** `~/mvp/.claude/WORKFLOW.md` (questionário → plano
   confirmado → testes aprovados). **Sem pressa.** Cada milestone vai ao Portão 3
   separado.
@@ -99,7 +107,6 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor) e
 ## Fora do escopo deste app (mesmo que pareça boa ideia)
 
 - Telas do **cliente** (lead/enrollment/student/veteran) — mora em `/root/app-supletivo`.
-- Telas de **staff** (admin geral) — outro app (futuro).
 - Testes automatizados (vitest/playwright) — decisão futura (harness de QA
   manual `scripts/shot.mjs` segue valendo).
 - Storybook / Figma / observability / CMS.
@@ -109,12 +116,19 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor) e
 ## Pendências de produto (perguntar ao Victor — NÃO decidir sozinho)
 
 - Copy do hero da home (atualmente placeholder).
+- Pix do candidato mexe R$ real (Asaas/DICT) — **Portão 3 com Victor** na hora
+  dessa tela.
+- Selfie precisa de foto real — **Portão 3 com Victor**.
+- CNH-e do Victor: usar a foto real só se ele autorizar.
+- Decisões do coordenador (approve/reject/selfie/decide/document decide|reset,
+  fee/pay, fee/schedule, conclude) mexem em identidade/status/$$ reais →
+  **Portão 3** antes de testar fora de sandbox.
 - Notifies de WhatsApp/email saem via `users/roles/notifications.py` (já no
   backend). **Sem notify no front** — o app só exibe o status.
-- Decisões do coordenador (approve/reject/selfie/decide/document decide|reset)
-  mexem em identidade/status reais → **Portão 3** antes de testar em sandbox.
 
 ## Tarefas do Victor (ordem de execução)
+
+Base **collaborators**:
 
 - M0: scaffold.
 - M1: auth (entrar/validar/cadastro + role-router) + contexto promotor/coordenador unificado.
@@ -125,3 +139,11 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor) e
 - M4: painel do promotor (só leitura) + dashboard do coordenador (fila de
   candidatos, fila de matrículas, revisões).
 - M5: polish + a11y.
+
+Superfícies **leadership / staff** (expansão 2026-06-21):
+
+- L1 (leadership/coordenador): leads + auth — **EM PRODUÇÃO desde 2026-06-21 (PR #4)**.
+- Leadership ampliado (enrollments, reviews, candidatos, **alunos, promotores,
+  treinamento-autoria**) — entregue na área do coordenador; revisões clicáveis.
+- **staff** (hubs, finance, integrações, views globais) entra conforme o Victor
+  priorizar.
