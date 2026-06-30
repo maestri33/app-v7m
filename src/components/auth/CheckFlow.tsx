@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldError } from "@/components/ui/field";
+import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
 
 type CheckOut = {
   found: boolean;
@@ -22,6 +22,7 @@ type Stage = "check" | "register" | "otp";
 export function CheckFlow() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("check");
+  const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [externalId, setExternalId] = useState<string | null>(null);
@@ -29,10 +30,6 @@ export function CheckFlow() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ detail: string; code?: string } | null>(null);
 
-  // Captura ?ref= da URL na entrada. NESTE app (do promotor) ref = external_id do
-  // POLO (hub), NÃO id de promotor — a confusão "ref=promotor" é do funil de LEAD,
-  // que vive no app do aluno. O register repassa como `hub` pra o candidato cair no
-  // polo certo (senão vai pro polo padrão e não aparece pra um coordenador não-padrão).
   // Captura ?ref= da URL na entrada, uma só vez, via lazy initializer (sem efeito).
   // NESTE app (do promotor) ref = external_id do POLO (hub), NÃO id de promotor —
   // a confusão "ref=promotor" é do funil de LEAD, que vive no app do aluno. O
@@ -46,24 +43,25 @@ export function CheckFlow() {
   function restart() {
     setStage("check");
     setOtp("");
+    setPhone("");
     setCpf("");
     setEmail("");
     setExternalId(null);
     setError(null);
   }
 
-  // Etapa 1 — check() por CPF. O backend deriva o WhatsApp do CPF (CPFHub) e
+  // Etapa 1 — check() por TELEFONE. O backend deriva o WhatsApp do número e
   // decide o caminho:
   //   found=true                  → já cadastrado, OTP disparado → vai pro código
-  //   found=false, whatsapp=true  → CPF novo com zap → cadastro
-  //   found=false, whatsapp=false → número vinculado sem WhatsApp → não vale
+  //   found=false, whatsapp=true  → número novo com zap → cadastro (telefone travado)
+  //   found=false, whatsapp=false → número sem WhatsApp → não vale
   //   found=false, whatsapp=null  → WhatsApp fora do ar → pede pra tentar de novo
   async function onCheck(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const cpfDigits = cpf.replace(/\D/g, "");
-    const body: { cpf?: string } = cpfDigits ? { cpf: cpfDigits } : {};
+    const phoneDigits = phone.replace(/\D/g, "");
+    const body: { phone?: string } = phoneDigits ? { phone: phoneDigits } : {};
     try {
       const res = await fetch("/api/auth/check", {
         method: "POST",
@@ -103,7 +101,8 @@ export function CheckFlow() {
     }
   }
 
-  // Etapa 2 (só número novo) — CPF + e-mail. O register dispara o OTP.
+  // Etapa 2 (só número novo) — CPF + e-mail. O telefone vem travado do check
+  // (é pra onde vai o OTP). O register dispara o OTP.
   async function onRegister(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -113,9 +112,7 @@ export function CheckFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Entrada é só-CPF: o backend deriva o WhatsApp do CPF (CPFHub). Mantido
-          // no corpo (vazio) pra não mudar a forma do contrato register.
-          phone: "",
+          phone: phone.replace(/\D/g, ""),
           cpf: cpf.replace(/\D/g, ""),
           email: email.trim().toLowerCase(),
           // ref da URL = polo (hub); o back vincula o candidato a esse polo.
@@ -207,8 +204,14 @@ export function CheckFlow() {
     return (
       <form onSubmit={onRegister} className="space-y-5">
         <p className="text-brand-muted-on-dark text-sm">
-          CPF novo por aqui. Confirme seus dados pra criar seu cadastro.
+          Número novo por aqui. Confirme seus dados pra criar seu cadastro.
         </p>
+        <ReadOnlyField
+          tone="dark"
+          label="Telefone (WhatsApp)"
+          value={phone}
+          hint="É pra onde vai o código — por isso fica travado."
+        />
         <Field
           tone="dark"
           label="CPF"
@@ -241,17 +244,17 @@ export function CheckFlow() {
   return (
     <form onSubmit={onCheck} className="space-y-5">
       <p className="text-brand-muted-on-dark text-sm">
-        Entre com seu CPF.
+        Entre com seu telefone/WhatsApp.
       </p>
       <Field
         tone="dark"
-        label="CPF"
-        value={cpf}
-        onChange={setCpf}
+        label="Telefone (WhatsApp)"
+        value={phone}
+        onChange={setPhone}
         type="tel"
-        inputMode="numeric"
-        autoComplete="off"
-        placeholder="000.000.000-00"
+        inputMode="tel"
+        autoComplete="tel"
+        placeholder="(00) 00000-0000"
         required
         autoFocus
       />
