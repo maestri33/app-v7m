@@ -75,7 +75,10 @@ export async function djangoFetch<T = unknown>(
       Accept: "application/json",
       ...(extraHeaders ?? {}),
     };
-    if (rest.body && !headers["Content-Type"]) {
+    // NÃO carimbar Content-Type quando o body é FormData: o fetch precisa gerar o
+    // boundary multipart sozinho. Carimbar `application/json` aqui quebra o upload
+    // no Django (boundary perdido) — vale pros uploads de selfie/RG/diploma.
+    if (rest.body && !headers["Content-Type"] && !(rest.body instanceof FormData)) {
       headers["Content-Type"] = "application/json";
     }
     if (authenticated && access) headers.Authorization = `Bearer ${access}`;

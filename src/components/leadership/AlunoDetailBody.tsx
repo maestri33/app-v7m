@@ -132,12 +132,19 @@ export function AlunoDetailBody({
         )}
       </Card>
 
-      {/* Diploma */}
+      {/* Diploma — três estados: não emitido → aguardando retirada → retirado.
+          A emissão (upload do PDF) e o registro da retirada (foto) vivem no AlunoActions. */}
       <Card>
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-display text-base">Diploma</h2>
-          <Badge tone={data.diploma ? "ok" : "muted"}>
-            {data.diploma ? "Emitido" : "Não emitido"}
+          <Badge
+            tone={!data.diploma ? "muted" : data.diploma.picked_up ? "ok" : "warn"}
+          >
+            {!data.diploma
+              ? "Não emitido"
+              : data.diploma.picked_up
+                ? "Retirado"
+                : "Aguardando retirada"}
           </Badge>
         </div>
         {data.diploma && (
