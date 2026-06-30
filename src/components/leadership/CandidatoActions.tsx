@@ -235,7 +235,7 @@ export function CandidatoActions({
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               placeholder="Explique o que impediu a aprovação. A pessoa vai ler."
-              className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-gold-ink/40"
+              className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
             />
             <div className="flex flex-wrap gap-3">
               <Button type="button" onClick={rejectCandidate} loading={pending}>
@@ -279,7 +279,7 @@ export function CandidatoActions({
                 onChange={(e) => setReason(e.target.value)}
                 rows={2}
                 placeholder="Ex: rosto coberto, foto borrada, pessoa diferente do documento..."
-                className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-gold-ink/40"
+                className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
               />
               <div className="flex flex-wrap gap-3">
                 <Button type="button" onClick={() => approve("selfie")} loading={pending}>
@@ -334,7 +334,7 @@ export function CandidatoActions({
               onChange={(e) => setReason(e.target.value)}
               rows={2}
               placeholder="Ex: documento ilegível, dados não conferem, foto cortada..."
-              className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-gold-ink/40"
+              className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
             />
             <div className="flex flex-wrap gap-3">
               <Button type="button" onClick={() => approve("document")} loading={pending}>

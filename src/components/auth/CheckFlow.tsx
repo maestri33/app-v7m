@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
+import { Field, FieldError } from "@/components/ui/field";
 
 type CheckOut = {
   found: boolean;
@@ -22,7 +22,6 @@ type Stage = "check" | "register" | "otp";
 export function CheckFlow() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("check");
-  const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [externalId, setExternalId] = useState<string | null>(null);
@@ -53,24 +52,18 @@ export function CheckFlow() {
     setError(null);
   }
 
-  // Etapa 1 — check() por CPF (entrada primária) OU telefone (fallback p/
-  // estrangeiro, conforme contrato CheckIn do backend). O backend decide o caminho:
+  // Etapa 1 — check() por CPF. O backend deriva o WhatsApp do CPF (CPFHub) e
+  // decide o caminho:
   //   found=true                  → já cadastrado, OTP disparado → vai pro código
-  //   found=false, whatsapp=true  → número novo com zap → cadastro (telefone travado)
-  //   found=false, whatsapp=false → número sem WhatsApp → não vale
+  //   found=false, whatsapp=true  → CPF novo com zap → cadastro
+  //   found=false, whatsapp=false → número vinculado sem WhatsApp → não vale
   //   found=false, whatsapp=null  → WhatsApp fora do ar → pede pra tentar de novo
   async function onCheck(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     const cpfDigits = cpf.replace(/\D/g, "");
-    const phoneDigits = phone.replace(/\D/g, "");
-    // CPF tem prioridade; telefone só vai se preenchido (estrangeiro sem CPF).
-    const body: { cpf?: string; phone?: string } = cpfDigits
-      ? { cpf: cpfDigits }
-      : phoneDigits
-        ? { phone: phoneDigits }
-        : {};
+    const body: { cpf?: string } = cpfDigits ? { cpf: cpfDigits } : {};
     try {
       const res = await fetch("/api/auth/check", {
         method: "POST",
@@ -120,7 +113,9 @@ export function CheckFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: phone.replace(/\D/g, ""),
+          // Entrada é só-CPF: o backend deriva o WhatsApp do CPF (CPFHub). Mantido
+          // no corpo (vazio) pra não mudar a forma do contrato register.
+          phone: "",
           cpf: cpf.replace(/\D/g, ""),
           email: email.trim().toLowerCase(),
           // ref da URL = polo (hub); o back vincula o candidato a esse polo.
@@ -212,14 +207,8 @@ export function CheckFlow() {
     return (
       <form onSubmit={onRegister} className="space-y-5">
         <p className="text-brand-muted-on-dark text-sm">
-          Número novo por aqui. Confirme seus dados pra criar seu cadastro.
+          CPF novo por aqui. Confirme seus dados pra criar seu cadastro.
         </p>
-        <ReadOnlyField
-          tone="dark"
-          label="Telefone (WhatsApp)"
-          value={phone}
-          hint="É pra onde vai o código — por isso fica travado."
-        />
         <Field
           tone="dark"
           label="CPF"
@@ -252,7 +241,7 @@ export function CheckFlow() {
   return (
     <form onSubmit={onCheck} className="space-y-5">
       <p className="text-brand-muted-on-dark text-sm">
-        Entre com seu CPF. Se não tiver CPF, use o telefone.
+        Entre com seu CPF.
       </p>
       <Field
         tone="dark"
@@ -265,16 +254,6 @@ export function CheckFlow() {
         placeholder="000.000.000-00"
         required
         autoFocus
-      />
-      <Field
-        tone="dark"
-        label="Telefone (WhatsApp) — só se não tiver CPF"
-        value={phone}
-        onChange={setPhone}
-        type="tel"
-        inputMode="tel"
-        autoComplete="tel"
-        placeholder="(00) 00000-0000"
       />
       <FieldError tone="dark">{error?.detail}</FieldError>
       <Button type="submit" size="xl" loading={loading} className="w-full">
