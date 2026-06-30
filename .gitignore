@@ -44,3 +44,7 @@ next-env.d.ts
 # python
 __pycache__/
 *.pyc
+
+# ruflo/claude-flow workspace
+.claude-flow/
+.hive-mind/

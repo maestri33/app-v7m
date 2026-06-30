@@ -13,6 +13,7 @@ type ActionType =
   | "pendency"
   | "clear"
   | "diploma"
+  | "pickup"
   | { kind: "resolve"; pendency: StudentPendency };
 type ErrBody = { detail?: string; code?: string };
 
@@ -53,6 +54,8 @@ function studentMessage(body: ErrBody): string {
 const TEXTAREA_CLS =
   "w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40";
 const INPUT_CLS = TEXTAREA_CLS;
+const FILE_CLS =
+  "w-full text-sm text-brand-ink file:mr-3 file:rounded-lg file:border-0 file:bg-brand-gold-ink/10 file:px-3 file:py-2 file:text-sm file:text-brand-gold-ink";
 
 /**
  * Ações L2 do detalhe do aluno: corrigir prova, abrir/resolver pendência, liberar
@@ -70,6 +73,9 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
   const [pendencyKind, setPendencyKind] = useState<"document" | "fee">("document");
   const [pendencyDesc, setPendencyDesc] = useState("");
   const [pendencyAmount, setPendencyAmount] = useState("");
+  const [diplomaFile, setDiplomaFile] = useState<File | null>(null);
+  const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
+  const [pickupFile, setPickupFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -82,6 +88,9 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
     setPendencyKind("document");
     setPendencyDesc("");
     setPendencyAmount("");
+    setDiplomaFile(null);
+    setTranscriptFile(null);
+    setPickupFile(null);
     setError(null);
   }
 
@@ -100,6 +109,14 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
       method: "POST",
       headers: body ? { "Content-Type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  /** POST multipart (upload de arquivo). SEM Content-Type: o browser gera o boundary. */
+  function postForm(path: string, form: FormData) {
+    return fetch(`/api/leadership/students/${externalId}${path}`, {
+      method: "POST",
+      body: form,
     });
   }
 
@@ -159,6 +176,27 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
         ...(amountCents != null ? { amount_cents: amountCents } : {}),
       }),
     );
+  }
+
+  function submitDiploma() {
+    if (!diplomaFile) {
+      setError("Anexe o arquivo do diploma (PDF ou imagem).");
+      return;
+    }
+    const form = new FormData();
+    form.append("diploma", diplomaFile, diplomaFile.name);
+    if (transcriptFile) form.append("transcript", transcriptFile, transcriptFile.name);
+    run(postForm("/diploma/issue", form));
+  }
+
+  function submitPickup() {
+    if (!pickupFile) {
+      setError("Anexe a foto do aluno recebendo o diploma.");
+      return;
+    }
+    const form = new FormData();
+    form.append("file", pickupFile, pickupFile.name);
+    run(postForm("/diploma/pickup", form));
   }
 
   function resolvePendency(p: StudentPendency) {
@@ -422,13 +460,13 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
         <FieldError>{mode === "clear" ? error : null}</FieldError>
       </Card>
 
-      {/* Emitir diploma */}
+      {/* Emitir diploma — sobe o PDF/imagem do diploma (+ histórico opcional) */}
       {!data.diploma && (
         <Card>
           <h2 className="font-display text-base">Emitir diploma</h2>
           <p className="text-sm text-brand-muted mt-1">
-            Emite o diploma (certificado + histórico) → o aluno fica aguardando a
-            retirada. Ação irreversível.
+            Anexe o diploma (PDF ou imagem) e, se houver, o histórico → o aluno fica
+            aguardando a retirada e é avisado pra comparecer ao polo. Ação irreversível.
           </p>
 
           {mode !== "diploma" && (
@@ -441,15 +479,31 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
 
           {mode === "diploma" && (
             <div className="mt-4 space-y-3">
+              <label htmlFor="diploma-file" className="block text-sm text-brand-ink">
+                Diploma (PDF ou imagem) — obrigatório
+              </label>
+              <input
+                id="diploma-file"
+                type="file"
+                accept="application/pdf,image/*"
+                onChange={(e) => setDiplomaFile(e.target.files?.[0] ?? null)}
+                className={FILE_CLS}
+              />
+              <label htmlFor="transcript-file" className="block text-sm text-brand-ink">
+                Histórico (opcional)
+              </label>
+              <input
+                id="transcript-file"
+                type="file"
+                accept="application/pdf,image/*"
+                onChange={(e) => setTranscriptFile(e.target.files?.[0] ?? null)}
+                className={FILE_CLS}
+              />
               <p className="text-sm text-brand-ink">
                 Confirmar a emissão do diploma? Não dá pra desfazer.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Button
-                  type="button"
-                  onClick={() => run(post("/diploma/issue"))}
-                  loading={pending}
-                >
+                <Button type="button" onClick={submitDiploma} loading={pending}>
                   {pending ? "Emitindo…" : "Confirmar emissão"}
                 </Button>
                 <Button type="button" variant="ghost" onClick={idle} disabled={pending}>
@@ -460,6 +514,53 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
           )}
 
           <FieldError>{mode === "diploma" ? error : null}</FieldError>
+        </Card>
+      )}
+
+      {/* Registrar retirada — foto do aluno recebendo o diploma → promove a veterano */}
+      {data.diploma && !data.diploma.picked_up && (
+        <Card>
+          <h2 className="font-display text-base">Registrar retirada</h2>
+          <p className="text-sm text-brand-muted mt-1">
+            Anexe a foto do aluno recebendo o diploma no polo → ele passa a VETERANO.
+            Ação irreversível.
+          </p>
+
+          {mode !== "pickup" && (
+            <div className="mt-4">
+              <Button type="button" onClick={() => start("pickup")}>
+                Registrar retirada
+              </Button>
+            </div>
+          )}
+
+          {mode === "pickup" && (
+            <div className="mt-4 space-y-3">
+              <label htmlFor="pickup-file" className="block text-sm text-brand-ink">
+                Foto da retirada — obrigatória
+              </label>
+              <input
+                id="pickup-file"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPickupFile(e.target.files?.[0] ?? null)}
+                className={FILE_CLS}
+              />
+              <p className="text-sm text-brand-ink">
+                Confirmar a retirada? O aluno vira veterano na hora.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button type="button" onClick={submitPickup} loading={pending}>
+                  {pending ? "Registrando…" : "Confirmar retirada"}
+                </Button>
+                <Button type="button" variant="ghost" onClick={idle} disabled={pending}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <FieldError>{mode === "pickup" ? error : null}</FieldError>
         </Card>
       )}
     </div>
