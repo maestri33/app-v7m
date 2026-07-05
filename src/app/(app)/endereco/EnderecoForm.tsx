@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
-import { NEXT_STAGE } from "@/lib/candidate/funnel";
+import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import type { AddressSection } from "@/lib/api/types";
 
 type Props = {
@@ -43,8 +43,18 @@ export function EnderecoForm({ initial }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cep: cep.replace(/\D/g, "") }),
         });
-        const data: { detail?: string; address?: AddressSection } = await res.json();
+        const data: {
+          detail?: string;
+          code?: string;
+          expected_status?: string;
+          address?: AddressSection;
+        } = await res.json();
         if (!res.ok) {
+          const redir = wrongStatusHref(data.code, data.expected_status);
+          if (redir) {
+            router.push(redir);
+            return;
+          }
           setError(data.detail ?? "Não achamos esse CEP. Confere os números e tenta de novo.");
           return;
         }
@@ -80,8 +90,14 @@ export function EnderecoForm({ initial }: Props) {
             state: state || null,
           }),
         });
-        const data: { detail?: string } = await res.json();
+        const data: { detail?: string; code?: string; expected_status?: string } =
+          await res.json();
         if (!res.ok) {
+          const redir = wrongStatusHref(data.code, data.expected_status);
+          if (redir) {
+            router.push(redir);
+            return;
+          }
           setError(data.detail ?? "Não deu pra salvar agora. Tente de novo.");
           return;
         }

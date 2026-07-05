@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError } from "@/components/ui/field";
-import { NEXT_STAGE } from "@/lib/candidate/funnel";
+import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 
 /**
  * Sem seletor de tipo: detectamos pelo formato do que foi digitado/colado.
@@ -85,7 +85,8 @@ export function PixForm() {
         key_type: keyType,
       }),
     });
-    const data: { detail?: string; code?: string } = await res.json();
+    const data: { detail?: string; code?: string; expected_status?: string } =
+      await res.json();
     return { ok: res.ok, status: res.status, data };
   }
 
@@ -108,6 +109,11 @@ export function PixForm() {
           result = await validate(detected);
         }
         if (!result.ok) {
+          const redir = wrongStatusHref(result.data.code, result.data.expected_status);
+          if (redir) {
+            router.push(redir);
+            return;
+          }
           setError(pixErrorMessage(result.data.code, result.data.detail));
           return;
         }

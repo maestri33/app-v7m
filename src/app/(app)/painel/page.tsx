@@ -13,7 +13,15 @@ import { isOnboarding, isPromoter, OUTSIDE_APP_URL } from "@/lib/auth/roles";
 import { STAGE_HREF } from "@/lib/candidate/funnel";
 import { djangoFetch } from "@/lib/api/client";
 import { formatBRL } from "@/lib/format";
-import type { CandidateMe, Lead, PromoterMe, PromoterSummary } from "@/lib/api/types";
+import type {
+  CandidateMe,
+  Lead,
+  PromoterMe,
+  PromoterSummary,
+  StudyPricing,
+} from "@/lib/api/types";
+
+import { StudyCta } from "./StudyCta";
 
 export const dynamic = "force-dynamic";
 
@@ -57,10 +65,14 @@ export default async function PainelPage() {
 
   if (isPromoter(session.roles)) {
     // Números direto do backend (summary) — o front não calcula comissão.
-    const [me, summary, leads] = await Promise.all([
+    // Pricing do "estude você também" é opcional: sem preço, o card não aparece.
+    const [me, summary, leads, studyPricing] = await Promise.all([
       djangoFetch<PromoterMe>("/api/v1/collaborators/promoter/me"),
       djangoFetch<PromoterSummary>("/api/v1/collaborators/promoter/me/summary"),
       djangoFetch<Lead[]>("/api/v1/collaborators/promoter/me/leads"),
+      djangoFetch<StudyPricing>("/api/v1/collaborators/promoter/study/pricing").catch(
+        () => null,
+      ),
     ]);
 
     const goal = summary.week_goal;
@@ -241,6 +253,23 @@ export default async function PainelPage() {
                   </code>
                   <CopyButton value={me.ref_url} label="Copiar link" />
                 </div>
+              </Card>
+            )}
+
+            {/* Estude você também — auto-matrícula (sem comissão) */}
+            {studyPricing?.pix && (
+              <Card className="space-y-2">
+                <p className="text-xs uppercase tracking-wider text-brand-muted">
+                  Estude você também
+                </p>
+                <p className="text-sm text-brand-muted">
+                  Conclua seus estudos na mesma escola que você indica — matrícula
+                  por <strong className="text-brand-ink">{formatBRL(studyPricing.pix)}</strong> no
+                  Pix{studyPricing.card?.installments
+                    ? `, ou ${studyPricing.card.installments}× de ${formatBRL(studyPricing.card.installment)} no cartão`
+                    : ""}.
+                </p>
+                <StudyCta />
               </Card>
             )}
 

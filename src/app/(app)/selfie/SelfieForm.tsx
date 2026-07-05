@@ -9,7 +9,7 @@ import { FieldError } from "@/components/ui/field";
 import { FileInput } from "@/components/ui/file-input";
 import { Spinner } from "@/components/ui/spinner";
 import { StatusBanner } from "@/components/ui/status-banner";
-import { NEXT_STAGE } from "@/lib/candidate/funnel";
+import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import type { AnalysisStatus } from "@/lib/api/types";
 
 import { AgreementSheet } from "./AgreementSheet";
@@ -33,13 +33,15 @@ export function SelfieForm() {
   // Aceite do acordo é client-side; a assinatura de verdade é a selfie (o
   // backend guarda foto + data/hora/dispositivo).
   const [accepted, setAccepted] = useState(false);
+  // Intervalo de poll sugerido pelo backend no ack do upload (AnalysisAckOut).
+  const [pollMs, setPollMs] = useState(POLL_MS);
 
   const { data, mutate } = useSWR<SelfieSection>(
     "/api/me/selfie",
     (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
     {
       refreshInterval: (latest) =>
-        latest?.taken_at && latest?.analysis_status === "pending" ? POLL_MS : 0,
+        latest?.taken_at && latest?.analysis_status === "pending" ? pollMs : 0,
     },
   );
 
@@ -67,8 +69,21 @@ export function SelfieForm() {
         const form = new FormData();
         form.append("photo", file, file.name);
         const res = await fetch("/api/me/selfie", { method: "POST", body: form });
-        const result: { detail?: string } = await res.json();
+        const result: {
+          detail?: string;
+          code?: string;
+          expected_status?: string;
+          poll_after_ms?: number;
+        } = await res.json();
+        if (res.ok && typeof result.poll_after_ms === "number" && result.poll_after_ms > 0) {
+          setPollMs(result.poll_after_ms);
+        }
         if (!res.ok) {
+          const redir = wrongStatusHref(result.code, result.expected_status);
+          if (redir) {
+            router.push(redir);
+            return;
+          }
           setError(result.detail ?? "Não conseguimos receber sua selfie agora. Tente de novo.");
           return;
         }

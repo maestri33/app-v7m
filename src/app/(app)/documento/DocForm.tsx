@@ -8,7 +8,7 @@ import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
 import { StatusBanner } from "@/components/ui/status-banner";
-import { NEXT_STAGE } from "@/lib/candidate/funnel";
+import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import type { AnalysisStatus, DocumentSection } from "@/lib/api/types";
 
 type Props = {
@@ -41,6 +41,8 @@ export function DocForm({ initial }: Props) {
   // Tipo escolhido localmente antes do 1º upload; depois vem travado do backend.
   const [docType, setDocType] = useState<string>(initial.doc_type ?? "");
   const [extras, setExtras] = useState<Record<string, string>>({});
+  // Intervalo de poll sugerido pelo backend no ack do upload (AnalysisAckOut).
+  const [pollMs, setPollMs] = useState(POLL_MS);
 
   // Polling do /me/document enquanto a IA analisa.
   const { data: live, mutate } = useSWR<DocumentSection>(
@@ -49,7 +51,7 @@ export function DocForm({ initial }: Props) {
     {
       refreshInterval: (latest) =>
         (latest?.has_full || latest?.doc_type) && latest?.analysis_status === "pending"
-          ? POLL_MS
+          ? pollMs
           : 0,
       fallbackData: initial,
     },
@@ -81,8 +83,21 @@ export function DocForm({ initial }: Props) {
         form.append("slot", slot);
         form.append("photo", file, file.name);
         const res = await fetch("/api/me/document/photo", { method: "POST", body: form });
-        const data: { detail?: string; code?: string } = await res.json();
+        const data: {
+          detail?: string;
+          code?: string;
+          expected_status?: string;
+          poll_after_ms?: number;
+        } = await res.json();
+        if (res.ok && typeof data.poll_after_ms === "number" && data.poll_after_ms > 0) {
+          setPollMs(data.poll_after_ms);
+        }
         if (!res.ok) {
+          const redir = wrongStatusHref(data.code, data.expected_status);
+          if (redir) {
+            router.push(redir);
+            return;
+          }
           setError(uploadErrorMessage(data.code, data.detail));
           return;
         }
@@ -102,10 +117,22 @@ export function DocForm({ initial }: Props) {
         const res = await fetch("/api/me/document", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(extras),
+          // DocumentsIn exige doc_type e number SEMPRE — mesmo quando a IA já
+          // leu o número e só falta outro campo.
+          body: JSON.stringify({
+            doc_type: lockedType ?? docType,
+            number: extras.number ?? doc.number ?? "",
+            ...extras,
+          }),
         });
-        const data: { detail?: string; code?: string } = await res.json();
+        const data: { detail?: string; code?: string; expected_status?: string } =
+          await res.json();
         if (!res.ok) {
+          const redir = wrongStatusHref(data.code, data.expected_status);
+          if (redir) {
+            router.push(redir);
+            return;
+          }
           setError(uploadErrorMessage(data.code, data.detail));
           return;
         }
