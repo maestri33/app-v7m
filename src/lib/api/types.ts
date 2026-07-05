@@ -90,6 +90,27 @@ export type Lead = {
   created_at: string;
 };
 
+/**
+ * `TrainingMaterialOut` (shape novo): `blocking` separa obrigatória de extra;
+ * `submission_status` é o estado da ÚLTIMA resposta (null = nunca respondeu).
+ */
+export type TrainingMaterial = {
+  external_id: string;
+  title: string;
+  prompt: string;
+  blocking: boolean;
+  kind?: string | null;
+  assignment_status?: string | null;
+  submission_status?: string | null;
+};
+
+export type TrainingProgress = {
+  total: number;
+  answered: number;
+  average_score: number | null;
+  pending_external_ids: string[];
+};
+
 export type Commission = {
   external_id: string;
   amount: number;
