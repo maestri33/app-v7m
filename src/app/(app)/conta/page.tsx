@@ -9,7 +9,6 @@ import { LogoutButton } from "@/app/(app)/LogoutButton";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, PromoterMe } from "@/lib/api/types";
 import { roleLabels } from "@/lib/candidate/labels";
-import { maskCpf, maskPhone, maskPixKey } from "@/lib/format";
 import { readUnlockedSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
@@ -42,11 +41,17 @@ export default async function ContaPage() {
       : Promise.resolve(null),
   ]);
 
-  const doc = me?.documents ?? null;
+  // `documents` é bloco rico por tipo — o tipo vem da presença de rg/cnh.
+  const docSlot = me?.documents?.rg ?? me?.documents?.cnh ?? null;
+  const docType = me?.documents?.rg ? "RG" : me?.documents?.cnh ? "CNH" : null;
   const address = me?.address ?? null;
   const takenAt = me?.selfie?.taken_at ?? null;
+  const selfiePhoto =
+    typeof me?.selfie?.photo === "string" && /^https?:\/\//i.test(me.selfie.photo)
+      ? me.selfie.photo
+      : null;
   const signatureVerified = me?.selfie?.analysis_status === "approved";
-  const pixKey = promoter?.pix_key ?? me?.pix?.key ?? null;
+  const pixValidated = me?.pix_validated === true;
   const labels = roleLabels(session.roles);
   const initials = (session.name ?? "V7M")
     .split(/\s+/)
@@ -60,14 +65,23 @@ export default async function ContaPage() {
         <PageHeader kicker="V7M · Você" title="Sua conta" />
 
         <div className="max-w-2xl space-y-4">
-          {/* Identidade */}
+          {/* Identidade — thumb da selfie quando houver; senão, iniciais */}
           <div className="card flex items-center gap-4">
-            <div
-              aria-hidden
-              className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[image:var(--gold-grad)] font-display text-lg text-brand-ink"
-            >
-              {initials}
-            </div>
+            {selfiePhoto ? (
+              // eslint-disable-next-line @next/next/no-img-element -- foto vem do backend, domínio desconhecido em build
+              <img
+                src={selfiePhoto}
+                alt="Sua selfie"
+                className="h-14 w-14 shrink-0 rounded-2xl object-cover"
+              />
+            ) : (
+              <div
+                aria-hidden
+                className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[image:var(--gold-grad)] font-display text-lg text-brand-ink"
+              >
+                {initials}
+              </div>
+            )}
             <div className="min-w-0">
               <p className="font-display text-lg truncate">{session.name ?? "—"}</p>
               <p className="text-sm text-brand-muted flex flex-wrap items-center gap-2">
@@ -84,17 +98,13 @@ export default async function ContaPage() {
             </div>
           </div>
 
-          {/* Cadastro */}
+          {/* Cadastro — telefone/CPF ficam de fora até o whoami expor (P2.1) */}
           <div className="space-y-2">
-            {session.phone != null && (
-              <Row label="Telefone (WhatsApp)">{maskPhone(session.phone)}</Row>
-            )}
-            {session.cpf != null && <Row label="CPF">{maskCpf(session.cpf)}</Row>}
-            {doc?.doc_type && (
+            {docType && (
               <Row label="Documento">
-                {doc.doc_type.toUpperCase()}
-                {doc.analysis_status
-                  ? ` · ${DOC_STATUS_LABEL[doc.analysis_status] ?? "—"}`
+                {docType}
+                {typeof docSlot?.validation_status === "string"
+                  ? ` · ${DOC_STATUS_LABEL[docSlot.validation_status] ?? "—"}`
                   : ""}
               </Row>
             )}
@@ -104,7 +114,7 @@ export default async function ContaPage() {
                 {address.state ? ` / ${address.state}` : ""}
               </Row>
             )}
-            {pixKey && <Row label="Chave Pix">{maskPixKey(pixKey)} · validada ✓</Row>}
+            {pixValidated && <Row label="Chave Pix">validada ✓</Row>}
             {takenAt && (
               <Row label="Selfie assinada em">
                 {new Date(takenAt).toLocaleString("pt-BR", {

@@ -9,7 +9,6 @@ import { FunnelStepper } from "@/components/ui/stepper";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
 import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
-import { maskPixKey } from "@/lib/format";
 import { readSession } from "@/lib/auth/server";
 
 import { PixForm } from "./PixForm";
@@ -25,10 +24,9 @@ export default async function PixPage() {
 
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
 
-  // Chave já validada (etapa passou) → resumo mascarado, sem form. Validar de
-  // novo mexeria R$0,01 no DICT à toa.
+  // Chave já validada (etapa passou) → resumo sem form. A chave em si não vem
+  // no contrato (P2.1); revalidar mexeria R$0,01 no DICT à toa.
   if (stagePassed("pix", me.status)) {
-    const key = me.pix?.key ?? null;
     return (
       <GrainSection className="bg-brand-bg min-h-[60dvh]">
         <Container>
@@ -38,8 +36,8 @@ export default async function PixPage() {
             <div className="banner banner-ok" role="status">
               <p className="font-display">Chave validada ✓</p>
               <p className="text-sm mt-1 opacity-90">
-                {key ? `${maskPixKey(key)} · ` : ""}confirmada no seu nome. É pra
-                essa chave que as suas comissões vão, toda sexta.
+                Confirmada no seu nome. É pra essa chave que as suas comissões
+                vão, toda sexta.
               </p>
             </div>
             <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
