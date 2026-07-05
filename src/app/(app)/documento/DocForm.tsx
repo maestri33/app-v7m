@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Camera, FileUp } from "lucide-react";
 import useSWR from "swr";
 
 import { Button } from "@/components/ui/button";
@@ -20,11 +21,11 @@ const POLL_MS = 2500;
 function uploadErrorMessage(code: string | undefined, detail: string | undefined) {
   switch (code) {
     case "IMAGE_TYPE_INVALID":
-      return "Formato não aceito — envie JPEG, PNG, WEBP ou PDF.";
+      return "Esse formato a gente ainda não lê — envie uma foto (JPEG, PNG, WEBP) ou um PDF.";
     case "IMAGE_TOO_LARGE":
-      return "Arquivo grande demais. Tente uma foto mais leve.";
+      return "O arquivo ficou pesado demais. Uma foto mais leve resolve.";
     default:
-      return detail ?? "Falha no upload. Tente de novo.";
+      return detail ?? "Não conseguimos receber o arquivo agora. Tente de novo.";
   }
 }
 
@@ -88,7 +89,7 @@ export function DocForm({ initial }: Props) {
         await mutate();
         router.refresh();
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }
@@ -110,7 +111,7 @@ export function DocForm({ initial }: Props) {
         }
         router.push(NEXT_STAGE.documents);
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }
@@ -272,7 +273,7 @@ function UploadActions({
         disabled={disabled}
         onClick={() => cameraRef.current?.click()}
       >
-        📷 {retry ? "Tirar outra foto" : "Tirar foto"}
+        <Camera size={18} aria-hidden /> {retry ? "Tirar outra foto" : "Tirar foto"}
       </Button>
       <Button
         type="button"
@@ -281,7 +282,7 @@ function UploadActions({
         onClick={() => fileRef.current?.click()}
         className="text-brand-ink border-brand-border"
       >
-        📄 Enviar arquivo
+        <FileUp size={18} aria-hidden /> Enviar arquivo
       </Button>
     </div>
   );
@@ -310,7 +311,7 @@ function AddressProofCard() {
         }
         setDone(true);
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AlignLeft, FileText, Image as ImageIcon, Play } from "lucide-react";
 
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
@@ -24,12 +25,13 @@ function isGrading(m: TrainingMaterial): boolean {
   return m.submission_status === "pending";
 }
 
-const KIND_ICON: Record<string, string> = {
-  video: "▶",
-  image: "◨",
-  pdf: "▤",
-  text: "≡",
-};
+function KindIcon({ kind }: { kind?: string | null }) {
+  const cls = "inline shrink-0";
+  if (kind === "video") return <Play size={15} className={cls} aria-hidden />;
+  if (kind === "image") return <ImageIcon size={15} className={cls} aria-hidden />;
+  if (kind === "pdf") return <FileText size={15} className={cls} aria-hidden />;
+  return <AlignLeft size={15} className={cls} aria-hidden />;
+}
 
 export default async function TreinamentoPage() {
   const session = await readSession();
@@ -92,8 +94,8 @@ export default async function TreinamentoPage() {
             </div>
           ) : focus ? (
             <Card className="border-brand-gold/50 space-y-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-brand-gold-ink">
-                {KIND_ICON[focus.kind ?? ""] ?? "≡"} Próxima matéria obrigatória
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-gold-ink">
+                <KindIcon kind={focus.kind} /> Próxima matéria obrigatória
               </p>
               <h2 className="font-display text-lg">{focus.title}</h2>
               {isGrading(focus) ? (
@@ -133,7 +135,7 @@ export default async function TreinamentoPage() {
                       className="flex items-center gap-3 py-3"
                     >
                       <span aria-hidden className="text-brand-gold-ink">
-                        {KIND_ICON[m.kind ?? ""] ?? "≡"}
+                        <KindIcon kind={m.kind} />
                       </span>
                       <span className="flex-1 text-sm font-semibold">{m.title}</span>
                       <span className="text-xs font-bold text-brand-gold-ink">

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Mic, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { FieldError, TextareaField } from "@/components/ui/field";
@@ -18,13 +19,13 @@ type Props = {
 function submitErrorMessage(code: string | undefined, detail: string | undefined) {
   switch (code) {
     case "ALREADY_GRADING":
-      return "Já tem uma correção em andamento pra esta matéria — espere a IA terminar.";
+      return "Sua resposta anterior ainda está sendo corrigida — é rapidinho, já já você pode enviar outra.";
     case "INVALID_AUDIO_TYPE":
-      return "Formato de áudio não aceito — use mp3, m4a, aac, ogg, webm ou wav.";
+      return "Esse áudio veio num formato que a gente ainda não entende. Grave de novo por aqui mesmo que funciona.";
     case "AUDIO_TOO_LARGE":
-      return "Áudio grande demais (máximo 10MB). Grave uma resposta mais curta.";
+      return "O áudio ficou longo demais. Grave uma resposta mais curta — direto ao ponto vale mais.";
     default:
-      return detail ?? "Falha ao enviar. Tente de novo.";
+      return detail ?? "Não deu pra enviar agora. Tente de novo em instantes.";
   }
 }
 
@@ -76,7 +77,7 @@ export function SubmissionForm({ materialExternalId, submissionStatus }: Props) 
       setRecSecs(0);
       setRecording(true);
     } catch {
-      setError("Não conseguimos acessar o microfone. Libere a permissão e tente de novo.");
+      setError("Não conseguimos acessar o microfone. Libere a permissão nas configurações e tente de novo — ou responda por texto, como preferir.");
     }
   }
 
@@ -103,7 +104,7 @@ export function SubmissionForm({ materialExternalId, submissionStatus }: Props) 
         setSent(true);
         router.refresh();
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — sua resposta continua aqui.");
       }
     });
   }
@@ -129,7 +130,7 @@ export function SubmissionForm({ materialExternalId, submissionStatus }: Props) 
         setSent(true);
         router.refresh();
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — sua resposta continua aqui.");
       }
     });
   }
@@ -188,7 +189,8 @@ export function SubmissionForm({ materialExternalId, submissionStatus }: Props) 
             onClick={stopRecording}
             className="w-full border-brand-danger/50 text-brand-danger"
           >
-            ⏹ Parar e enviar ({Math.floor(recSecs / 60)}:{String(recSecs % 60).padStart(2, "0")})
+            <Square size={16} aria-hidden /> Parar e enviar (
+            {Math.floor(recSecs / 60)}:{String(recSecs % 60).padStart(2, "0")})
           </Button>
         ) : (
           <Button
@@ -198,7 +200,7 @@ export function SubmissionForm({ materialExternalId, submissionStatus }: Props) 
             disabled={pending}
             className="w-full border-brand-border text-brand-ink"
           >
-            🎙 Gravar resposta em áudio
+            <Mic size={16} aria-hidden /> Gravar resposta em áudio
           </Button>
         )}
       </div>

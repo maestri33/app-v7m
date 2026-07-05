@@ -45,7 +45,7 @@ export function EnderecoForm({ initial }: Props) {
         });
         const data: { detail?: string; address?: AddressSection } = await res.json();
         if (!res.ok) {
-          setError(data.detail ?? "CEP não encontrado.");
+          setError(data.detail ?? "Não achamos esse CEP. Confere os números e tenta de novo.");
           return;
         }
         // Backend devolve o me_dict.canônico; pega o address e re-renderiza.
@@ -58,7 +58,7 @@ export function EnderecoForm({ initial }: Props) {
         }
         setStage("rest");
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }
@@ -82,13 +82,13 @@ export function EnderecoForm({ initial }: Props) {
         });
         const data: { detail?: string } = await res.json();
         if (!res.ok) {
-          setError(data.detail ?? "Falha ao salvar o endereço.");
+          setError(data.detail ?? "Não deu pra salvar agora. Tente de novo.");
           return;
         }
         // Wizard auto-avançante: sucesso navega direto pro próximo passo.
         router.push(NEXT_STAGE.address);
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }

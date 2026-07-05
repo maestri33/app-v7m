@@ -69,12 +69,12 @@ export function SelfieForm() {
         const res = await fetch("/api/me/selfie", { method: "POST", body: form });
         const result: { detail?: string } = await res.json();
         if (!res.ok) {
-          setError(result.detail ?? "Falha no upload.");
+          setError(result.detail ?? "Não conseguimos receber sua selfie agora. Tente de novo.");
           return;
         }
         await mutate();
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }

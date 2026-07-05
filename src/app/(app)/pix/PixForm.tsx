@@ -60,9 +60,9 @@ function normalizeKey(key: string, type: Exclude<DetectedType, "AMBIGUOUS">): st
 function pixErrorMessage(code: string | undefined, detail: string | undefined) {
   switch (code) {
     case "PIX_INVALID":
-      return "O DICT não confirmou essa chave no seu CPF. Confira se digitou certo — e lembre: a chave precisa ser SUA.";
+      return "Essa chave não apareceu no seu CPF. Sem estresse: confira se digitou certo — ela precisa ser sua, do mesmo CPF do cadastro.";
     default:
-      return detail ?? "Falha ao validar a chave. Tente de novo.";
+      return detail ?? "Não deu pra validar agora. Tente de novo em instantes.";
   }
 }
 
@@ -98,13 +98,13 @@ export function PixForm() {
         let result;
         if (detected === "AMBIGUOUS") {
           // 11 dígitos: tenta CPF; 422 PIX_INVALID → tenta celular. Aprovou = ficou.
-          setCheckingLabel("Conferindo como CPF e celular no DICT…");
+          setCheckingLabel("Conferindo como CPF e celular…");
           result = await validate("CPF");
           if (!result.ok && result.status === 422 && result.data.code === "PIX_INVALID") {
             result = await validate("PHONE");
           }
         } else {
-          setCheckingLabel(`Conferindo como ${TYPE_LABELS[detected]} no DICT…`);
+          setCheckingLabel(`Conferindo como ${TYPE_LABELS[detected]}…`);
           result = await validate(detected);
         }
         if (!result.ok) {
@@ -115,7 +115,7 @@ export function PixForm() {
         // Wizard auto-avançante: chave validada → direto pra selfie.
         router.push(NEXT_STAGE.pix);
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       } finally {
         setCheckingLabel(null);
       }
@@ -126,7 +126,9 @@ export function PixForm() {
     return (
       <div className="banner banner-ok" role="status">
         <p className="font-display">Chave validada ✓</p>
-        <p className="text-sm mt-1 opacity-90">Titular confere. Vamos pra próxima etapa.</p>
+        <p className="text-sm mt-1 opacity-90">
+          Tudo certo: ela é sua e já está pronta pra receber. Vamos pra próxima etapa.
+        </p>
       </div>
     );
   }
@@ -163,8 +165,8 @@ export function PixForm() {
         {pending ? "Validando…" : "Validar chave"}
       </Button>
       <p className="field-hint">
-        A validação confere o titular no DICT e movimenta R$0,01 de verdade — por
-        isso é um passo único, sem tentativas automáticas.
+        A conferência é oficial e feita uma única vez, com toda a segurança — por
+        isso vale revisar a chave antes de enviar.
       </p>
     </form>
   );

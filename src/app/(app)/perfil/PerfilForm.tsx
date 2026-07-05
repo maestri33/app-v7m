@@ -41,13 +41,13 @@ export function PerfilForm({ initial }: Props) {
         });
         const data: { detail?: string } = await res.json();
         if (!res.ok) {
-          setError(data.detail ?? "Falha ao salvar.");
+          setError(data.detail ?? "Não deu pra salvar agora. Tente de novo.");
           return;
         }
         // Wizard auto-avançante: sucesso navega direto pro próximo passo.
         router.push(NEXT_STAGE.profile);
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }
