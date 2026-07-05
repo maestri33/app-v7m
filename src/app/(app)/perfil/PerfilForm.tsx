@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField, SelectField } from "@/components/ui/field";
 import { NEXT_STAGE } from "@/lib/candidate/funnel";
 import { MARITAL_OPTIONS } from "@/lib/candidate/labels";
+import { formatDateBR } from "@/lib/format";
 import type { ProfileSection } from "@/lib/api/types";
 
 type Props = {
@@ -57,7 +58,7 @@ export function PerfilForm({ initial }: Props) {
       <ReadOnlyField label="Nome" value={initial.name ?? "—"} />
       <ReadOnlyField
         label="Data de nascimento"
-        value={initial.birth_date ?? "—"}
+        value={formatDateBR(initial.birth_date)}
         hint="Confirmado pelo CPF, não editável."
       />
       <Field label="Nome da mãe" value={motherName} onChange={setMotherName} />

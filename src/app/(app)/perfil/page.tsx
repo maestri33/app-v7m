@@ -11,6 +11,7 @@ import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, ProfileSection } from "@/lib/api/types";
 import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
 import { maritalLabel } from "@/lib/candidate/labels";
+import { formatDateBR } from "@/lib/format";
 import { readSession } from "@/lib/auth/server";
 
 import { PerfilForm } from "./PerfilForm";
@@ -50,7 +51,7 @@ export default async function PerfilPage() {
             <ReadOnlyField label="Nome" value={initial.name ?? "—"} />
             <ReadOnlyField
               label="Data de nascimento"
-              value={initial.birth_date ?? "—"}
+              value={formatDateBR(initial.birth_date)}
               hint="Confirmado pelo CPF, não editável."
             />
             <ReadOnlyField label="Nome da mãe" value={initial.mother_name ?? "—"} />

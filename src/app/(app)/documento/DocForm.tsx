@@ -272,15 +272,16 @@ function UploadActions({
         loading={pending}
         disabled={disabled}
         onClick={() => cameraRef.current?.click()}
+        className="px-3 whitespace-nowrap"
       >
-        <Camera size={18} aria-hidden /> {retry ? "Tirar outra foto" : "Tirar foto"}
+        <Camera size={18} aria-hidden /> {retry ? "Tirar de novo" : "Tirar foto"}
       </Button>
       <Button
         type="button"
         variant="ghost"
         disabled={disabled}
         onClick={() => fileRef.current?.click()}
-        className="text-brand-ink border-brand-border"
+        className="px-3 whitespace-nowrap text-brand-ink border-brand-border"
       >
         <FileUp size={18} aria-hidden /> Enviar arquivo
       </Button>

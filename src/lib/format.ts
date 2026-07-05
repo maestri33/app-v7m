@@ -12,6 +12,17 @@ export function formatBRL(value: string | number | null | undefined): string {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/**
+ * Data ISO (AAAA-MM-DD) → "DD/MM/AAAA", sem passar por Date (evita o pulo de
+ * fuso em data-só). Formato desconhecido volta como veio.
+ */
+export function formatDateBR(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
 /** Telefone mascarado pra exibição: (11) 987••••34. */
 export function maskPhone(raw: string | null | undefined): string {
   if (!raw) return "—";
