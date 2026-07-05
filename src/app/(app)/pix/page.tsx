@@ -60,7 +60,7 @@ export default async function PixPage() {
         />
         <FunnelStepper current="pix" />
         <Card className="max-w-xl">
-          <PixForm initial={{}} />
+          <PixForm />
         </Card>
       </Container>
     </GrainSection>
