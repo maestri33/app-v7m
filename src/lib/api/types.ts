@@ -57,12 +57,27 @@ export type DocumentSection = {
   [k: string]: unknown;
 };
 
+export type PixSection = {
+  key?: string | null;
+  key_type?: string | null;
+  validated_at?: string | null;
+};
+
+export type SelfieSection = {
+  taken_at?: string | null;
+  analysis_status?: AnalysisStatus;
+  analysis_reason?: string | null;
+  expires_at?: string | null;
+  [k: string]: unknown;
+};
+
 export type CandidateMe = {
   status: CandidateStatus;
   profile: ProfileSection | null;
   address: AddressSection | null;
   documents?: DocumentSection | null;
-  selfie?: Record<string, unknown> | null;
+  selfie?: SelfieSection | null;
+  pix?: PixSection | null;
 };
 
 export type PromoterMe = {
@@ -73,14 +88,56 @@ export type PromoterMe = {
   pix_key?: string | null;
 };
 
+/**
+ * `GET /promoter/me/summary` — números do dashboard direto do backend (parar
+ * de calcular no front). Valores monetários são STRING decimal.
+ */
+export type PromoterSummary = {
+  week_goal: number;
+  week_paid_leads: number;
+  week_commission_total: string;
+  bonus_amount: string;
+  goal_reached: boolean;
+  next_closing_at: string;
+  week_start?: string | null;
+  lifetime: {
+    total_received: string;
+    total_students: number;
+    goals_hit: number;
+  };
+};
+
+/** `PromoterLeadOut` — agora com `name`/`phone` pro CTA de WhatsApp. */
 export type Lead = {
   external_id: string;
   name: string;
+  phone?: string | null;
   status: string;
   payment_link?: string | null;
   receipt_url?: string | null;
   hub_name?: string;
   created_at: string;
+};
+
+/**
+ * `TrainingMaterialOut` (shape novo): `blocking` separa obrigatória de extra;
+ * `submission_status` é o estado da ÚLTIMA resposta (null = nunca respondeu).
+ */
+export type TrainingMaterial = {
+  external_id: string;
+  title: string;
+  prompt: string;
+  blocking: boolean;
+  kind?: string | null;
+  assignment_status?: string | null;
+  submission_status?: string | null;
+};
+
+export type TrainingProgress = {
+  total: number;
+  answered: number;
+  average_score: number | null;
+  pending_external_ids: string[];
 };
 
 export type Commission = {

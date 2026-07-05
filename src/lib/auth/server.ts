@@ -16,6 +16,9 @@ export type Session = {
   external_id: string;
   roles: string[];
   name: string | null;
+  /** Presentes quando o whoami informar — exibidos MASCARADOS na conta. */
+  phone?: string | null;
+  cpf?: string | null;
 };
 
 // Roteamento por role vive em `lib/auth/roles.ts` (eixos stage/gate/grant). NÃO

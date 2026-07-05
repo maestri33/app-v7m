@@ -5,16 +5,10 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField, SelectField } from "@/components/ui/field";
+import { NEXT_STAGE } from "@/lib/candidate/funnel";
+import { MARITAL_OPTIONS } from "@/lib/candidate/labels";
+import { formatDateBR } from "@/lib/format";
 import type { ProfileSection } from "@/lib/api/types";
-
-const MARITAL = [
-  { value: "", label: "—" },
-  { value: "single", label: "Solteiro(a)" },
-  { value: "married", label: "Casado(a)" },
-  { value: "divorced", label: "Divorciado(a)" },
-  { value: "widowed", label: "Viúvo(a)" },
-  { value: "separated", label: "Separado(a)" },
-] as const;
 
 type Props = {
   initial: ProfileSection;
@@ -48,13 +42,13 @@ export function PerfilForm({ initial }: Props) {
         });
         const data: { detail?: string } = await res.json();
         if (!res.ok) {
-          setError(data.detail ?? "Falha ao salvar.");
+          setError(data.detail ?? "Não deu pra salvar agora. Tente de novo.");
           return;
         }
-        router.push("/painel");
-        router.refresh();
+        // Wizard auto-avançante: sucesso navega direto pro próximo passo.
+        router.push(NEXT_STAGE.profile);
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }
@@ -64,8 +58,8 @@ export function PerfilForm({ initial }: Props) {
       <ReadOnlyField label="Nome" value={initial.name ?? "—"} />
       <ReadOnlyField
         label="Data de nascimento"
-        value={initial.birth_date ?? "—"}
-        hint="Vem do CPFHub. Não dá pra editar pelo app."
+        value={formatDateBR(initial.birth_date)}
+        hint="Confirmado pelo CPF, não editável."
       />
       <Field label="Nome da mãe" value={motherName} onChange={setMotherName} />
       <Field label="Nome do pai" value={fatherName} onChange={setFatherName} />
@@ -74,7 +68,7 @@ export function PerfilForm({ initial }: Props) {
         label="Estado civil"
         value={maritalStatus}
         onChange={setMaritalStatus}
-        options={MARITAL}
+        options={MARITAL_OPTIONS}
       />
       <Field label="Nacionalidade" value={nationality} onChange={setNationality} />
       <FieldError>{error}</FieldError>

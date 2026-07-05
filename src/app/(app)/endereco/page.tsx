@@ -2,11 +2,14 @@ import { redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ReadOnlyField } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { FunnelStepper } from "@/components/ui/stepper";
 import { djangoFetch } from "@/lib/api/client";
-import type { AddressSection } from "@/lib/api/types";
+import type { AddressSection, CandidateMe } from "@/lib/api/types";
+import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { EnderecoForm } from "./EnderecoForm";
@@ -20,9 +23,41 @@ export default async function EnderecoPage() {
   if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
 
-  const data = await djangoFetch<AddressSection>(
-    "/api/v1/collaborators/candidate/address",
-  );
+  const [me, data] = await Promise.all([
+    djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me"),
+    djangoFetch<AddressSection>("/api/v1/collaborators/candidate/address"),
+  ]);
+
+  // Etapa já concluída → resumo somente-leitura + CTA pro passo atual.
+  if (stagePassed("address", me.status)) {
+    return (
+      <GrainSection className="bg-brand-bg min-h-[60dvh]">
+        <Container>
+          <PageHeader title="Seu endereço" subtitle="Etapa concluída." />
+          <FunnelStepper current={me.status} />
+          <Card className="max-w-xl space-y-5">
+            <div className="banner banner-ok" role="status">
+              <p className="font-display">Endereço confirmado ✓</p>
+            </div>
+            <ReadOnlyField label="CEP" value={data.zipcode ?? "—"} />
+            <ReadOnlyField label="Rua" value={data.street ?? "—"} />
+            <div className="grid grid-cols-2 gap-3">
+              <ReadOnlyField label="Número" value={data.number ?? "—"} />
+              <ReadOnlyField label="Complemento" value={data.complement ?? "—"} />
+            </div>
+            <ReadOnlyField label="Bairro" value={data.neighborhood ?? "—"} />
+            <div className="grid grid-cols-3 gap-3">
+              <ReadOnlyField className="col-span-2" label="Cidade" value={data.city ?? "—"} />
+              <ReadOnlyField label="UF" value={data.state ?? "—"} />
+            </div>
+            <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+              Continuar
+            </Button>
+          </Card>
+        </Container>
+      </GrainSection>
+    );
+  }
 
   return (
     <GrainSection className="bg-brand-bg min-h-[60dvh]">

@@ -18,6 +18,18 @@ function brl(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// Origem da comissão em pt-BR (enum cru do backend nunca chega ao usuário).
+const SOURCE_LABEL: Record<string, string> = {
+  lead: "Matrícula paga",
+  enrollment: "Matrícula paga",
+  bonus: "Bônus da meta",
+  goal_bonus: "Bônus da meta",
+};
+
+function sourceLabel(sourceType: string): string {
+  return SOURCE_LABEL[sourceType] ?? "Comissão";
+}
+
 export default async function ComissoesPage() {
   const session = await readUnlockedSession();
   if (!session) redirect("/");
@@ -37,7 +49,10 @@ export default async function ComissoesPage() {
   return (
     <GrainSection className="bg-brand-bg min-h-[60dvh]">
       <Container>
-        <PageHeader title="Suas comissões" />
+        <PageHeader
+          title="Suas comissões"
+          subtitle="R$100 por matrícula paga + R$500 de bônus fixo ao bater 5 na semana. Fecha toda sexta às 18h, pago via Pix."
+        />
 
         <div className="mb-8 grid gap-3 max-w-2xl sm:grid-cols-2">
           <Stat label="Pendente" value={brl(totalPending)} />
@@ -46,7 +61,8 @@ export default async function ComissoesPage() {
 
         {commissions.length === 0 ? (
           <Card className="max-w-2xl text-brand-muted">
-            Nenhuma comissão ainda. Elas aparecem após o fechamento da semana.
+            Suas comissões vão aparecer aqui depois do primeiro fechamento —
+            toda sexta às 18h, direto na sua chave Pix. Bora buscar a primeira?
           </Card>
         ) : (
           <ul className="space-y-3 max-w-2xl">
@@ -57,7 +73,7 @@ export default async function ComissoesPage() {
                     <div>
                       <p className="font-display text-lg">{brl(c.amount)}</p>
                       <p className="text-xs text-brand-muted">
-                        {c.source_type} ·{" "}
+                        {sourceLabel(c.source_type)} ·{" "}
                         {new Date(c.created_at).toLocaleDateString("pt-BR")}
                       </p>
                     </div>

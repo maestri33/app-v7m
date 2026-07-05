@@ -1,83 +1,100 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Camera, FileUp } from "lucide-react";
 import useSWR from "swr";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldError } from "@/components/ui/field";
-import { FileInput } from "@/components/ui/file-input";
+import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
 import { StatusBanner } from "@/components/ui/status-banner";
+import { NEXT_STAGE } from "@/lib/candidate/funnel";
 import type { AnalysisStatus, DocumentSection } from "@/lib/api/types";
 
 type Props = {
   initial: DocumentSection;
-  initialStatus: string;
 };
 
 const POLL_MS = 2500;
 
-export function DocForm({ initial, initialStatus }: Props) {
+// Erros roteados por `code` (envelope {detail, code}) — nunca parseando detail.
+function uploadErrorMessage(code: string | undefined, detail: string | undefined) {
+  switch (code) {
+    case "IMAGE_TYPE_INVALID":
+      return "Esse formato a gente ainda não lê — envie uma foto (JPEG, PNG, WEBP) ou um PDF.";
+    case "IMAGE_TOO_LARGE":
+      return "O arquivo ficou pesado demais. Uma foto mais leve resolve.";
+    default:
+      return detail ?? "Não conseguimos receber o arquivo agora. Tente de novo.";
+  }
+}
+
+/**
+ * Fluxo invertido: upload PRIMEIRO (foto da câmera OU arquivo), a IA do backend
+ * lê e preenche; só o que ela não leu (`missing_fields`) vira input depois.
+ * `approved` trava tudo em somente-leitura e segue pro próximo passo.
+ */
+export function DocForm({ initial }: Props) {
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Tipo escolhido localmente antes do 1º upload; depois vem travado do backend.
   const [docType, setDocType] = useState<string>(initial.doc_type ?? "");
-  const [number, setNumber] = useState<string>(initial.number ?? "");
-  const [issuing, setIssuing] = useState<string>(initial.issuing_agency ?? "");
   const [extras, setExtras] = useState<Record<string, string>>({});
 
-  // Polling do /me/document enquanto pending.
-  const { data: live } = useSWR<DocumentSection>(
+  // Polling do /me/document enquanto a IA analisa.
+  const { data: live, mutate } = useSWR<DocumentSection>(
     "/api/me/document",
     (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
     {
       refreshInterval: (latest) =>
-        latest?.analysis_status === "pending" ? POLL_MS : 0,
+        (latest?.has_full || latest?.doc_type) && latest?.analysis_status === "pending"
+          ? POLL_MS
+          : 0,
       fallbackData: initial,
     },
   );
 
-  const status: AnalysisStatus = live?.analysis_status ?? initial.analysis_status ?? "pending";
-  const missing = live?.missing_fields ?? initial.missing_fields ?? [];
+  const doc = live ?? initial;
+  const uploaded = Boolean(doc.has_full || doc.has_front || doc.has_back);
+  const lockedType = doc.doc_type ?? null;
+  const status: AnalysisStatus | null = uploaded
+    ? (doc.analysis_status ?? "pending")
+    : null;
+  const missing = (doc.missing_fields ?? []).filter((f) => f !== "doc_type");
 
-  // Quando o status muda pra approved, refresh do painel.
+  // Aprovado e sem pendência → wizard auto-avançante: direto pro Pix. push()
+  // sem refresh(): as páginas são force-dynamic e um refresh concorrente
+  // cancela a navegação em andamento.
   useEffect(() => {
-    if (status === "approved") router.refresh();
-  }, [status, router]);
+    if (status === "approved" && missing.length === 0) {
+      router.push(NEXT_STAGE.documents);
+    }
+  }, [status, missing.length, router]);
 
-  function onMeta(e: React.FormEvent) {
-    e.preventDefault();
+  function onUpload(file: File) {
+    const slot = (lockedType ?? docType) === "cnh" ? "cnh_full" : "rg_full";
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch("/api/me/documents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            doc_type: docType,
-            number: number,
-            issuing_agency: issuing || null,
-            issue_date: initial.issue_date ?? null,
-            category: initial.category ?? null,
-            national_register: initial.national_register ?? null,
-            date_of_birth: initial.date_of_birth ?? null,
-            expires_on: initial.expires_on ?? null,
-          }),
-        });
-        const data: { detail?: string } = await res.json();
+        const form = new FormData();
+        form.append("slot", slot);
+        form.append("photo", file, file.name);
+        const res = await fetch("/api/me/document/photo", { method: "POST", body: form });
+        const data: { detail?: string; code?: string } = await res.json();
         if (!res.ok) {
-          setError(data.detail ?? "Falha ao registrar o documento.");
+          setError(uploadErrorMessage(data.code, data.detail));
           return;
         }
+        await mutate();
         router.refresh();
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }
 
-  function onPatch(e: React.FormEvent) {
+  function onMissingSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
@@ -85,102 +102,112 @@ export function DocForm({ initial, initialStatus }: Props) {
         const res = await fetch("/api/me/document", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            number: number || null,
-            issuing_agency: issuing || null,
-            ...extras,
-          }),
+          body: JSON.stringify(extras),
         });
-        const data: { detail?: string } = await res.json();
+        const data: { detail?: string; code?: string } = await res.json();
         if (!res.ok) {
-          setError(data.detail ?? "Falha ao salvar.");
+          setError(uploadErrorMessage(data.code, data.detail));
           return;
         }
-        router.refresh();
+        router.push(NEXT_STAGE.documents);
       } catch {
-        setError("Falha de rede. Tente de novo.");
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
   }
 
-  async function onUpload(slot: "rg_full" | "cnh_full") {
-    const file = fileRef.current?.files?.[0];
-    if (!file) {
-      setError("Escolha uma foto primeiro.");
-      return;
-    }
-    setError(null);
-    startTransition(async () => {
-      try {
-        const form = new FormData();
-        form.append("slot", slot);
-        form.append("photo", file, file.name);
-        const res = await fetch("/api/me/document/photo", {
-          method: "POST",
-          body: form,
-        });
-        const data: { detail?: string; analysis_status?: string } = await res.json();
-        if (!res.ok) {
-          setError(data.detail ?? "Falha no upload.");
-          return;
-        }
-        router.refresh();
-      } catch {
-        setError("Falha de rede. Tente de novo.");
-      }
-    });
-  }
-
-  // Etapa 1: escolher o tipo (RG ou CNH) e enviar o número.
-  if (initialStatus === "documents" && !initial.doc_type) {
+  // ── Aprovado: tudo somente-leitura, sem reenvio ────────────────────────────
+  if (status === "approved" && missing.length === 0) {
     return (
-      <form onSubmit={onMeta} className="space-y-5">
-        <p className="text-brand-muted text-sm">
-          Você pode enviar RG ou CNH. O tipo fica travado no primeiro upload.
-        </p>
-        <fieldset className="space-y-2">
-          <legend className="label">Tipo</legend>
+      <div className="space-y-5">
+        <StatusBanner
+          status="approved"
+          footnote="Documento lido e confirmado. Etapa concluída — não precisa reenviar."
+        />
+        <ReadOnlyField label="Tipo" value={(lockedType ?? "").toUpperCase() || "—"} />
+        {doc.number && <ReadOnlyField label="Número" value={String(doc.number)} />}
+        {doc.issuing_agency && (
+          <ReadOnlyField label="Órgão emissor" value={String(doc.issuing_agency)} />
+        )}
+        <Button href={NEXT_STAGE.documents} size="xl" className="w-full">
+          Continuar
+        </Button>
+      </div>
+    );
+  }
+
+  const effectiveType = lockedType ?? docType;
+
+  return (
+    <div className="space-y-6">
+      {/* Tipo: RG ou CNH — trava depois do 1º upload */}
+      <fieldset className="space-y-2">
+        <legend className="label">Tipo</legend>
+        <div className="grid grid-cols-2 gap-3">
           {(["rg", "cnh"] as const).map((t) => (
             <label
               key={t}
-              className="flex items-center gap-3 rounded-[var(--radius-sm)] border border-brand-border bg-brand-surface px-4 py-3 cursor-pointer hover:border-brand-gold-dark has-[:checked]:border-brand-gold has-[:checked]:bg-brand-gold-light/10 transition-colors"
+              className={`flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border px-4 py-3 transition-colors ${
+                effectiveType === t
+                  ? "border-brand-gold bg-brand-gold-light/10"
+                  : "border-brand-border bg-brand-surface"
+              } ${lockedType ? "opacity-70" : "cursor-pointer hover:border-brand-gold-dark"}`}
             >
               <input
                 type="radio"
                 name="doc_type"
                 value={t}
-                checked={docType === t}
+                checked={effectiveType === t}
+                disabled={Boolean(lockedType)}
                 onChange={() => setDocType(t)}
                 className="accent-gold-deep"
               />
               {t === "rg" ? "RG" : "CNH"}
             </label>
           ))}
-        </fieldset>
-        <Field label="Número" value={number} onChange={setNumber} required />
-        <Field label="Órgão emissor (SSP, etc.)" value={issuing} onChange={setIssuing} />
-        <FieldError>{error}</FieldError>
-        <Button type="submit" size="xl" loading={pending} disabled={!docType} className="w-full">
-          {pending ? "Salvando…" : "Próximo"}
-        </Button>
-      </form>
-    );
-  }
+        </div>
+        <p className="field-hint">
+          {lockedType
+            ? "🔒 tipo não pode ser trocado depois de enviado"
+            : "O tipo fica travado no primeiro upload."}
+        </p>
+      </fieldset>
 
-  // Etapa 2: enviar a foto.
-  const slot = initial.doc_type === "cnh" ? "cnh_full" : "rg_full";
+      {status && (
+        <StatusBanner
+          status={status}
+          reason={status === "rejected" ? (doc.analysis_reason ?? null) : null}
+          footnote={status === "pending" ? "IA lendo seu documento…" : null}
+        />
+      )}
 
-  return (
-    <div className="space-y-6">
-      <StatusBanner status={status} reason={live?.analysis_reason ?? null} />
+      {/* Upload (some quando a análise passou; reabre no rejected) */}
+      {(!uploaded || status === "rejected") && (
+        <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-brand-surface p-4 space-y-3">
+          <p className="text-sm font-semibold">Documento (frente e verso juntos)</p>
+          <p className="text-xs text-brand-muted">
+            uma foto só, ou um arquivo — imagem ou PDF
+          </p>
+          <UploadActions
+            disabled={!effectiveType || pending}
+            pending={pending}
+            retry={status === "rejected"}
+            onFile={onUpload}
+          />
+          {!effectiveType && (
+            <p className="field-hint">Escolha RG ou CNH primeiro.</p>
+          )}
+        </div>
+      )}
 
-      <form onSubmit={onPatch} className="space-y-5">
-        <Field label="Número" value={number} onChange={setNumber} required />
-        <Field label="Órgão emissor" value={issuing} onChange={setIssuing} />
-        {/* Campos extras que o OCR não trouxe e o backend marcou como faltando */}
-        {missing
-          .filter((f) => f !== "doc_type" && f !== "number" && f !== "issuing_agency")
-          .map((f) => (
+      {/* Só o que a IA não leu vira input */}
+      {uploaded && status !== "pending" && status !== "rejected" && missing.length > 0 && (
+        <form onSubmit={onMissingSubmit} className="space-y-5">
+          <p className="text-sm text-brand-muted">
+            A IA não conseguiu ler {missing.length === 1 ? "este campo" : "estes campos"} —
+            complete pra seguir:
+          </p>
+          {missing.map((f) => (
             <Field
               key={f}
               label={fieldLabel(f)}
@@ -189,31 +216,122 @@ export function DocForm({ initial, initialStatus }: Props) {
               required
             />
           ))}
-        <Button type="submit" loading={pending} className="w-full">
-          {pending ? "Salvando…" : "Salvar dados do documento"}
-        </Button>
-      </form>
+          <Button type="submit" size="xl" loading={pending} className="w-full">
+            {pending ? "Salvando…" : "Confirmar e continuar"}
+          </Button>
+        </form>
+      )}
 
-      <div className="border-t border-brand-border pt-6 space-y-3">
-        <p id="doc-photo-label" className="text-sm text-brand-muted">
-          Foto do documento (frente e verso juntos, num PDF ou numa foto só):
-        </p>
-        <FileInput
-          ref={fileRef}
-          accept="image/*,application/pdf"
-          aria-labelledby="doc-photo-label"
-        />
-        <Button
-          type="button"
-          size="xl"
-          onClick={() => onUpload(slot)}
-          loading={pending}
-          className="w-full"
-        >
-          {pending ? "Enviando…" : status === "rejected" ? "Reenviar foto" : "Enviar foto"}
-        </Button>
-        <FieldError>{error}</FieldError>
+      <FieldError>{error}</FieldError>
+
+      <AddressProofCard />
+    </div>
+  );
+}
+
+/** Duas ações alimentando o MESMO upload: câmera (capture) ou arquivo (img/PDF). */
+function UploadActions({
+  onFile,
+  disabled,
+  pending,
+  retry,
+}: {
+  onFile: (file: File) => void;
+  disabled?: boolean;
+  pending?: boolean;
+  retry?: boolean;
+}) {
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function handle(input: HTMLInputElement | null) {
+    const file = input?.files?.[0];
+    if (file) onFile(file);
+    if (input) input.value = "";
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={() => handle(cameraRef.current)}
+      />
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*,application/pdf"
+        className="hidden"
+        onChange={() => handle(fileRef.current)}
+      />
+      <Button
+        type="button"
+        loading={pending}
+        disabled={disabled}
+        onClick={() => cameraRef.current?.click()}
+        className="px-3 whitespace-nowrap"
+      >
+        <Camera size={18} aria-hidden /> {retry ? "Tirar de novo" : "Tirar foto"}
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        disabled={disabled}
+        onClick={() => fileRef.current?.click()}
+        className="px-3 whitespace-nowrap text-brand-ink border-brand-border"
+      >
+        <FileUp size={18} aria-hidden /> Enviar arquivo
+      </Button>
+    </div>
+  );
+}
+
+/** Comprovante de residência — opcional, não bloqueia o avanço. */
+function AddressProofCard() {
+  const [pending, startTransition] = useTransition();
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function onFile(file: File) {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const form = new FormData();
+        form.append("file", file, file.name);
+        const res = await fetch("/api/me/document/address-proof", {
+          method: "POST",
+          body: form,
+        });
+        const data: { detail?: string; code?: string } = await res.json();
+        if (!res.ok) {
+          setError(uploadErrorMessage(data.code, data.detail));
+          return;
+        }
+        setDone(true);
+      } catch {
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
+      }
+    });
+  }
+
+  return (
+    <div className="rounded-[var(--radius)] border border-dashed border-brand-border bg-brand-surface p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">Comprovante de residência</p>
+          <p className="text-xs text-brand-muted">
+            opcional — agiliza sua análise, pode enviar depois
+          </p>
+        </div>
+        {done && <span className="text-sm font-semibold text-brand-ok">enviado ✓</span>}
       </div>
+      {!done && (
+        <UploadActions onFile={onFile} disabled={pending} pending={pending} />
+      )}
+      <FieldError>{error}</FieldError>
     </div>
   );
 }
@@ -222,6 +340,8 @@ export function DocForm({ initial, initialStatus }: Props) {
 // CLAUDE.md: texto voltado a humano em pt-BR). Fallback humaniza a chave crua
 // para qualquer campo novo que o backend venha a exigir.
 const FIELD_LABELS: Record<string, string> = {
+  number: "Número",
+  issuing_agency: "Órgão emissor (SSP, etc.)",
   issue_date: "Data de emissão",
   category: "Categoria (CNH)",
   national_register: "Registro nacional (CNH)",

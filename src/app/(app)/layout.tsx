@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { OutsideApp } from "@/components/auth/OutsideApp";
 import { AppShell } from "@/components/layout/AppShell";
+import { isOutsider } from "@/lib/auth/roles";
 import { readSession } from "@/lib/auth/server";
 
 // Shell ÚNICO, contexto promotor. A trava de training é aplicada DENTRO do
@@ -10,6 +12,10 @@ import { readSession } from "@/lib/auth/server";
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await readSession();
   if (!session) redirect("/");
+
+  // Sessão sem nenhuma role interna → conta do app do cliente (Supletivo).
+  // Tela de transição + redirect externo, sem shell.
+  if (isOutsider(session.roles)) return <OutsideApp />;
 
   return (
     <AppShell session={session} context="promoter">

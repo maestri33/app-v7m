@@ -95,7 +95,7 @@ export function CheckFlow() {
         detail: "Não deu pra validar o WhatsApp agora. Tente de novo em instantes.",
       });
     } catch {
-      setError({ detail: "Falha de rede. Tente de novo." });
+      setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ export function CheckFlow() {
       setExternalId(data.user_external_id ?? null);
       setStage("otp");
     } catch {
-      setError({ detail: "Falha de rede. Tente de novo." });
+      setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
       setLoading(false);
     }
@@ -160,7 +160,7 @@ export function CheckFlow() {
       router.push("/painel");
       router.refresh();
     } catch {
-      setError({ detail: "Falha de rede. Tente de novo." });
+      setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
       setLoading(false);
     }
