@@ -80,9 +80,30 @@ export type PromoterMe = {
   pix_key?: string | null;
 };
 
+/**
+ * `GET /promoter/me/summary` — números do dashboard direto do backend (parar
+ * de calcular no front). Valores monetários são STRING decimal.
+ */
+export type PromoterSummary = {
+  week_goal: number;
+  week_paid_leads: number;
+  week_commission_total: string;
+  bonus_amount: string;
+  goal_reached: boolean;
+  next_closing_at: string;
+  week_start?: string | null;
+  lifetime: {
+    total_received: string;
+    total_students: number;
+    goals_hit: number;
+  };
+};
+
+/** `PromoterLeadOut` — agora com `name`/`phone` pro CTA de WhatsApp. */
 export type Lead = {
   external_id: string;
   name: string;
+  phone?: string | null;
   status: string;
   payment_link?: string | null;
   receipt_url?: string | null;

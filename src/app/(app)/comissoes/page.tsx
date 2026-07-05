@@ -37,7 +37,10 @@ export default async function ComissoesPage() {
   return (
     <GrainSection className="bg-brand-bg min-h-[60dvh]">
       <Container>
-        <PageHeader title="Suas comissões" />
+        <PageHeader
+          title="Suas comissões"
+          subtitle="R$100 por matrícula paga + R$500 de bônus fixo ao bater 5 na semana. Fecha toda sexta às 18h, pago via Pix."
+        />
 
         <div className="mb-8 grid gap-3 max-w-2xl sm:grid-cols-2">
           <Stat label="Pendente" value={brl(totalPending)} />

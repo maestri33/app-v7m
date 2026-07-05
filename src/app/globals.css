@@ -553,6 +553,12 @@ strong {
     border-color: var(--line-light);
     background: transparent;
   }
+  /* Dourado da marca — "pago, cai no fechamento da sexta" */
+  .badge-gold {
+    color: var(--gold-ink);
+    border-color: rgb(217 177 90 / 0.55);
+    background: rgb(217 177 90 / 0.14);
+  }
 
   /* ---------------------------------------------------------------------------
      Banner de status de análise (selfie/documento) — tom p/ superfície clara
