@@ -71,7 +71,10 @@ export function AppShell({
           </Container>
         )}
       </header>
-      <main id="main" className="app-scroll flex-1">
+      {/* bg claro na faixa inteira: página curta em tela alta não deixa o fundo
+          escuro (aurora) vazar abaixo do conteúdo — todas as páginas do shell
+          são claras. */}
+      <main id="main" className="app-scroll flex-1 bg-brand-bg">
         {children}
       </main>
       {showPromoterNav && <AppNav />}
