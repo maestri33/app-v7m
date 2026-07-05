@@ -3,68 +3,18 @@ import { redirect } from "next/navigation";
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardLink } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { readUnlockedSession } from "@/lib/auth/server";
 import { isOnboarding, isPromoter, OUTSIDE_APP_URL } from "@/lib/auth/roles";
+import { STAGE_HREF } from "@/lib/candidate/funnel";
 import { djangoFetch } from "@/lib/api/client";
-import type { CandidateMe, CandidateStatus, PromoterMe } from "@/lib/api/types";
+import type { CandidateMe, PromoterMe } from "@/lib/api/types";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Painel" };
-
-// Ordem do funil (mesma do backend) — usada pra saber quais etapas já passaram.
-const FUNNEL_ORDER: CandidateStatus[] = [
-  "started",
-  "profile",
-  "address",
-  "documents",
-  "pix",
-  "selfie",
-  "completed",
-];
-
-const CANDIDATE_STAGES = [
-  { key: "profile", title: "Perfil", href: "/perfil" },
-  { key: "address", title: "Endereço", href: "/endereco" },
-  { key: "documents", title: "Documento", href: "/documento" },
-  { key: "pix", title: "Pix", href: "/pix" },
-  { key: "selfie", title: "Selfie", href: "/selfie" },
-] as const;
-
-function cardState(
-  stage: CandidateStatus,
-  current: CandidateStatus,
-): "done" | "current" | "todo" {
-  const ci = FUNNEL_ORDER.indexOf(current);
-  const si = FUNNEL_ORDER.indexOf(stage);
-  if (ci > si) return "done";
-  if (ci === si) return "current";
-  return "todo";
-}
-
-const STAGE_LABEL: Record<CandidateStatus, string> = {
-  started: "Complete seu perfil",
-  profile: "Complete seu perfil",
-  address: "Complete seu endereço",
-  documents: "Envie seu documento",
-  pix: "Cadastre sua chave Pix",
-  selfie: "Tire sua selfie",
-  completed: "Cadastro completo — aguardando aprovação do polo",
-};
-
-const STAGE_HREF: Record<CandidateStatus, string> = {
-  started: "/perfil",
-  profile: "/perfil",
-  address: "/endereco",
-  documents: "/documento",
-  pix: "/pix",
-  selfie: "/selfie",
-  completed: "/painel",
-};
 
 export default async function PainelPage() {
   const session = await readUnlockedSession();
@@ -81,15 +31,15 @@ export default async function PainelPage() {
         <GrainSection className="bg-brand-bg min-h-[60dvh]">
           <Container>
             <PageHeader
-              title={`Olá, ${session.name ?? "promotor"}`}
-              subtitle="Cadastro completo — agora é com o seu polo."
+              title="Cadastro completo!"
+              subtitle="Agora é com o seu polo."
             />
             <Card className="max-w-2xl">
               <h2 className="font-display text-lg">Aguardando aprovação do polo</h2>
               <p className="text-sm text-brand-muted mt-1">
-                Recebemos seu perfil, documento, Pix e selfie. O coordenador do seu
-                polo confere e libera — quando aprovar, você vira promotor e o
-                treinamento aparece aqui. Por ora, não precisa fazer mais nada.
+                Recebemos seu perfil, documento, Pix e selfie. O coordenador do
+                seu polo confere e libera — quando aprovar, o treinamento aparece
+                aqui sozinho. Por ora, não precisa fazer mais nada.
               </p>
             </Card>
           </Container>
@@ -97,34 +47,9 @@ export default async function PainelPage() {
       );
     }
 
-    const current: CandidateStatus = me.status === "started" ? "profile" : me.status;
-    return (
-      <GrainSection className="bg-brand-bg min-h-[60dvh]">
-        <Container>
-          <PageHeader
-            title={`Olá, ${session.name ?? "promotor"}`}
-            subtitle={STAGE_LABEL[me.status]}
-          />
-
-          <div className="grid gap-4 max-w-2xl md:grid-cols-2">
-            {CANDIDATE_STAGES.map((s) => (
-              <StageCard
-                key={s.key}
-                title={s.title}
-                href={s.href}
-                state={cardState(s.key, current)}
-              />
-            ))}
-          </div>
-
-          <div className="mt-10">
-            <Button href={STAGE_HREF[me.status]} size="xl">
-              Continuar de onde parei
-            </Button>
-          </div>
-        </Container>
-      </GrainSection>
-    );
+    // O candidato nunca "escolhe" etapa: cai direto no passo atual do funil.
+    // O FunnelStepper de cada página é o indicador de progresso (não clicável).
+    redirect(STAGE_HREF[me.status]);
   }
 
   if (isPromoter(session.roles)) {
@@ -179,29 +104,4 @@ export default async function PainelPage() {
   // Sem role interna nenhuma (o layout já intercepta com a tela "Fora"; aqui é
   // só o cinto de segurança) → conta do app do cliente.
   redirect(OUTSIDE_APP_URL);
-}
-
-function StageCard({
-  title,
-  href,
-  state,
-}: {
-  title: string;
-  href: string;
-  state: "done" | "current" | "todo";
-}) {
-  return (
-    <CardLink href={href}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-lg">{title}</h2>
-        {state === "done" ? (
-          <Badge tone="ok">Concluído</Badge>
-        ) : state === "current" ? (
-          <Badge tone="warn">Agora</Badge>
-        ) : (
-          <Badge tone="muted">Pendente</Badge>
-        )}
-      </div>
-    </CardLink>
-  );
 }

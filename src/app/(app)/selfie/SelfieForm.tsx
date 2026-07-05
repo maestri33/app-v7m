@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { FileInput } from "@/components/ui/file-input";
 import { StatusBanner } from "@/components/ui/status-banner";
+import { NEXT_STAGE } from "@/lib/candidate/funnel";
 import type { AnalysisStatus } from "@/lib/api/types";
 
 type SelfieSection = {
@@ -38,8 +39,13 @@ export function SelfieForm() {
   const reason = data?.analysis_reason ?? null;
   const takenAt = data?.taken_at ?? null;
 
+  // Aprovada → segue direto pro painel (cai na visão "aguardando aprovação do
+  // polo"). Wizard auto-avançante: o candidato não volta pra um hub de cards.
   useEffect(() => {
-    if (status === "approved") router.refresh();
+    if (status === "approved") {
+      router.push(NEXT_STAGE.selfie);
+      router.refresh();
+    }
   }, [status, router]);
 
   async function onUpload() {

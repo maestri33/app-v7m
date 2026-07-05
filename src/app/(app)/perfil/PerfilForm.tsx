@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField, SelectField } from "@/components/ui/field";
+import { NEXT_STAGE } from "@/lib/candidate/funnel";
 import type { ProfileSection } from "@/lib/api/types";
 
 const MARITAL = [
@@ -51,7 +52,8 @@ export function PerfilForm({ initial }: Props) {
           setError(data.detail ?? "Falha ao salvar.");
           return;
         }
-        router.push("/painel");
+        // Wizard auto-avançante: sucesso navega direto pro próximo passo.
+        router.push(NEXT_STAGE.profile);
         router.refresh();
       } catch {
         setError("Falha de rede. Tente de novo.");
