@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,35 @@ type CheckOut = {
   whatsapp?: boolean;
   roles?: string[];
 };
+
+// Erros do cadastro/entrada roteados por `code` (envelope {detail, code, …}) —
+// nunca parseando detail. Copy pt-BR acolhedora, com o caminho de saída.
+function authErrorMessage(
+  code: string | undefined,
+  detail: string | undefined,
+  extra?: { retry_after_s?: number },
+): string {
+  switch (code) {
+    case "RATE_LIMITED":
+      return `Muitas tentativas seguidas. Respira ${
+        extra?.retry_after_s ? `${extra.retry_after_s} segundos` : "um instante"
+      } e tente de novo.`;
+    case "CPF_EXISTS":
+      return "Esse CPF já tem cadastro por aqui — entre com o telefone dele.";
+    case "PHONE_EXISTS":
+      return "Esse telefone já tem cadastro — volte e entre com ele.";
+    case "EMAIL_EXISTS":
+      return "Esse e-mail já está em uso — se a conta é sua, entre com o telefone dela.";
+    case "CPF_INVALID":
+      return "Esse CPF não fechou — confira os números e tente de novo.";
+    case "CPF_NOT_FOUND":
+      return "Não achamos esse CPF na Receita. Confira os números — precisa ser o seu.";
+    case "NO_HUB":
+      return "Seu link de convite expirou ou veio incompleto — peça um novo pro coordenador do seu polo.";
+    default:
+      return detail ?? "Não deu pra completar agora. Tente de novo em instantes.";
+  }
+}
 
 // check → (login | cadastro inline) → otp. Um fluxo só, a partir do telefone.
 // É a entrada do app — vive na home (/).
@@ -29,6 +58,15 @@ export function CheckFlow() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ detail: string; code?: string } | null>(null);
+  // Cooldown de reenvio do código — começa no `otp_wait` do backend.
+  const [resendIn, setResendIn] = useState(0);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const id = setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [resendIn]);
 
   // Captura ?ref= da URL na entrada, uma só vez, via lazy initializer (sem efeito).
   // NESTE app (do promotor) ref = external_id do POLO (hub), NÃO id de promotor —
@@ -68,15 +106,18 @@ export function CheckFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data: CheckOut | { detail: string; code?: string } = await res.json();
+      const data: CheckOut | { detail: string; code?: string; retry_after_s?: number } =
+        await res.json();
       if (!res.ok) {
-        setError(data as { detail: string; code?: string });
+        const err = data as { detail: string; code?: string; retry_after_s?: number };
+        setError({ detail: authErrorMessage(err.code, err.detail, err), code: err.code });
         return;
       }
       const out = data as CheckOut;
       if (out.found) {
         // external_id do CheckOut já é o do USER (o que o login espera).
         setExternalId(out.external_id ?? null);
+        setResendIn(out.otp_wait ?? 60);
         setStage("otp");
         return;
       }
@@ -122,21 +163,53 @@ export function CheckFlow() {
       const data: {
         external_id?: string;
         user_external_id?: string;
+        otp_wait?: number;
         detail?: string;
         code?: string;
+        retry_after_s?: number;
       } = await res.json();
       if (!res.ok) {
-        setError({ detail: data.detail ?? "Falha no cadastro.", code: data.code });
+        setError({ detail: authErrorMessage(data.code, data.detail, data), code: data.code });
         return;
       }
       // register devolve external_id do CANDIDATO + user_external_id do USER;
       // o login espera o do USER (CandidateOut em api/collaborators.py).
       setExternalId(data.user_external_id ?? null);
+      setResendIn(data.otp_wait ?? 60);
       setStage("otp");
     } catch {
       setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Reenvio do código: re-chama o check com o MESMO telefone (o backend
+  // redispara o OTP) e reinicia o cooldown.
+  async function resendOtp() {
+    if (resendIn > 0 || resending) return;
+    setError(null);
+    setResending(true);
+    try {
+      const res = await fetch("/api/auth/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phone.replace(/\D/g, "") }),
+      });
+      const data: CheckOut & { detail?: string; code?: string; retry_after_s?: number } =
+        await res.json();
+      if (!res.ok) {
+        setError({ detail: authErrorMessage(data.code, data.detail, data), code: data.code });
+        if (data.code === "RATE_LIMITED" && data.retry_after_s) {
+          setResendIn(data.retry_after_s);
+        }
+        return;
+      }
+      setResendIn(data.otp_wait ?? 60);
+    } catch {
+      setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
+    } finally {
+      setResending(false);
     }
   }
 
@@ -152,9 +225,10 @@ export function CheckFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ external_id: externalId, otp }),
       });
-      const data: { ok?: boolean; detail?: string; code?: string } = await res.json();
+      const data: { ok?: boolean; detail?: string; code?: string; retry_after_s?: number } =
+        await res.json();
       if (!res.ok) {
-        setError({ detail: data.detail ?? "Falha no login.", code: data.code });
+        setError({ detail: authErrorMessage(data.code, data.detail, data), code: data.code });
         return;
       }
       router.push("/painel");
@@ -189,6 +263,18 @@ export function CheckFlow() {
         <Button type="submit" size="xl" loading={loading} className="w-full">
           {loading ? "Entrando…" : "Entrar"}
         </Button>
+        <button
+          type="button"
+          className="text-brand-gold-light text-sm underline block w-fit mx-auto px-3 py-3 cursor-pointer hover:text-brand-gold-light/80 disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+          onClick={resendOtp}
+          disabled={resendIn > 0 || resending}
+        >
+          {resending
+            ? "Reenviando…"
+            : resendIn > 0
+              ? `Reenviar código (${resendIn}s)`
+              : "Reenviar código"}
+        </button>
         <button
           type="button"
           className="text-brand-gold-light text-sm underline block w-fit mx-auto px-3 py-3 cursor-pointer hover:text-brand-gold-light/80"

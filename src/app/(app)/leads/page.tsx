@@ -79,7 +79,6 @@ export default async function LeadsPage() {
                               dateStyle: "short",
                               timeStyle: "short",
                             })}
-                            {l.hub_name ? ` · polo ${l.hub_name}` : ""}
                           </p>
                         </div>
                       </div>
@@ -101,30 +100,6 @@ export default async function LeadsPage() {
                       >
                         Chamar no WhatsApp ↗
                       </a>
-                    )}
-                    {(l.payment_link || l.receipt_url) && (
-                      <div className="mt-3 flex flex-wrap gap-4 text-sm">
-                        {l.payment_link && (
-                          <a
-                            href={l.payment_link}
-                            className="text-brand-gold-ink underline hover:text-brand-gold-dark"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            link de pagamento
-                          </a>
-                        )}
-                        {l.receipt_url && (
-                          <a
-                            href={l.receipt_url}
-                            className="text-brand-gold-ink underline hover:text-brand-gold-dark"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            recibo
-                          </a>
-                        )}
-                      </div>
                     )}
                   </Card>
                 </li>

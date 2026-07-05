@@ -43,3 +43,16 @@ export const NEXT_STAGE: Record<string, string> = {
 export function stagePassed(stage: CandidateStatus, current: CandidateStatus): boolean {
   return FUNNEL_ORDER.indexOf(current) > FUNNEL_ORDER.indexOf(stage);
 }
+
+/**
+ * `WRONG_STATUS` (409): a etapa desta tela não é a atual do funil (aba velha /
+ * fora de ordem). Em vez de mostrar erro, os forms navegam pra etapa que o
+ * backend espera (`expected_status` vem no envelope do erro).
+ */
+export function wrongStatusHref(
+  code: string | undefined,
+  expectedStatus: string | undefined,
+): string | null {
+  if (code !== "WRONG_STATUS") return null;
+  return STAGE_HREF[expectedStatus as CandidateStatus] ?? "/painel";
+}

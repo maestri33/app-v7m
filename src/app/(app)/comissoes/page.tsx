@@ -8,15 +8,12 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
 import { djangoFetch } from "@/lib/api/client";
 import type { Commission } from "@/lib/api/types";
+import { formatBRL } from "@/lib/format";
 import { readUnlockedSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Comissões" };
-
-function brl(n: number) {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 // Origem da comissão em pt-BR (enum cru do backend nunca chega ao usuário).
 const SOURCE_LABEL: Record<string, string> = {
@@ -39,12 +36,13 @@ export default async function ComissoesPage() {
     "/api/v1/collaborators/promoter/me/commissions",
   );
 
+  // `amount` é STRING decimal — somar como número só pra exibir.
   const totalPending = commissions
     .filter((c) => c.status === "pending")
-    .reduce((s, c) => s + c.amount, 0);
+    .reduce((s, c) => s + Number(c.amount), 0);
   const totalPaid = commissions
     .filter((c) => c.status === "paid")
-    .reduce((s, c) => s + c.amount, 0);
+    .reduce((s, c) => s + Number(c.amount), 0);
 
   return (
     <GrainSection className="bg-brand-bg min-h-[60dvh]">
@@ -55,8 +53,8 @@ export default async function ComissoesPage() {
         />
 
         <div className="mb-8 grid gap-3 max-w-2xl sm:grid-cols-2">
-          <Stat label="Pendente" value={brl(totalPending)} />
-          <Stat label="Pago" value={brl(totalPaid)} />
+          <Stat label="Pendente" value={formatBRL(totalPending)} />
+          <Stat label="Pago" value={formatBRL(totalPaid)} />
         </div>
 
         {commissions.length === 0 ? (
@@ -71,9 +69,9 @@ export default async function ComissoesPage() {
                 <Card>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-display text-lg">{brl(c.amount)}</p>
+                      <p className="font-display text-lg">{formatBRL(c.amount)}</p>
                       <p className="text-xs text-brand-muted">
-                        {sourceLabel(c.source_type)} ·{" "}
+                        {sourceLabel(c.source)} ·{" "}
                         {new Date(c.created_at).toLocaleDateString("pt-BR")}
                       </p>
                     </div>

@@ -1,8 +1,9 @@
 /**
  * Tipos canônicos do backend Django (sub-router `collaborators`).
  *
- * O backend devolve `me_dict` em toda mutação — esses shapes vêm do
- * `users/roles/candidate/service.py:me_dict` + `address/as_public_dict`.
+ * Shapes conferidos contra o `openapi.json` de produção (2026-07-05) — quando o
+ * front divergir do contrato, é AQUI que se corrige primeiro e o TypeScript
+ * aponta os usos.
  */
 
 // Valores exatos do backend (users/roles/candidate/models.py:Status — minúsculos).
@@ -39,6 +40,7 @@ export type ProfileSection = {
   birth_date: string | null;
 };
 
+/** Seção rica do documento — `GET /candidate/document` (a que o DocForm consome). */
 export type DocumentSection = {
   doc_type?: string;
   number?: string;
@@ -57,10 +59,22 @@ export type DocumentSection = {
   [k: string]: unknown;
 };
 
-export type PixSection = {
-  key?: string | null;
-  key_type?: string | null;
-  validated_at?: string | null;
+/** Sub-bloco de um documento dentro do `CandidateMeOut.documents`. */
+export type DocumentSlot = {
+  validation_status?: AnalysisStatus | string | null;
+  number?: string | null;
+  issuing_agency?: string | null;
+  [k: string]: unknown;
+};
+
+/** `CandidateMeOut.documents` — bloco rico por tipo de documento (SEM `doc_type`). */
+export type DocumentsBlock = {
+  rg?: DocumentSlot | null;
+  cnh?: DocumentSlot | null;
+  certificate?: DocumentSlot | null;
+  military?: DocumentSlot | null;
+  address_proof?: DocumentSlot | null;
+  [k: string]: unknown;
 };
 
 export type SelfieSection = {
@@ -68,6 +82,10 @@ export type SelfieSection = {
   analysis_status?: AnalysisStatus;
   analysis_reason?: string | null;
   expires_at?: string | null;
+  /** URL da foto — thumb na conta. */
+  photo?: string | null;
+  /** Contato do polo, quando o backend informar (P2.3) — usado no rejected. */
+  hub_whatsapp?: string | null;
   [k: string]: unknown;
 };
 
@@ -75,17 +93,18 @@ export type CandidateMe = {
   status: CandidateStatus;
   profile: ProfileSection | null;
   address: AddressSection | null;
-  documents?: DocumentSection | null;
+  documents?: DocumentsBlock | null;
   selfie?: SelfieSection | null;
-  pix?: PixSection | null;
+  /** Pix validado sim/não — a CHAVE não vem no contrato (P2.1). */
+  pix_validated?: boolean;
 };
 
+/** `PromoterMeOut` — SEM `pix_key` no contrato (P2.1). */
 export type PromoterMe = {
   external_id: string;
   hub_external_id: string;
   status: "active" | "suspended";
   ref_url: string;
-  pix_key?: string | null;
 };
 
 /**
@@ -107,30 +126,44 @@ export type PromoterSummary = {
   };
 };
 
-/** `PromoterLeadOut` — agora com `name`/`phone` pro CTA de WhatsApp. */
+/** `PromoterLeadOut = {external_id, status, name?, phone?, created_at}` — só isso. */
 export type Lead = {
   external_id: string;
   name: string;
   phone?: string | null;
   status: string;
-  payment_link?: string | null;
-  receipt_url?: string | null;
-  hub_name?: string;
   created_at: string;
 };
 
+/** Bloco de conteúdo genérico da aula (`content_blocks[]`). */
+export type ContentBlock = {
+  type?: string | null;
+  text?: string | null;
+  url?: string | null;
+  label?: string | null;
+  [k: string]: unknown;
+};
+
 /**
- * `TrainingMaterialOut` (shape novo): `blocking` separa obrigatória de extra;
- * `submission_status` é o estado da ÚLTIMA resposta (null = nunca respondeu).
+ * `TrainingMaterialOut` — a chave é **`material_external_id`** (não `external_id`).
+ * A aula em si vem em `text_content`/`content_blocks`/`photo`/`video`, e a
+ * pergunta em `question`. `grade`/`justification` são o feedback da última
+ * correção (mostrar a justificativa no rejected; nunca o gabarito).
  */
 export type TrainingMaterial = {
-  external_id: string;
+  material_external_id: string;
   title: string;
-  prompt: string;
   blocking: boolean;
   kind?: string | null;
+  question?: string | null;
+  text_content?: string | null;
+  content_blocks?: ContentBlock[] | null;
+  video?: string | null;
+  photo?: string | null;
   assignment_status?: string | null;
   submission_status?: string | null;
+  grade?: number | string | null;
+  justification?: string | null;
 };
 
 export type TrainingProgress = {
@@ -140,11 +173,33 @@ export type TrainingProgress = {
   pending_external_ids: string[];
 };
 
+/** `PromoterCommissionOut` — `amount` é STRING decimal e o campo é `source`. */
 export type Commission = {
   external_id: string;
-  amount: number;
+  amount: string;
   status: "pending" | "paid" | "failed";
-  source_type: string;
+  source: string;
   created_at: string;
   paid_at?: string | null;
+};
+
+/** `GET /promoter/study/pricing` — preço da auto-matrícula do promotor. */
+export type StudyPricing = {
+  pix?: string | null;
+  card?: {
+    installments?: number | null;
+    installment?: string | null;
+    total?: string | null;
+  } | null;
+};
+
+/** `POST /promoter/study/start` — cria a auto-matrícula e devolve o checkout. */
+export type StudyStart = {
+  checkout?: {
+    checkout_url?: string | null;
+    qrcode_image?: string | null;
+    qrcode_payload?: string | null;
+    [k: string]: unknown;
+  } | null;
+  [k: string]: unknown;
 };

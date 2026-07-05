@@ -13,6 +13,8 @@ type Props = {
   materialExternalId: string;
   /** Estado da última resposta (`TrainingMaterialOut.submission_status`). */
   submissionStatus: string | null;
+  /** Feedback da IA na última correção — mostrado no rejected (nunca o gabarito). */
+  justification?: string | null;
 };
 
 // Erros roteados por `code` (envelope {detail, code}) — nunca parseando detail.
@@ -30,7 +32,7 @@ function submitErrorMessage(code: string | undefined, detail: string | undefined
 }
 
 /** Resposta por texto OU áudio; enviada, a IA corrige e a página re-renderiza. */
-export function SubmissionForm({ materialExternalId, submissionStatus }: Props) {
+export function SubmissionForm({ materialExternalId, submissionStatus, justification }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [answer, setAnswer] = useState("");
@@ -166,8 +168,8 @@ export function SubmissionForm({ materialExternalId, submissionStatus }: Props) 
         <div className="banner banner-warn" role="status">
           <p className="font-display">Quase lá — tente responder de novo</p>
           <p className="text-sm mt-1 opacity-90">
-            A última resposta não passou. Releia o material e responda com suas
-            palavras, por texto ou áudio.
+            {justification ||
+              "A última resposta não passou. Releia o material e responda com suas palavras, por texto ou áudio."}
           </p>
         </div>
       )}

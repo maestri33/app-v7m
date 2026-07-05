@@ -108,7 +108,7 @@ export default async function TreinamentoPage() {
                 </p>
               ) : (
                 <Button
-                  href={`/treinamento/${focus.external_id}`}
+                  href={`/treinamento/${focus.material_external_id}`}
                   size="xl"
                   className="w-full"
                 >
@@ -130,9 +130,9 @@ export default async function TreinamentoPage() {
               </p>
               <ul className="space-y-2">
                 {extras.map((m) => (
-                  <li key={m.external_id}>
+                  <li key={m.material_external_id}>
                     <CardLink
-                      href={`/treinamento/${m.external_id}`}
+                      href={`/treinamento/${m.material_external_id}`}
                       className="flex items-center gap-3 py-3"
                     >
                       <span aria-hidden className="text-brand-gold-ink">
@@ -164,7 +164,7 @@ export default async function TreinamentoPage() {
               <ul className="mt-2 space-y-1.5">
                 {done.map((m) => (
                   <li
-                    key={m.external_id}
+                    key={m.material_external_id}
                     className="flex items-center gap-2.5 rounded-[var(--radius-sm)] bg-brand-ok/8 px-3 py-2 text-sm"
                   >
                     <span aria-hidden className="text-brand-ok">✓</span>

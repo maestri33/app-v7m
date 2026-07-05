@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField, SelectField } from "@/components/ui/field";
-import { NEXT_STAGE } from "@/lib/candidate/funnel";
+import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import { MARITAL_OPTIONS } from "@/lib/candidate/labels";
 import { formatDateBR } from "@/lib/format";
 import type { ProfileSection } from "@/lib/api/types";
@@ -40,8 +40,14 @@ export function PerfilForm({ initial }: Props) {
             nationality: nationality || null,
           }),
         });
-        const data: { detail?: string } = await res.json();
+        const data: { detail?: string; code?: string; expected_status?: string } =
+          await res.json();
         if (!res.ok) {
+          const redir = wrongStatusHref(data.code, data.expected_status);
+          if (redir) {
+            router.push(redir);
+            return;
+          }
           setError(data.detail ?? "Não deu pra salvar agora. Tente de novo.");
           return;
         }

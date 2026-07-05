@@ -12,13 +12,11 @@ import { redirect } from "next/navigation";
 import { djangoFetch } from "@/lib/api/client";
 import { isTrainingLocked } from "@/lib/auth/roles";
 
+// `WhoamiOut` real = {external_id, roles, name} — phone/cpf NÃO vêm (P2.1).
 export type Session = {
   external_id: string;
   roles: string[];
   name: string | null;
-  /** Presentes quando o whoami informar — exibidos MASCARADOS na conta. */
-  phone?: string | null;
-  cpf?: string | null;
 };
 
 // Roteamento por role vive em `lib/auth/roles.ts` (eixos stage/gate/grant). NÃO

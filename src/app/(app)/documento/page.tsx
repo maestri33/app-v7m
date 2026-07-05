@@ -23,8 +23,14 @@ export default async function DocumentoPage() {
   if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
 
-  const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
-  const doc: DocumentSection = me.documents ?? {};
+  // `candidate/me` dá o status do funil; a seção RICA do documento (doc_type,
+  // número, análise) vem do endpoint dedicado — no me_dict ela é bloco por tipo.
+  const [me, doc] = await Promise.all([
+    djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me"),
+    djangoFetch<DocumentSection>("/api/v1/collaborators/candidate/document").catch(
+      () => ({}) as DocumentSection,
+    ),
+  ]);
 
   // Etapa já concluída → resumo somente-leitura + CTA pro passo atual.
   if (stagePassed("documents", me.status)) {
