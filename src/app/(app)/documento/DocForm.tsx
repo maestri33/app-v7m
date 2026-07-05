@@ -62,11 +62,12 @@ export function DocForm({ initial }: Props) {
     : null;
   const missing = (doc.missing_fields ?? []).filter((f) => f !== "doc_type");
 
-  // Aprovado e sem pendência → wizard auto-avançante: direto pro Pix.
+  // Aprovado e sem pendência → wizard auto-avançante: direto pro Pix. push()
+  // sem refresh(): as páginas são force-dynamic e um refresh concorrente
+  // cancela a navegação em andamento.
   useEffect(() => {
     if (status === "approved" && missing.length === 0) {
       router.push(NEXT_STAGE.documents);
-      router.refresh();
     }
   }, [status, missing.length, router]);
 
@@ -107,9 +108,7 @@ export function DocForm({ initial }: Props) {
           setError(uploadErrorMessage(data.code, data.detail));
           return;
         }
-        await mutate();
         router.push(NEXT_STAGE.documents);
-        router.refresh();
       } catch {
         setError("Falha de rede. Tente de novo.");
       }

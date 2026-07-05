@@ -114,7 +114,6 @@ export function PixForm() {
         setSuccess(true);
         // Wizard auto-avançante: chave validada → direto pra selfie.
         router.push(NEXT_STAGE.pix);
-        router.refresh();
       } catch {
         setError("Falha de rede. Tente de novo.");
       } finally {

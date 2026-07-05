@@ -46,7 +46,6 @@ export function PerfilForm({ initial }: Props) {
         }
         // Wizard auto-avançante: sucesso navega direto pro próximo passo.
         router.push(NEXT_STAGE.profile);
-        router.refresh();
       } catch {
         setError("Falha de rede. Tente de novo.");
       }

@@ -87,7 +87,6 @@ export function EnderecoForm({ initial }: Props) {
         }
         // Wizard auto-avançante: sucesso navega direto pro próximo passo.
         router.push(NEXT_STAGE.address);
-        router.refresh();
       } catch {
         setError("Falha de rede. Tente de novo.");
       }

@@ -52,7 +52,6 @@ export function SelfieForm() {
   useEffect(() => {
     if (takenAt && status === "approved") {
       router.push(NEXT_STAGE.selfie);
-      router.refresh();
     }
   }, [takenAt, status, router]);
 
