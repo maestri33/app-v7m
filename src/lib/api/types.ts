@@ -63,12 +63,20 @@ export type PixSection = {
   validated_at?: string | null;
 };
 
+export type SelfieSection = {
+  taken_at?: string | null;
+  analysis_status?: AnalysisStatus;
+  analysis_reason?: string | null;
+  expires_at?: string | null;
+  [k: string]: unknown;
+};
+
 export type CandidateMe = {
   status: CandidateStatus;
   profile: ProfileSection | null;
   address: AddressSection | null;
   documents?: DocumentSection | null;
-  selfie?: Record<string, unknown> | null;
+  selfie?: SelfieSection | null;
   pix?: PixSection | null;
 };
 

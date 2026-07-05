@@ -12,3 +12,18 @@ export const MARITAL_OPTIONS = [
 export function maritalLabel(value: string | null | undefined): string {
   return MARITAL_OPTIONS.find((o) => o.value === (value ?? ""))?.label ?? "—";
 }
+
+/**
+ * Papéis ativos em linguagem amigável — a string crua da role nunca aparece.
+ * `candidate` só conta enquanto não virou promotor; role desconhecida é omitida.
+ */
+export function roleLabels(roles: string[]): string[] {
+  const labels: string[] = [];
+  if (roles.includes("promoter")) labels.push("Promotor(a)");
+  if (roles.includes("coordinator")) labels.push("Coordenador(a) de polo");
+  if (roles.includes("training")) labels.push("Treinamento obrigatório");
+  if (roles.includes("candidate") && !roles.includes("promoter")) {
+    labels.push("Candidato(a)");
+  }
+  return labels;
+}
