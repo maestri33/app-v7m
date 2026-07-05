@@ -63,14 +63,22 @@ export default async function LeadsPage() {
                 <li key={l.external_id}>
                   <Card>
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h2 className="font-display text-lg">
-                          {l.name || "Lead sem nome"}
-                        </h2>
-                        <p className="text-xs text-brand-muted mt-1">
-                          {new Date(l.created_at).toLocaleString("pt-BR")}
-                          {l.hub_name ? ` · polo ${l.hub_name}` : ""}
-                        </p>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          aria-hidden
+                          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-gold/15 font-display text-brand-gold-ink"
+                        >
+                          {(l.name || "?").trim().charAt(0).toUpperCase()}
+                        </span>
+                        <div className="min-w-0">
+                          <h2 className="font-display text-lg truncate">
+                            {l.name || "Lead sem nome"}
+                          </h2>
+                          <p className="text-xs text-brand-muted mt-0.5">
+                            {new Date(l.created_at).toLocaleString("pt-BR")}
+                            {l.hub_name ? ` · polo ${l.hub_name}` : ""}
+                          </p>
+                        </div>
                       </div>
                       {state === "paid_settled" ? (
                         <Badge tone="ok">Recebido ✓</Badge>

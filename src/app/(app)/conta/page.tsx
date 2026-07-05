@@ -45,6 +45,7 @@ export default async function ContaPage() {
   const doc = me?.documents ?? null;
   const address = me?.address ?? null;
   const takenAt = me?.selfie?.taken_at ?? null;
+  const signatureVerified = me?.selfie?.analysis_status === "approved";
   const pixKey = promoter?.pix_key ?? me?.pix?.key ?? null;
   const labels = roleLabels(session.roles);
   const initials = (session.name ?? "V7M")
@@ -75,7 +76,10 @@ export default async function ContaPage() {
                     {promoter.status === "active" ? "Ativo" : "Suspenso"}
                   </Badge>
                 )}
-                <span>{labels.join(" · ") || "—"}</span>
+                <span>
+                  {labels.join(" · ") || "—"}
+                  {signatureVerified ? " · assinatura verificada ✓" : ""}
+                </span>
               </p>
             </div>
           </div>

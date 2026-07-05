@@ -77,6 +77,10 @@ export default async function PainelPage() {
       ? leads.filter((l) => new Date(l.created_at) >= weekStart)
       : leads;
 
+    // Clima da semana (do protótipo): plantando → esquentando → quase lá → troféu.
+    const heroEmoji =
+      paid >= goal ? "🏆" : paid >= Math.ceil(goal * 0.6) ? "⚡" : paid >= 1 ? "🔥" : "🌱";
+
     return (
       <GrainSection className="bg-brand-bg min-h-[60dvh]">
         <Container>
@@ -126,9 +130,12 @@ export default async function PainelPage() {
                   />
                 </p>
               </div>
-              <p className="font-display text-3xl">
-                {paid}
-                <span className="text-lg text-brand-muted-on-dark"> / {goal} matrículas</span>
+              <p className="flex items-baseline gap-2 font-display text-3xl">
+                <span aria-hidden className="text-[2rem] leading-none">{heroEmoji}</span>
+                <span>
+                  {paid}
+                  <span className="text-lg text-brand-muted-on-dark"> / {goal} matrículas</span>
+                </span>
               </p>
               <div className="my-3 flex gap-1.5" aria-hidden>
                 {Array.from({ length: goal }, (_, i) => (
@@ -183,6 +190,12 @@ export default async function PainelPage() {
                       key={l.external_id}
                       className="flex items-center gap-3 rounded-[var(--radius-sm)] bg-white/5 px-3 py-2"
                     >
+                      <span
+                        aria-hidden
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-gold/20 text-xs font-bold text-brand-gold-light"
+                      >
+                        {(l.name || "?").trim().charAt(0).toUpperCase()}
+                      </span>
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold">
                         {l.name || "Lead sem nome"}
                       </span>
