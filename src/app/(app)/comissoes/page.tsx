@@ -18,6 +18,18 @@ function brl(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// Origem da comissão em pt-BR (enum cru do backend nunca chega ao usuário).
+const SOURCE_LABEL: Record<string, string> = {
+  lead: "Matrícula paga",
+  enrollment: "Matrícula paga",
+  bonus: "Bônus da meta",
+  goal_bonus: "Bônus da meta",
+};
+
+function sourceLabel(sourceType: string): string {
+  return SOURCE_LABEL[sourceType] ?? "Comissão";
+}
+
 export default async function ComissoesPage() {
   const session = await readUnlockedSession();
   if (!session) redirect("/");
@@ -61,7 +73,7 @@ export default async function ComissoesPage() {
                     <div>
                       <p className="font-display text-lg">{brl(c.amount)}</p>
                       <p className="text-xs text-brand-muted">
-                        {c.source_type} ·{" "}
+                        {sourceLabel(c.source_type)} ·{" "}
                         {new Date(c.created_at).toLocaleDateString("pt-BR")}
                       </p>
                     </div>

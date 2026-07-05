@@ -32,7 +32,7 @@ export function LogoutButton({ className }: LogoutButtonProps) {
         "text-brand-muted hover:text-brand-ink underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       }
     >
-      {loading ? "Saindo…" : "Sair"}
+      {loading ? "Saindo…" : "Sair do app"}
     </button>
   );
 }

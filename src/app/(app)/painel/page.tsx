@@ -119,7 +119,11 @@ export default async function PainelPage() {
                   Meta da semana
                 </p>
                 <p className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">
-                  fecha em <Countdown target={summary.next_closing_at} />
+                  fecha em{" "}
+                  <Countdown
+                    target={summary.next_closing_at}
+                    urgentBelowHours={summary.goal_reached ? undefined : 24}
+                  />
                 </p>
               </div>
               <p className="font-display text-3xl">
