@@ -166,6 +166,12 @@ export default async function PainelPage() {
               </div>
 
               {/* Leads da semana */}
+              {weekLeads.length === 0 && (
+                <p className="mt-4 rounded-[var(--radius-sm)] bg-white/5 px-3 py-3 text-sm text-brand-muted-on-dark">
+                  Sua semana começa agora: compartilhe seu link logo abaixo e a
+                  primeira matrícula aparece aqui. 🌱
+                </p>
+              )}
               {weekLeads.length > 0 && (
                 <ul className="mt-4 space-y-2">
                   {weekLeads.slice(0, 4).map((l) => (
@@ -185,7 +191,7 @@ export default async function PainelPage() {
                           href={`https://wa.me/${l.phone.replace(/\D/g, "")}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="whitespace-nowrap rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold hover:bg-white/20 transition-colors"
+                          className="whitespace-nowrap rounded-full bg-white/10 px-3.5 py-2 text-xs font-bold hover:bg-white/20 transition-colors"
                         >
                           Chamar ↗
                         </a>

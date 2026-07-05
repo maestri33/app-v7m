@@ -49,7 +49,8 @@ export default async function ComissoesPage() {
 
         {commissions.length === 0 ? (
           <Card className="max-w-2xl text-brand-muted">
-            Nenhuma comissão ainda. Elas aparecem após o fechamento da semana.
+            Suas comissões vão aparecer aqui depois do primeiro fechamento —
+            toda sexta às 18h, direto na sua chave Pix. Bora buscar a primeira?
           </Card>
         ) : (
           <ul className="space-y-3 max-w-2xl">

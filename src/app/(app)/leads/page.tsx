@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Container } from "@/components/layout/Container";
 import { GrainSection } from "@/components/layout/GrainSection";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { djangoFetch } from "@/lib/api/client";
@@ -47,8 +48,12 @@ export default async function LeadsPage() {
         />
 
         {leads.length === 0 ? (
-          <Card className="max-w-2xl text-brand-muted">
-            Nenhum lead ainda. Compartilhe seu link de captação para começar!
+          <Card className="max-w-2xl space-y-4">
+            <p className="text-brand-muted">
+              Seus primeiros leads vão aparecer aqui. Compartilhe seu link de
+              captação — cada matrícula paga é R$100 no seu Pix.
+            </p>
+            <Button href="/painel">Pegar meu link de captação</Button>
           </Card>
         ) : (
           <ul className="space-y-3 max-w-2xl">
@@ -80,7 +85,7 @@ export default async function LeadsPage() {
                         href={`https://wa.me/${l.phone.replace(/\D/g, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-3 inline-flex items-center rounded-full border border-brand-border bg-brand-bg px-3.5 py-1.5 text-sm font-semibold hover:border-brand-gold transition-colors"
+                        className="mt-3 inline-flex min-h-11 items-center rounded-full border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold hover:border-brand-gold transition-colors"
                       >
                         Chamar no WhatsApp ↗
                       </a>

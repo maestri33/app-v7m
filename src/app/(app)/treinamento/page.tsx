@@ -118,7 +118,8 @@ export default async function TreinamentoPage() {
             </Card>
           ) : (
             <Card className="text-brand-muted">
-              Nenhuma matéria disponível ainda. Volte em breve.
+              Suas matérias estão sendo preparadas — assim que chegarem,
+              aparecem aqui sozinhas. Você não precisa fazer nada por enquanto.
             </Card>
           )}
 
