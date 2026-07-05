@@ -23,6 +23,18 @@
 /** Roles conhecidas do funil/poderes. `staff` é reconhecida só pra rotear pra fora. */
 export type Role = "candidate" | "training" | "promoter" | "coordinator" | "staff";
 
+/** App do cliente final (lead/enrollment/student/veteran) — quem não é do V7M vai pra lá. */
+export const OUTSIDE_APP_URL = "https://app.supletivo.net.br";
+
+/** Nenhuma role interna reconhecida — a conta é do app do cliente (Supletivo). */
+export function isOutsider(roles: string[]): boolean {
+  return (
+    !roles.includes("candidate") &&
+    !roles.includes("training") &&
+    !roles.includes("promoter")
+  );
+}
+
 /** Áreas que o shell pode liberar conforme entitlement. */
 export type Area = "onboarding" | "promoter" | "coordination";
 

@@ -8,7 +8,7 @@ import { Card, CardLink } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { readUnlockedSession } from "@/lib/auth/server";
-import { isOnboarding, isPromoter } from "@/lib/auth/roles";
+import { isOnboarding, isPromoter, OUTSIDE_APP_URL } from "@/lib/auth/roles";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, CandidateStatus, PromoterMe } from "@/lib/api/types";
 
@@ -176,20 +176,9 @@ export default async function PainelPage() {
     );
   }
 
-  return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
-      <Container>
-        <PageHeader
-          title={`Olá, ${session.name ?? "promotor"}`}
-          subtitle="Bem-vindo."
-        />
-        <p className="text-sm text-brand-muted max-w-prose">
-          Sua conta está ativa. Ainda não há um painel para este perfil por aqui —
-          se você deveria ver leads ou treinamento, fale com seu coordenador.
-        </p>
-      </Container>
-    </GrainSection>
-  );
+  // Sem role interna nenhuma (o layout já intercepta com a tela "Fora"; aqui é
+  // só o cinto de segurança) → conta do app do cliente.
+  redirect(OUTSIDE_APP_URL);
 }
 
 function StageCard({
