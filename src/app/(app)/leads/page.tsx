@@ -71,11 +71,14 @@ export default async function LeadsPage() {
                           {(l.name || "?").trim().charAt(0).toUpperCase()}
                         </span>
                         <div className="min-w-0">
-                          <h2 className="font-display text-lg truncate">
+                          <h2 className="font-display text-base leading-snug">
                             {l.name || "Lead sem nome"}
                           </h2>
                           <p className="text-xs text-brand-muted mt-0.5">
-                            {new Date(l.created_at).toLocaleString("pt-BR")}
+                            {new Date(l.created_at).toLocaleString("pt-BR", {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })}
                             {l.hub_name ? ` · polo ${l.hub_name}` : ""}
                           </p>
                         </div>
