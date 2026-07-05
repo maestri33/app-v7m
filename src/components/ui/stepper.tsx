@@ -31,7 +31,11 @@ function CheckIcon() {
  */
 export function FunnelStepper({ current }: { current: StepKey | CandidateStatus }) {
   const normalized = current === "started" ? "profile" : current;
-  const idx = FUNNEL_STEPS.findIndex((s) => s.key === normalized);
+  // `completed` = funil inteiro concluído → tudo marcado como feito.
+  const idx =
+    normalized === "completed"
+      ? FUNNEL_STEPS.length
+      : FUNNEL_STEPS.findIndex((s) => s.key === normalized);
   return (
     <nav className="stepper" aria-label="Progresso do cadastro">
       {FUNNEL_STEPS.map((s, i) => {

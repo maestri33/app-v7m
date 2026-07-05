@@ -6,16 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField, SelectField } from "@/components/ui/field";
 import { NEXT_STAGE } from "@/lib/candidate/funnel";
+import { MARITAL_OPTIONS } from "@/lib/candidate/labels";
 import type { ProfileSection } from "@/lib/api/types";
-
-const MARITAL = [
-  { value: "", label: "—" },
-  { value: "single", label: "Solteiro(a)" },
-  { value: "married", label: "Casado(a)" },
-  { value: "divorced", label: "Divorciado(a)" },
-  { value: "widowed", label: "Viúvo(a)" },
-  { value: "separated", label: "Separado(a)" },
-] as const;
 
 type Props = {
   initial: ProfileSection;
@@ -67,7 +59,7 @@ export function PerfilForm({ initial }: Props) {
       <ReadOnlyField
         label="Data de nascimento"
         value={initial.birth_date ?? "—"}
-        hint="Vem do CPFHub. Não dá pra editar pelo app."
+        hint="Confirmado pelo CPF, não editável."
       />
       <Field label="Nome da mãe" value={motherName} onChange={setMotherName} />
       <Field label="Nome do pai" value={fatherName} onChange={setFatherName} />
@@ -76,7 +68,7 @@ export function PerfilForm({ initial }: Props) {
         label="Estado civil"
         value={maritalStatus}
         onChange={setMaritalStatus}
-        options={MARITAL}
+        options={MARITAL_OPTIONS}
       />
       <Field label="Nacionalidade" value={nationality} onChange={setNationality} />
       <FieldError>{error}</FieldError>

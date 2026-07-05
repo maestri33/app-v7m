@@ -57,12 +57,19 @@ export type DocumentSection = {
   [k: string]: unknown;
 };
 
+export type PixSection = {
+  key?: string | null;
+  key_type?: string | null;
+  validated_at?: string | null;
+};
+
 export type CandidateMe = {
   status: CandidateStatus;
   profile: ProfileSection | null;
   address: AddressSection | null;
   documents?: DocumentSection | null;
   selfie?: Record<string, unknown> | null;
+  pix?: PixSection | null;
 };
 
 export type PromoterMe = {
