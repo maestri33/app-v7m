@@ -195,6 +195,7 @@ export default async function PainelPage() {
                           href={`https://wa.me/${l.phone.replace(/\D/g, "")}`}
                           target="_blank"
                           rel="noopener noreferrer"
+                          aria-label={`Chamar ${l.name || "o lead"} no WhatsApp`}
                           className="whitespace-nowrap rounded-full bg-white/10 px-3.5 py-2 text-xs font-bold hover:bg-white/20 transition-colors"
                         >
                           Chamar ↗

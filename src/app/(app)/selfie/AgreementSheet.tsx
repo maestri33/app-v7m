@@ -47,7 +47,8 @@ export function AgreementSheet({ onAccept }: { onAccept: () => void }) {
           ))}
         </div>
         <div className="shrink-0 border-t border-brand-border px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
-          <Button type="button" size="xl" onClick={onAccept} className="w-full">
+          {/* autoFocus: teclado/leitor de tela entram direto na ação do diálogo */}
+          <Button type="button" size="xl" onClick={onAccept} autoFocus className="w-full">
             Li e concordo — continuar
           </Button>
         </div>

@@ -85,6 +85,7 @@ export default async function LeadsPage() {
                         href={`https://wa.me/${l.phone.replace(/\D/g, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        aria-label={`Chamar ${l.name || "o lead"} no WhatsApp`}
                         className="mt-3 inline-flex min-h-11 items-center rounded-full border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold hover:border-brand-gold transition-colors"
                       >
                         Chamar no WhatsApp ↗
