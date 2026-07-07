@@ -38,9 +38,11 @@ export async function POST(req: Request) {
         { status: 422 },
       );
     }
-    // Repassa como novo FormData só com o file (o slot vai na URL).
+    // Repassa como novo FormData só com o file (o slot vai na URL). O campo
+    // upstream chama `file` — nome do parâmetro no Ninja (api/collaborators.py);
+    // qualquer outro nome vira 422 VALIDATION_ERROR.
     const upstream = new FormData();
-    upstream.append("photo", photo, photo.name);
+    upstream.append("file", photo, photo.name);
     const ack = await djangoFetch(
       `/api/v1/collaborators/candidate/documents/photo/${slot}`,
       { method: "POST", body: upstream as unknown as BodyInit },
