@@ -103,9 +103,7 @@ export async function djangoFetch<T = unknown>(
   }
 
   if (!res.ok) {
-    const errBody =
-      isErrorBody(body) ? body : { detail: res.statusText, code: "ERROR" };
-    throw new DjangoError(res.status, errBody);
+    throw new DjangoError(res.status, normalizeErrorBody(body, res.statusText));
   }
   return body as T;
 }
@@ -168,11 +166,32 @@ function safeJson(text: string): unknown {
   }
 }
 
-function isErrorBody(x: unknown): x is { detail: string; code: string; [k: string]: unknown } {
+function isErrorBody(x: unknown): x is { detail: unknown; code: string; [k: string]: unknown } {
   return (
     typeof x === "object" &&
     x !== null &&
     "detail" in x &&
     "code" in x
   );
+}
+
+/**
+ * Garante `detail` STRING no corpo do erro. No 422 do Ninja (VALIDATION_ERROR)
+ * `detail` é uma LISTA de erros Pydantic (`{type, loc, msg}`) — repassada crua,
+ * ela chega no `setError()` dos forms e derruba a tela inteira (React #31,
+ * "objects are not valid as a React child"). A lista original segue em `errors`.
+ */
+function normalizeErrorBody(
+  x: unknown,
+  statusText: string,
+): { detail: string; code: string; [k: string]: unknown } {
+  if (!isErrorBody(x)) return { detail: statusText, code: "ERROR" };
+  if (typeof x.detail === "string") {
+    return x as { detail: string; code: string; [k: string]: unknown };
+  }
+  return {
+    ...x,
+    detail: "Alguns dados não passaram na validação. Confira e tente de novo.",
+    errors: x.detail,
+  };
 }

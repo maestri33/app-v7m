@@ -32,8 +32,9 @@ export async function POST(req: Request) {
         { status: 422 },
       );
     }
+    // Campo upstream `file` — nome do parâmetro no Ninja (api/collaborators.py).
     const upstream = new FormData();
-    upstream.append("photo", photo, photo.name);
+    upstream.append("file", photo, photo.name);
     const ack = await djangoFetch(
       "/api/v1/collaborators/candidate/selfie",
       { method: "POST", body: upstream as unknown as BodyInit },
