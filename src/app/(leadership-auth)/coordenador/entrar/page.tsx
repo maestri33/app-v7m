@@ -6,6 +6,10 @@ import { redirect } from "next/navigation";
 // shell libera a área de coordenação. Mantido como redirect pra não quebrar
 // links/bookmarks antigos. (LeadershipCheckFlow e /api/leadership/auth/* já foram
 // removidos; este redirect é o que sobra da entrada separada do coordenador.)
+// Dinâmica pela mesma razão da entrada: prerender estático sai com s-maxage de
+// 1 ano e caches compartilhados seguram HTML velho entre deploys.
+export const dynamic = "force-dynamic";
+
 export default function LeadershipEntryRedirect() {
   redirect("/");
 }

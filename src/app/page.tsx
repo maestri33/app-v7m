@@ -8,6 +8,12 @@ import { CheckFlow } from "@/components/auth/CheckFlow";
 // não um hero de marketing.
 export const metadata = { title: "Entrar" };
 
+// SEM prerender estático: página estática sai com `s-maxage=31536000` e o
+// Caddy/Cloudflare seguram o HTML velho por até 1 ano entre deploys (visto em
+// produção: "Failed to find Server Action … older deployment"). Dinâmica como
+// o resto do app → sem cache compartilhado de HTML.
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <main id="main">
