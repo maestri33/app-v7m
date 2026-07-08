@@ -15,6 +15,8 @@ type Props = {
   initial: DocumentSection;
 };
 
+type Side = "front" | "back" | "full";
+
 const POLL_MS = 2500;
 
 // Erros roteados por `code` (envelope {detail, code}) — nunca parseando detail.
@@ -33,6 +35,11 @@ function uploadErrorMessage(code: string | undefined, detail: string | undefined
  * Fluxo invertido: upload PRIMEIRO (foto da câmera OU arquivo), a IA do backend
  * lê e preenche; só o que ela não leu (`missing_fields`) vira input depois.
  * `approved` trava tudo em somente-leitura e segue pro próximo passo.
+ *
+ * Captura em 2 tempos: FRENTE (`{tipo}_front`) → VERSO (`{tipo}_back`) — o
+ * backend monta a seção com `front`+`back` (ou uma única `full` via arquivo/PDF).
+ * O passo (front|back) é DERIVADO do backend (`has_front`/`has_back`), não de
+ * estado local: sobrevive a refresh e a troca de aba.
  */
 export function DocForm({ initial }: Props) {
   const router = useRouter();
@@ -58,12 +65,22 @@ export function DocForm({ initial }: Props) {
   );
 
   const doc = live ?? initial;
-  const uploaded = Boolean(doc.has_full || doc.has_front || doc.has_back);
+  const hasFull = Boolean(doc.has_full);
+  const hasFront = Boolean(doc.has_front);
+  const hasBack = Boolean(doc.has_back);
+  // Seção pronta pra IA: uma foto `full` OU frente+verso (espelha o backend).
+  const sectionComplete = hasFull || (hasFront && hasBack);
   const lockedType = doc.doc_type ?? null;
-  const status: AnalysisStatus | null = uploaded
-    ? (doc.analysis_status ?? "pending")
-    : null;
+  const status: AnalysisStatus | null =
+    hasFull || hasFront || hasBack ? (doc.analysis_status ?? "pending") : null;
   const missing = (doc.missing_fields ?? []).filter((f) => f !== "doc_type");
+  const isRejected = status === "rejected";
+  const effectiveType = lockedType ?? docType;
+  // Próximo lado da câmera: só falta o verso quando a frente já entrou.
+  const camStep: "front" | "back" =
+    !hasFull && hasFront && !hasBack ? "back" : "front";
+  // Reabre a captura enquanto a seção não está montada, ou quando reprovou.
+  const showCapture = isRejected || !sectionComplete;
 
   // Aprovado e sem pendência → wizard auto-avançante: direto pro Pix. push()
   // sem refresh(): as páginas são force-dynamic e um refresh concorrente
@@ -74,8 +91,10 @@ export function DocForm({ initial }: Props) {
     }
   }, [status, missing.length, router]);
 
-  function onUpload(file: File) {
-    const slot = (lockedType ?? docType) === "cnh" ? "cnh_full" : "rg_full";
+  function onUpload(file: File, side: Side) {
+    const type = lockedType ?? docType;
+    if (!type) return;
+    const slot = `${type}_${side}`;
     setError(null);
     startTransition(async () => {
       try {
@@ -163,8 +182,6 @@ export function DocForm({ initial }: Props) {
     );
   }
 
-  const effectiveType = lockedType ?? docType;
-
   return (
     <div className="space-y-6">
       {/* Tipo: RG ou CNH — trava depois do 1º upload */}
@@ -200,54 +217,120 @@ export function DocForm({ initial }: Props) {
         </p>
       </fieldset>
 
-      {status && (
+      {/* Análise da seção completa (frente+verso ou arquivo) — IA lendo ou revisão */}
+      {sectionComplete && (status === "pending" || status === "review") && (
         <StatusBanner
           status={status}
-          reason={status === "rejected" ? (doc.analysis_reason ?? null) : null}
-          footnote={status === "pending" ? "IA lendo seu documento…" : null}
+          reason={status === "review" ? (doc.analysis_reason ?? null) : null}
+          footnote={
+            status === "pending"
+              ? "IA lendo seu documento…"
+              : "Enviado pra revisão — um coordenador vai avaliar."
+          }
         />
       )}
 
-      {/* Upload (some quando a análise passou; reabre no rejected) */}
-      {(!uploaded || status === "rejected") && (
+      {/* Captura em 2 tempos: frente → verso (ou arquivo/PDF = tudo numa vez) */}
+      {showCapture && (
         <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-brand-surface p-4 space-y-3">
-          <p className="text-sm font-semibold">Documento (frente e verso juntos)</p>
-          <p className="text-xs text-brand-muted">
-            uma foto só, ou um arquivo — imagem ou PDF
-          </p>
-          <UploadActions
-            disabled={!effectiveType || pending}
-            pending={pending}
-            retry={status === "rejected"}
-            onFile={onUpload}
-          />
-          {!effectiveType && (
-            <p className="field-hint">Escolha RG ou CNH primeiro.</p>
+          {isRejected ? (
+            <>
+              <p className="text-sm font-semibold">Precisamos refazer o documento</p>
+              {doc.analysis_reason && (
+                <p className="text-xs text-brand-muted">{doc.analysis_reason}</p>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <CameraButton
+                  onFile={(f) => onUpload(f, "front")}
+                  disabled={pending}
+                  pending={pending}
+                >
+                  Refazer frente
+                </CameraButton>
+                <CameraButton
+                  onFile={(f) => onUpload(f, "back")}
+                  disabled={pending}
+                  pending={pending}
+                >
+                  Refazer verso
+                </CameraButton>
+              </div>
+              <FileButton onFile={(f) => onUpload(f, "full")} disabled={pending}>
+                Ou enviar um arquivo/PDF com tudo
+              </FileButton>
+            </>
+          ) : camStep === "front" ? (
+            <>
+              <p className="text-sm font-semibold">Frente do documento</p>
+              <p className="text-xs text-brand-muted">
+                Tire uma foto nítida da <strong>frente</strong>. Depois a gente pede o verso.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <CameraButton
+                  onFile={(f) => onUpload(f, "front")}
+                  disabled={!effectiveType || pending}
+                  pending={pending}
+                >
+                  Tirar a frente
+                </CameraButton>
+                <FileButton
+                  onFile={(f) => onUpload(f, "full")}
+                  disabled={!effectiveType || pending}
+                >
+                  Enviar arquivo/PDF
+                </FileButton>
+              </div>
+              {!effectiveType ? (
+                <p className="field-hint">Escolha RG ou CNH primeiro.</p>
+              ) : (
+                <p className="text-xs text-brand-muted">
+                  Tem um PDF/scan com os dois lados juntos? Use “Enviar arquivo”.
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold">Agora o verso</p>
+              <p className="text-xs text-brand-muted">
+                <span className="font-semibold text-brand-ok">Frente enviada ✓</span> — vire o
+                documento e fotografe o <strong>verso</strong>.
+              </p>
+              <CameraButton
+                onFile={(f) => onUpload(f, "back")}
+                disabled={pending}
+                pending={pending}
+              >
+                Tirar o verso
+              </CameraButton>
+            </>
           )}
         </div>
       )}
 
       {/* Só o que a IA não leu vira input */}
-      {uploaded && status !== "pending" && status !== "rejected" && missing.length > 0 && (
-        <form onSubmit={onMissingSubmit} className="space-y-5">
-          <p className="text-sm text-brand-muted">
-            A IA não conseguiu ler {missing.length === 1 ? "este campo" : "estes campos"} —
-            complete pra seguir:
-          </p>
-          {missing.map((f) => (
-            <Field
-              key={f}
-              label={fieldLabel(f)}
-              value={extras[f] ?? ""}
-              onChange={(v) => setExtras((p) => ({ ...p, [f]: v }))}
-              required
-            />
-          ))}
-          <Button type="submit" size="xl" loading={pending} className="w-full">
-            {pending ? "Salvando…" : "Confirmar e continuar"}
-          </Button>
-        </form>
-      )}
+      {sectionComplete &&
+        status !== "pending" &&
+        status !== "rejected" &&
+        missing.length > 0 && (
+          <form onSubmit={onMissingSubmit} className="space-y-5">
+            <p className="text-sm text-brand-muted">
+              A IA não conseguiu ler {missing.length === 1 ? "este campo" : "estes campos"} —
+              complete pra seguir:
+            </p>
+            {missing.map((f) => (
+              <Field
+                key={f}
+                label={fieldLabel(f)}
+                value={extras[f] ?? ""}
+                onChange={(v) => setExtras((p) => ({ ...p, [f]: v }))}
+                required
+              />
+            ))}
+            <Button type="submit" size="xl" loading={pending} className="w-full">
+              {pending ? "Salvando…" : "Confirmar e continuar"}
+            </Button>
+          </form>
+        )}
 
       <FieldError>{error}</FieldError>
 
@@ -256,63 +339,82 @@ export function DocForm({ initial }: Props) {
   );
 }
 
-/** Duas ações alimentando o MESMO upload: câmera (capture) ou arquivo (img/PDF). */
-function UploadActions({
+/** Botão de CÂMERA (capture direto) que devolve o File tirado. */
+function CameraButton({
   onFile,
   disabled,
   pending,
-  retry,
+  children,
 }: {
   onFile: (file: File) => void;
   disabled?: boolean;
   pending?: boolean;
-  retry?: boolean;
+  children: React.ReactNode;
 }) {
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  function handle(input: HTMLInputElement | null) {
-    const file = input?.files?.[0];
+  const ref = useRef<HTMLInputElement>(null);
+  function handle() {
+    const file = ref.current?.files?.[0];
     if (file) onFile(file);
-    if (input) input.value = "";
+    if (ref.current) ref.current.value = "";
   }
-
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <>
       <input
-        ref={cameraRef}
+        ref={ref}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={() => handle(cameraRef.current)}
-      />
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*,application/pdf"
-        className="hidden"
-        onChange={() => handle(fileRef.current)}
+        onChange={handle}
       />
       <Button
         type="button"
         loading={pending}
         disabled={disabled}
-        onClick={() => cameraRef.current?.click()}
+        onClick={() => ref.current?.click()}
         className="px-3 whitespace-nowrap"
       >
-        <Camera size={18} aria-hidden /> {retry ? "Tirar de novo" : "Tirar foto"}
+        <Camera size={18} aria-hidden /> {children}
       </Button>
+    </>
+  );
+}
+
+/** Botão de ARQUIVO (imagem OU PDF) que devolve o File escolhido. */
+function FileButton({
+  onFile,
+  disabled,
+  children,
+}: {
+  onFile: (file: File) => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  function handle() {
+    const file = ref.current?.files?.[0];
+    if (file) onFile(file);
+    if (ref.current) ref.current.value = "";
+  }
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*,application/pdf"
+        className="hidden"
+        onChange={handle}
+      />
       <Button
         type="button"
         variant="ghost"
         disabled={disabled}
-        onClick={() => fileRef.current?.click()}
-        className="px-3 whitespace-nowrap text-brand-ink border-brand-border"
+        onClick={() => ref.current?.click()}
+        className="w-full px-3 whitespace-nowrap text-brand-ink border-brand-border"
       >
-        <FileUp size={18} aria-hidden /> Enviar arquivo
+        <FileUp size={18} aria-hidden /> {children}
       </Button>
-    </div>
+    </>
   );
 }
 
@@ -356,7 +458,14 @@ function AddressProofCard() {
         {done && <span className="text-sm font-semibold text-brand-ok">enviado ✓</span>}
       </div>
       {!done && (
-        <UploadActions onFile={onFile} disabled={pending} pending={pending} />
+        <div className="grid grid-cols-2 gap-3">
+          <CameraButton onFile={onFile} disabled={pending} pending={pending}>
+            Tirar foto
+          </CameraButton>
+          <FileButton onFile={onFile} disabled={pending}>
+            Enviar arquivo
+          </FileButton>
+        </div>
       )}
       <FieldError>{error}</FieldError>
     </div>
