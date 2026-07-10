@@ -39,6 +39,9 @@ function authErrorMessage(
       return "Não achamos esse CPF na Receita. Confira os números — precisa ser o seu.";
     case "NO_HUB":
       return "Seu link de convite expirou ou veio incompleto — peça um novo pro coordenador do seu polo.";
+    case "OTP_NOT_SENT":
+      // O OTP sai SÓ por WhatsApp — não há canal de e-mail.
+      return "Não conseguimos enviar o código. Confira se esse número tem WhatsApp ativo e tente de novo.";
     default:
       return detail ?? "Não deu pra completar agora. Tente de novo em instantes.";
   }
@@ -61,6 +64,9 @@ export function CheckFlow() {
   // Cooldown de reenvio do código — começa no `otp_wait` do backend.
   const [resendIn, setResendIn] = useState(0);
   const [resending, setResending] = useState(false);
+  // `otp_sent` honesto do backend: false quando rate-limitado (ou dispatch falhou).
+  // Nunca prometer "mandamos o código" sem o backend confirmar que mandou.
+  const [otpSent, setOtpSent] = useState(true);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -86,6 +92,7 @@ export function CheckFlow() {
     setEmail("");
     setExternalId(null);
     setError(null);
+    setOtpSent(true);
   }
 
   // Etapa 1 — check() por TELEFONE. O backend deriva o WhatsApp do número e
@@ -118,6 +125,7 @@ export function CheckFlow() {
         // external_id do CheckOut já é o do USER (o que o login espera).
         setExternalId(out.external_id ?? null);
         setResendIn(out.otp_wait ?? 60);
+        setOtpSent(out.otp_sent ?? true);
         setStage("otp");
         return;
       }
@@ -163,6 +171,11 @@ export function CheckFlow() {
       const data: {
         external_id?: string;
         user_external_id?: string;
+        // otp_sent/otp_wait ainda NÃO estão no CandidateOut (schema Ninja) — chegam
+        // undefined hoje. O cadastro não é derrubado por falha de OTP, então o
+        // default `true` preserva o fluxo atual e passa a valer sozinho quando
+        // o backend surfacar o campo.
+        otp_sent?: boolean;
         otp_wait?: number;
         detail?: string;
         code?: string;
@@ -176,6 +189,7 @@ export function CheckFlow() {
       // o login espera o do USER (CandidateOut em api/collaborators.py).
       setExternalId(data.user_external_id ?? null);
       setResendIn(data.otp_wait ?? 60);
+      setOtpSent(data.otp_sent ?? true);
       setStage("otp");
     } catch {
       setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
@@ -206,6 +220,7 @@ export function CheckFlow() {
         return;
       }
       setResendIn(data.otp_wait ?? 60);
+      setOtpSent(data.otp_sent ?? true);
     } catch {
       setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
@@ -243,9 +258,16 @@ export function CheckFlow() {
   if (stage === "otp") {
     return (
       <form onSubmit={onLogin} className="space-y-5">
-        <p className="text-brand-muted-on-dark text-sm">
-          Mandamos um código de 6 dígitos no WhatsApp. Digite abaixo.
-        </p>
+        {otpSent ? (
+          <p className="text-brand-muted-on-dark text-sm">
+            Mandamos um código de 6 dígitos no WhatsApp. Digite abaixo.
+          </p>
+        ) : (
+          <p role="alert" className="text-brand-warn text-sm">
+            Não conseguimos enviar um código agora. Se você já tem um código válido,
+            digite abaixo — senão, use “Reenviar código”.
+          </p>
+        )}
         <Field
           tone="dark"
           label="Código"

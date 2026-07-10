@@ -17,7 +17,6 @@ type Props = {
 
 const POLL_MS = 2500;
 
-// Erros roteados por `code` (envelope {detail, code}) — nunca parseando detail.
 function uploadErrorMessage(code: string | undefined, detail: string | undefined) {
   switch (code) {
     case "IMAGE_TYPE_INVALID":
@@ -29,58 +28,59 @@ function uploadErrorMessage(code: string | undefined, detail: string | undefined
   }
 }
 
+/** Rótulo amigável por slot. */
+const SLOT_LABEL: Record<string, string> = {
+  rg_front: "Envie a FRENTE do seu RG",
+  rg_back: "Frente aprovada! Envie o VERSO",
+  cnh_full: "Envie sua CNH (frente e verso)",
+};
+
 /**
- * Fluxo invertido: upload PRIMEIRO (foto da câmera OU arquivo), a IA do backend
- * lê e preenche; só o que ela não leu (`missing_fields`) vira input depois.
- * `approved` trava tudo em somente-leitura e segue pro próximo passo.
+ * Fluxo slot-a-slot: o backend diz qual foto precisa (`next_slot`), o form
+ * mostra 1 slot por vez. Após upload, poll até `analysis_status` sair de
+ * pending. Cada foto individual tem status em `photos`.
  */
 export function DocForm({ initial }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  // Tipo escolhido localmente antes do 1º upload; depois vem travado do backend.
   const [docType, setDocType] = useState<string>(initial.doc_type ?? "");
   const [extras, setExtras] = useState<Record<string, string>>({});
-  // Intervalo de poll sugerido pelo backend no ack do upload (AnalysisAckOut).
   const [pollMs, setPollMs] = useState(POLL_MS);
+  const [justUploaded, setJustUploaded] = useState(false);
 
-  // Polling do /me/document enquanto a IA analisa.
   const { data: live, mutate } = useSWR<DocumentSection>(
     "/api/me/document",
     (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
     {
       refreshInterval: (latest) =>
-        (latest?.has_full || latest?.doc_type) && latest?.analysis_status === "pending"
-          ? pollMs
-          : 0,
+        (justUploaded || latest?.analysis_status === "pending") ? pollMs : 0,
       fallbackData: initial,
     },
   );
 
   const doc = live ?? initial;
-  const uploaded = Boolean(doc.has_full || doc.has_front || doc.has_back);
   const lockedType = doc.doc_type ?? null;
-  const status: AnalysisStatus | null = uploaded
-    ? (doc.analysis_status ?? "pending")
-    : null;
+  const nextSlot = doc.next_slot ?? null;
+  const status: AnalysisStatus | null = doc.analysis_status ?? null;
   const missing = (doc.missing_fields ?? []).filter((f) => f !== "doc_type");
+  const hasSlot = nextSlot != null;
+  const isAnalyzing = justUploaded || (hasSlot && status === "pending");
 
-  // Aprovado e sem pendência → wizard auto-avançante: direto pro Pix. push()
-  // sem refresh(): as páginas são force-dynamic e um refresh concorrente
-  // cancela a navegação em andamento.
+  // Aprovado, sem slot pendente, sem campo faltando → auto-avança.
   useEffect(() => {
-    if (status === "approved" && missing.length === 0) {
+    if (status === "approved" && !hasSlot && missing.length === 0) {
       router.push(NEXT_STAGE.documents);
     }
-  }, [status, missing.length, router]);
+  }, [status, hasSlot, missing.length, router]);
 
   function onUpload(file: File) {
-    const slot = (lockedType ?? docType) === "cnh" ? "cnh_full" : "rg_full";
+    if (!nextSlot) return;
     setError(null);
     startTransition(async () => {
       try {
         const form = new FormData();
-        form.append("slot", slot);
+        form.append("slot", nextSlot);
         form.append("photo", file, file.name);
         const res = await fetch("/api/me/document/photo", { method: "POST", body: form });
         const data: {
@@ -94,13 +94,11 @@ export function DocForm({ initial }: Props) {
         }
         if (!res.ok) {
           const redir = wrongStatusHref(data.code, data.expected_status);
-          if (redir) {
-            router.push(redir);
-            return;
-          }
+          if (redir) { router.push(redir); return; }
           setError(uploadErrorMessage(data.code, data.detail));
           return;
         }
+        setJustUploaded(true);
         await mutate();
         router.refresh();
       } catch {
@@ -117,8 +115,6 @@ export function DocForm({ initial }: Props) {
         const res = await fetch("/api/me/document", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          // DocumentsIn exige doc_type e number SEMPRE — mesmo quando a IA já
-          // leu o número e só falta outro campo.
           body: JSON.stringify({
             doc_type: lockedType ?? docType,
             number: extras.number ?? doc.number ?? "",
@@ -129,10 +125,7 @@ export function DocForm({ initial }: Props) {
           await res.json();
         if (!res.ok) {
           const redir = wrongStatusHref(data.code, data.expected_status);
-          if (redir) {
-            router.push(redir);
-            return;
-          }
+          if (redir) { router.push(redir); return; }
           setError(uploadErrorMessage(data.code, data.detail));
           return;
         }
@@ -143,8 +136,8 @@ export function DocForm({ initial }: Props) {
     });
   }
 
-  // ── Aprovado: tudo somente-leitura, sem reenvio ────────────────────────────
-  if (status === "approved" && missing.length === 0) {
+  // ── Aprovado: tudo somente-leitura ──────────────────────────────────────────
+  if (status === "approved" && !hasSlot && missing.length === 0) {
     return (
       <div className="space-y-5">
         <StatusBanner
@@ -164,43 +157,41 @@ export function DocForm({ initial }: Props) {
   }
 
   const effectiveType = lockedType ?? docType;
+  const slotLabel = nextSlot ? SLOT_LABEL[nextSlot] : null;
 
   return (
     <div className="space-y-6">
       {/* Tipo: RG ou CNH — trava depois do 1º upload */}
-      <fieldset className="space-y-2">
-        <legend className="label">Tipo</legend>
-        <div className="grid grid-cols-2 gap-3">
-          {(["rg", "cnh"] as const).map((t) => (
-            <label
-              key={t}
-              className={`flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border px-4 py-3 transition-colors ${
-                effectiveType === t
-                  ? "border-brand-gold bg-brand-gold-light/10"
-                  : "border-brand-border bg-brand-surface"
-              } ${lockedType ? "opacity-70" : "cursor-pointer hover:border-brand-gold-dark"}`}
-            >
-              <input
-                type="radio"
-                name="doc_type"
-                value={t}
-                checked={effectiveType === t}
-                disabled={Boolean(lockedType)}
-                onChange={() => setDocType(t)}
-                className="accent-gold-deep"
-              />
-              {t === "rg" ? "RG" : "CNH"}
-            </label>
-          ))}
-        </div>
-        <p className="field-hint">
-          {lockedType
-            ? "🔒 tipo não pode ser trocado depois de enviado"
-            : "O tipo fica travado no primeiro upload."}
-        </p>
-      </fieldset>
+      {!lockedType && (
+        <fieldset className="space-y-2">
+          <legend className="label">Tipo</legend>
+          <div className="grid grid-cols-2 gap-3">
+            {(["rg", "cnh"] as const).map((t) => (
+              <label
+                key={t}
+                className={`flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border px-4 py-3 transition-colors ${
+                  effectiveType === t
+                    ? "border-brand-gold bg-brand-gold-light/10"
+                    : "border-brand-border bg-brand-surface"
+                } cursor-pointer hover:border-brand-gold-dark`}
+              >
+                <input
+                  type="radio"
+                  name="doc_type"
+                  value={t}
+                  checked={effectiveType === t}
+                  onChange={() => setDocType(t)}
+                  className="accent-gold-deep"
+                />
+                {t === "rg" ? "RG" : "CNH"}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
-      {status && (
+      {/* Banner de status quando analisando ou em revisão */}
+      {status && status !== "approved" && (
         <StatusBanner
           status={status}
           reason={status === "rejected" ? (doc.analysis_reason ?? null) : null}
@@ -208,17 +199,18 @@ export function DocForm({ initial }: Props) {
         />
       )}
 
-      {/* Upload (some quando a análise passou; reabre no rejected) */}
-      {(!uploaded || status === "rejected") && (
+      {/* Upload: 1 slot por vez, some durante análise */}
+      {hasSlot && !isAnalyzing && status !== "rejected" && (
         <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-brand-surface p-4 space-y-3">
-          <p className="text-sm font-semibold">Documento (frente e verso juntos)</p>
+          <p className="text-sm font-semibold">
+            {slotLabel ?? `Envie: ${nextSlot}`}
+          </p>
           <p className="text-xs text-brand-muted">
-            uma foto só, ou um arquivo — imagem ou PDF
+            tire uma foto ou envie um arquivo — imagem ou PDF
           </p>
           <UploadActions
             disabled={!effectiveType || pending}
             pending={pending}
-            retry={status === "rejected"}
             onFile={onUpload}
           />
           {!effectiveType && (
@@ -227,8 +219,34 @@ export function DocForm({ initial }: Props) {
         </div>
       )}
 
-      {/* Só o que a IA não leu vira input */}
-      {uploaded && status !== "pending" && status !== "rejected" && missing.length > 0 && (
+      {/* Rejected: re-abre upload pro mesmo slot */}
+      {hasSlot && status === "rejected" && (
+        <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-brand-surface p-4 space-y-3">
+          <p className="text-sm font-semibold">
+            {slotLabel ?? `Envie: ${nextSlot}`}
+          </p>
+          <UploadActions
+            disabled={!effectiveType || pending}
+            pending={pending}
+            retry
+            onFile={onUpload}
+          />
+        </div>
+      )}
+
+      {/* Review: aguardando revisão humana */}
+      {status === "review" && !hasSlot && (
+        <div className="banner banner-warn" role="status">
+          <p className="font-display">Documento em revisão</p>
+          <p className="text-xs mt-1 opacity-70">
+            Nossa equipe está analisando. Você receberá uma notificação quando
+            estiver pronto.
+          </p>
+        </div>
+      )}
+
+      {/* Campos que a IA não leu → input manual */}
+      {!isAnalyzing && status !== "rejected" && missing.length > 0 && (
         <form onSubmit={onMissingSubmit} className="space-y-5">
           <p className="text-sm text-brand-muted">
             A IA não conseguiu ler {missing.length === 1 ? "este campo" : "estes campos"} —

@@ -72,6 +72,8 @@ export default async function DocumentoPage() {
     has_front: doc.has_front,
     has_back: doc.has_back,
     has_full: doc.has_full,
+    next_slot: doc.next_slot ?? null,
+    photos: doc.photos ?? undefined,
   };
 
   return (

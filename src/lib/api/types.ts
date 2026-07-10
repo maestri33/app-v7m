@@ -56,6 +56,10 @@ export type DocumentSection = {
   has_front?: boolean;
   has_back?: boolean;
   has_full?: boolean;
+  /** Slot-a-slot (RG): qual foto o backend pede a seguir (rg_front/rg_back/cnh_full…). */
+  next_slot?: string | null;
+  /** Status por slot de foto já enviado. */
+  photos?: Record<string, { status?: AnalysisStatus } & Record<string, unknown>>;
   [k: string]: unknown;
 };
 
