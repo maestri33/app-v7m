@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import { Camera, FileUp } from "lucide-react";
 import useSWR from "swr";
 
+import { CopilotKit } from "@copilotkit/react-core";
+
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
 import { StatusBanner } from "@/components/ui/status-banner";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import type { AnalysisStatus, DocumentSection } from "@/lib/api/types";
+
+import { KinshipChat } from "./kinship-chat";
 
 type Props = {
   initial: DocumentSection;
@@ -366,6 +370,8 @@ function AddressProofCard() {
   const [pending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Se a análise voltar `needs_kinship` (titular é outra pessoa), abrimos o diálogo por IA.
+  const [needsKinship, setNeedsKinship] = useState(false);
 
   function onFile(file: File) {
     setError(null);
@@ -377,16 +383,32 @@ function AddressProofCard() {
           method: "POST",
           body: form,
         });
-        const data: { detail?: string; code?: string } = await res.json();
+        const data: {
+          detail?: string;
+          code?: string;
+          address_proof?: { status?: string | null } | null;
+        } = await res.json();
         if (!res.ok) {
           setError(uploadErrorMessage(data.code, data.detail));
           return;
         }
+        if (data.address_proof?.status === "needs_kinship") setNeedsKinship(true);
         setDone(true);
       } catch {
         setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
     });
+  }
+
+  async function submitKinship(relation: string) {
+    const res = await fetch("/api/me/document/address-proof/kinship", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ relation }),
+    });
+    const data: { address_proof?: { status?: string | null } | null } = await res.json();
+    // aprovou/saiu de needs_kinship → fecha o diálogo
+    if (res.ok && data.address_proof?.status !== "needs_kinship") setNeedsKinship(false);
   }
 
   return (
@@ -398,11 +420,17 @@ function AddressProofCard() {
             opcional — agiliza sua análise, pode enviar depois
           </p>
         </div>
-        {done && <span className="text-sm font-semibold text-brand-ok">enviado ✓</span>}
+        {done && !needsKinship && (
+          <span className="text-sm font-semibold text-brand-ok">enviado ✓</span>
+        )}
       </div>
-      {!done && (
+      {needsKinship ? (
+        <CopilotKit runtimeUrl="/api/copilotkit">
+          <KinshipChat onSubmit={submitKinship} />
+        </CopilotKit>
+      ) : !done ? (
         <UploadActions onFile={onFile} disabled={pending} pending={pending} />
-      )}
+      ) : null}
       <FieldError>{error}</FieldError>
     </div>
   );
