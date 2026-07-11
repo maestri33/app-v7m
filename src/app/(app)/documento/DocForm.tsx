@@ -48,6 +48,8 @@ export function DocForm({ initial }: Props) {
   const [extras, setExtras] = useState<Record<string, string>>({});
   const [pollMs, setPollMs] = useState(POLL_MS);
   const [justUploaded, setJustUploaded] = useState(false);
+  // Aviso suave da classificação por IA (o promotor ACEITA os dois; a IA só orienta se divergir).
+  const [classifyHint, setClassifyHint] = useState<string | null>(null);
 
   const { data: live, mutate } = useSWR<DocumentSection>(
     "/api/me/document",
@@ -74,9 +76,31 @@ export function DocForm({ initial }: Props) {
     }
   }, [status, hasSlot, missing.length, router]);
 
+  // Classifica a foto (IA→OmniRoute) ANTES de enviar e, se o tipo reconhecido divergir do escolhido,
+  // orienta suavemente (não bloqueia — o promotor aceita RG e CNH). Fail-open: erro → sem aviso.
+  async function classifyHintFor(file: File, chosen: string) {
+    setClassifyHint(null);
+    try {
+      const form = new FormData();
+      form.append("file", file, file.name);
+      const res = await fetch("/api/me/document/classify", { method: "POST", body: form });
+      const c: { is_document?: boolean | null; doc_type?: string | null } = await res.json();
+      if (c.is_document === false) {
+        setClassifyHint("Não reconhecemos um documento nessa foto — confira antes de enviar.");
+      } else if (c.doc_type && chosen && c.doc_type !== chosen) {
+        setClassifyHint(
+          `Você escolheu ${chosen.toUpperCase()}, mas a foto parece ${c.doc_type.toUpperCase()}. Confira se está certo.`,
+        );
+      }
+    } catch {
+      // fail-open: sem aviso
+    }
+  }
+
   function onUpload(file: File) {
     if (!nextSlot) return;
     setError(null);
+    void classifyHintFor(file, lockedType ?? docType);
     startTransition(async () => {
       try {
         const form = new FormData();
@@ -215,6 +239,9 @@ export function DocForm({ initial }: Props) {
           />
           {!effectiveType && (
             <p className="field-hint">Escolha RG ou CNH primeiro.</p>
+          )}
+          {classifyHint && (
+            <p className="text-xs font-semibold text-brand-gold-dark">{classifyHint}</p>
           )}
         </div>
       )}
