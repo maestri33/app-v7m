@@ -31,7 +31,7 @@ jobs:
           # o SHA EXATO que passou no CI (não 'origin/main' — evita deployar push posterior não-gated)
           git reset --hard ${{ github.event.workflow_run.head_sha }}
           npm ci
-          npm run build
+          NODE_OPTIONS="--max-old-space-size=3200" npm run build
           # standalone não copia static/public sozinho:
           rm -rf .next/standalone/.next/static .next/standalone/public
           cp -r .next/static .next/standalone/.next/static
@@ -49,7 +49,7 @@ jobs:
           echo "ROLLBACK de código -> $PREV_SHA"
           git reset --hard "$PREV_SHA"
           npm ci
-          npm run build
+          NODE_OPTIONS="--max-old-space-size=3200" npm run build
           rm -rf .next/standalone/.next/static .next/standalone/public
           cp -r .next/static .next/standalone/.next/static
           [ -d public ] && cp -r public .next/standalone/public || true
