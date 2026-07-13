@@ -6,6 +6,7 @@ const FUNNEL_STEPS = [
   { key: "address", label: "Endereço" },
   { key: "documents", label: "Documento" },
   { key: "pix", label: "Pix" },
+  { key: "education", label: "Escolaridade" },
   { key: "selfie", label: "Selfie" },
 ] as const;
 

@@ -12,6 +12,7 @@ export const FUNNEL_ORDER: CandidateStatus[] = [
   "address",
   "documents",
   "pix",
+  "education",
   "selfie",
   "completed",
 ];
@@ -23,6 +24,7 @@ export const STAGE_HREF: Record<CandidateStatus, string> = {
   address: "/endereco",
   documents: "/documento",
   pix: "/pix",
+  education: "/escolaridade",
   selfie: "/selfie",
   completed: "/painel",
 };
@@ -32,7 +34,8 @@ export const NEXT_STAGE: Record<string, string> = {
   profile: "/endereco",
   address: "/documento",
   documents: "/pix",
-  pix: "/selfie",
+  pix: "/escolaridade",
+  education: "/selfie",
   selfie: "/painel",
 };
 
