@@ -115,29 +115,12 @@ export function SelfieForm() {
     );
   }
 
-  // Reprovada: identidade não confirmada — quem resolve é o polo, pessoalmente.
-  if (takenAt && status === "rejected") {
-    return (
-      <div className="space-y-4 text-center py-4">
-        <h2 className="font-display text-lg">Não confirmamos sua identidade agora</h2>
-        <p className="text-sm text-brand-muted">
-          Em breve nosso time do polo vai entrar em contato com você pra
-          resolver pessoalmente.
-        </p>
-        {hubWhatsapp && (
-          <Button
-            href={`https://wa.me/${hubWhatsapp.replace(/\D/g, "")}`}
-            variant="ghost"
-            className="text-brand-gold-ink border-brand-gold-dark/50"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Falar com o polo no WhatsApp
-          </Button>
-        )}
-      </div>
-    );
-  }
+  // Reprovada: NÃO é beco sem saída — o backend gera instruções práticas em
+  // `analysis_reason` ("Como resolver: …") e aceita novas tentativas (na 5ª
+  // reprovação ele mesmo promove com ressalva de encontro presencial — escape
+  // que só dispara com re-uploads). Cai no form principal: o StatusBanner
+  // mostra o motivo e o uploader deixa refazer na hora; o polo vira caminho
+  // alternativo, não o único.
 
   // Análise manual: nada a fazer aqui, aviso chega por WhatsApp.
   if (takenAt && status === "review") {
@@ -164,8 +147,9 @@ export function SelfieForm() {
 
       <div className="space-y-3">
         <p id="selfie-photo-label" className="text-sm text-brand-muted">
-          Selfie ao vivo, bem iluminada, sem óculos escuros e sem chapéu. Ela é a
-          assinatura eletrônica do seu acordo.
+          {status === "rejected"
+            ? "Siga as dicas acima e tire outra selfie — dá pra resolver agora, sem esperar ninguém."
+            : "Selfie ao vivo, bem iluminada, sem óculos escuros e sem chapéu. Ela é a assinatura eletrônica do seu acordo."}
         </p>
         <FileInput
           ref={fileRef}
@@ -180,9 +164,24 @@ export function SelfieForm() {
           loading={pending}
           className="w-full"
         >
-          {pending ? "Enviando…" : "Tirar selfie e assinar"}
+          {pending
+            ? "Enviando…"
+            : status === "rejected"
+              ? "Tirar outra selfie e assinar"
+              : "Tirar selfie e assinar"}
         </Button>
         <FieldError>{error}</FieldError>
+        {status === "rejected" && hubWhatsapp && (
+          <Button
+            href={`https://wa.me/${hubWhatsapp.replace(/\D/g, "")}`}
+            variant="ghost"
+            className="w-full text-brand-gold-ink border-brand-gold-dark/50"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Prefiro falar com o polo no WhatsApp
+          </Button>
+        )}
       </div>
     </div>
   );
