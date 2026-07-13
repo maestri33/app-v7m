@@ -817,3 +817,173 @@ strong {
     scroll-behavior: auto !important;
   }
 }
+
+/* =============================================================================
+   Auth (redesign handoff) — dark luxury: fundo animado, barras com linha
+   dourada, card de vidro, OTP 6-slots. Escopo só da tela / (CheckFlow).
+   ============================================================================= */
+
+/* Fundo animado da auth — gradiente que desliza + glow + véu.
+   fixed atrás de tudo; grain vem do .grain existente. */
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    linear-gradient(130deg, #0b0b0c 0%, #1d1d20 24%, #6b6b72 38%, #b07f30 52%,
+      #d9b15a 60%, #1d1d20 78%, #0b0b0c 100%);
+  background-size: 280% 280%;
+  animation: auth-pan 14s var(--ease-out) infinite alternate;
+}
+.auth-bg::before {
+  /* véu escuro por cima do gradiente */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(11 11 12 / 0.5);
+}
+.auth-bg::after {
+  /* glow dourado pulsante topo-direito */
+  content: "";
+  position: absolute;
+  top: -20vmax;
+  right: -12vmax;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 999px;
+  background: radial-gradient(circle at center, rgb(217 177 90 / 0.5), transparent 62%);
+  filter: blur(90px);
+  animation: auth-glow 9s var(--ease-out) infinite alternate;
+}
+@keyframes auth-pan {
+  from { background-position: 0% 0%; }
+  to { background-position: 100% 100%; }
+}
+@keyframes auth-glow {
+  from { opacity: 0.55; transform: scale(1); }
+  to { opacity: 0.85; transform: scale(1.12); }
+}
+
+/* Linha-gradiente dourada (assinatura das barras) */
+.gold-rule {
+  height: 1.5px;
+  background: linear-gradient(90deg, #f4dca0 0%, #d9b15a 42%, #b07f30 78%, #ecc97f 100%);
+  opacity: 0.85;
+}
+
+/* Barras (navbar/footer) — vidro escuro com blur */
+.auth-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgb(11 11 12 / 0.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+}
+
+/* Card de vidro da auth */
+.auth-card {
+  background: rgb(17 17 19 / 0.78);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgb(231 228 221 / 0.14);
+  border-radius: 14px;
+  box-shadow:
+    0 24px 60px -24px rgb(0 0 0 / 0.7),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  padding: clamp(1rem, 0.8rem + 1.5vw, 1.5rem);
+}
+
+/* Divider-gradiente (separa header do card do conteúdo) */
+.gold-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(217 177 90 / 0.45), transparent);
+}
+
+/* OTP — 6 slots visuais */
+.otp-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: clamp(46px, 12vw, 56px);
+  flex: 1;
+  max-width: 52px;
+  border-radius: 10px;
+  background: rgb(29 29 32 / 0.6);
+  border: 1px solid rgb(231 228 221 / 0.18);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--paper);
+  transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+}
+.otp-slot[data-state="filled"] {
+  border-color: rgb(217 177 90 / 0.5);
+}
+.otp-slot[data-state="active"] {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgb(217 177 90 / 0.3);
+}
+.otp-slot[data-state="error"] {
+  border-color: rgb(220 90 90 / 0.6);
+}
+.otp-caret {
+  width: 2px;
+  height: 22px;
+  background: var(--gold);
+  animation: otp-blink 1.1s step-end infinite;
+}
+@keyframes otp-blink {
+  50% { opacity: 0; }
+}
+
+/* Prefixo +55 fixo dentro do input de telefone */
+.phone-prefix {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  font-size: 15px;
+  font-weight: 500;
+  color: #a1a1aa;
+  border-right: 1px solid rgb(231 228 221 / 0.16);
+  pointer-events: none;
+}
+
+/* Overlay de loading global (transições de rota / submits longos) */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgb(11 11 12 / 0.5);
+  backdrop-filter: blur(18px) saturate(1.4);
+  animation: auth-fade 0.25s var(--ease-out) both;
+}
+.auth-ring {
+  width: 104px;
+  height: 104px;
+  border-radius: 999px;
+  border: 2px solid rgb(217 177 90 / 0.18);
+  border-top-color: var(--gold);
+  animation: spin 1s linear infinite;
+}
+@keyframes auth-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Shake de erro de validação (respeitado pelo kill-switch global) */
+.field-shake {
+  animation: field-shake 0.4s var(--ease-out);
+}
+@keyframes field-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}

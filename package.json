@@ -15,6 +15,7 @@
     "@copilotkit/react-ui": "^1.62.3",
     "@copilotkit/runtime": "^1.62.3",
     "lucide-react": "^1.21.0",
+    "motion": "^12.42.2",
     "next": "16.2.9",
     "openai": "^4.104.0",
     "react": "19.2.4",
