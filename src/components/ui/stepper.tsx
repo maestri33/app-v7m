@@ -26,28 +26,21 @@ function CheckIcon() {
   );
 }
 
-type StepState = "todo" | "current" | "done";
-type StepDef = { key: string; label: string };
-
 /**
- * Stepper genérico — recebe `steps[]` + índice atual.
- * FunnelStepper abaixo é wrapper fino p/ compatibilidade.
+ * Indicador de progresso do funil (recomendação ui-ux-pro-max para o padrão
+ * "Funnel"). `current` é a etapa atual; `started` é tratado como `profile`.
  */
-export function Stepper({
-  steps,
-  currentIndex,
-  label = "Progresso",
-}: {
-  steps: StepDef[];
-  /** índice do passo atual (0-based). Passos antes são "done", depois "todo". */
-  currentIndex: number;
-  label?: string;
-}) {
+export function FunnelStepper({ current }: { current: StepKey | CandidateStatus }) {
+  const normalized = current === "started" ? "profile" : current;
+  // `completed` = funil inteiro concluído → tudo marcado como feito.
+  const idx =
+    normalized === "completed"
+      ? FUNNEL_STEPS.length
+      : FUNNEL_STEPS.findIndex((s) => s.key === normalized);
   return (
-    <nav className="stepper" aria-label={label}>
-      {steps.map((s, i) => {
-        const state: StepState =
-          i < currentIndex ? "done" : i === currentIndex ? "current" : "todo";
+    <nav className="stepper" aria-label="Progresso do cadastro">
+      {FUNNEL_STEPS.map((s, i) => {
+        const state = idx < 0 ? "todo" : i < idx ? "done" : i === idx ? "current" : "todo";
         return (
           <span
             key={s.key}
@@ -55,33 +48,11 @@ export function Stepper({
             data-state={state}
             aria-current={state === "current" ? "step" : undefined}
           >
-            <span className="step-dot">
-              {state === "done" ? <CheckIcon /> : i + 1}
-            </span>
+            <span className="step-dot">{state === "done" ? <CheckIcon /> : i + 1}</span>
             {s.label}
           </span>
         );
       })}
     </nav>
-  );
-}
-
-/**
- * Indicador de progresso do funil (recomendação ui-ux-pro-max para o padrão
- * "Funnel"). `current` é a etapa atual; `started` é tratado como `profile`.
- * Wrapper fino sobre Stepper genérico.
- */
-export function FunnelStepper({ current }: { current: StepKey | CandidateStatus }) {
-  const normalized = current === "started" ? "profile" : current;
-  const idx =
-    normalized === "completed"
-      ? FUNNEL_STEPS.length
-      : FUNNEL_STEPS.findIndex((s) => s.key === normalized);
-  return (
-    <Stepper
-      steps={FUNNEL_STEPS as unknown as StepDef[]}
-      currentIndex={idx < 0 ? 0 : idx}
-      label="Progresso do cadastro"
-    />
   );
 }
