@@ -1,31 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Sun, Moon } from "lucide-react";
 
 type Theme = "light" | "dark" | "system";
 
-function resolveTheme(t: Theme): "light" | "dark" {
-  if (t === "system") {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-  }
-  return t;
+function readStoredTheme(): Theme {
+  if (typeof window === "undefined") return "system";
+  const stored = localStorage.getItem("v7m-theme");
+  if (stored === "light" || stored === "dark" || stored === "system") return stored;
+  return "system";
+}
+
+function resolveSystem(): "light" | "dark" {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 function applyTheme(t: Theme) {
-  const r = t === "system" ? resolveTheme("system") : t;
+  const r = t === "system" ? resolveSystem() : t;
   document.documentElement.dataset.theme = r;
 }
 
+/** Toggle de tema: sol/lua, 3 ciclos (light→dark→system), localStorage. */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("system");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("v7m-theme") as Theme | null;
-    if (stored) setTheme(stored);
-  }, []);
+  // ponytail: lê localStorage no initializer, sem effect — evita cascading render
+  const [theme, setTheme] = useState<Theme>(readStoredTheme);
 
   const cycle = () => {
     setTheme((prev) => {
@@ -37,8 +39,7 @@ export function ThemeToggle() {
     });
   };
 
-  // ponytail: this exists — toggle mínimo, label visual descritivo
-  const resolved = theme === "system" ? resolveTheme(theme) : theme;
+  const resolved = theme === "system" ? resolveSystem() : theme;
   return (
     <button
       onClick={cycle}

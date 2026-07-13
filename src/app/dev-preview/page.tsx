@@ -8,12 +8,6 @@ import Link from "next/link";
 import { CandidatosList } from "@/components/leadership/CandidatosList";
 import { CandidatoDetailBody } from "@/components/leadership/CandidatoDetailBody";
 import { CandidatoActions } from "@/components/leadership/CandidatoActions";
-import { Modal } from "@/components/ui/modal";
-import { Money } from "@/components/ui/money";
-import { DateBR } from "@/components/ui/date-br";
-import { Stepper } from "@/components/ui/stepper";
-import { DataTable } from "@/components/ui/data-table";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { PrimitiveGallery } from "@/app/dev-preview/PrimitiveGallery";
 import type { Session } from "@/lib/auth/server";
 
