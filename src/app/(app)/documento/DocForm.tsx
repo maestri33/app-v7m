@@ -2,14 +2,12 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, FileUp } from "lucide-react";
 import useSWR from "swr";
-
-import { CopilotKit } from "@copilotkit/react-core";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
 import { StatusBanner } from "@/components/ui/status-banner";
+import { UploadActions } from "@/components/ui/upload-actions";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import {
   compressImage,
@@ -17,8 +15,6 @@ import {
   MAX_UPLOAD_BYTES,
 } from "@/lib/images/compress";
 import type { AnalysisStatus, DocumentSection } from "@/lib/api/types";
-
-import { KinshipChat } from "./kinship-chat";
 
 type Props = {
   initial: DocumentSection;
@@ -327,147 +323,13 @@ export function DocForm({ initial }: Props) {
       )}
 
       <FieldError>{error}</FieldError>
-
-      <AddressProofCard />
     </div>
   );
 }
 
-/** Duas ações alimentando o MESMO upload: câmera (capture) ou arquivo (img/PDF). */
-function UploadActions({
-  onFile,
-  disabled,
-  pending,
-  retry,
-}: {
-  onFile: (file: File) => void;
-  disabled?: boolean;
-  pending?: boolean;
-  retry?: boolean;
-}) {
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  function handle(input: HTMLInputElement | null) {
-    const file = input?.files?.[0];
-    if (file) onFile(file);
-    if (input) input.value = "";
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={() => handle(cameraRef.current)}
-      />
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*,application/pdf"
-        className="hidden"
-        onChange={() => handle(fileRef.current)}
-      />
-      <Button
-        type="button"
-        loading={pending}
-        disabled={disabled}
-        onClick={() => cameraRef.current?.click()}
-        className="px-3 whitespace-nowrap"
-      >
-        <Camera size={18} aria-hidden /> {retry ? "Tirar de novo" : "Tirar foto"}
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        disabled={disabled}
-        onClick={() => fileRef.current?.click()}
-        className="px-3 whitespace-nowrap text-brand-ink border-brand-border"
-      >
-        <FileUp size={18} aria-hidden /> Enviar arquivo
-      </Button>
-    </div>
-  );
-}
-
-/** Comprovante de residência — opcional, não bloqueia o avanço. */
-function AddressProofCard() {
-  const [pending, startTransition] = useTransition();
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // Se a análise voltar `needs_kinship` (titular é outra pessoa), abrimos o diálogo por IA.
-  const [needsKinship, setNeedsKinship] = useState(false);
-
-  function onFile(rawFile: File) {
-    setError(null);
-    startTransition(async () => {
-      try {
-        const file = await compressImage(rawFile);
-        if (file.size > MAX_UPLOAD_BYTES) {
-          setError(FILE_TOO_LARGE_MSG);
-          return;
-        }
-        const form = new FormData();
-        form.append("file", file, file.name);
-        const res = await fetch("/api/me/document/address-proof", {
-          method: "POST",
-          body: form,
-        });
-        const data: {
-          detail?: string;
-          code?: string;
-          address_proof?: { status?: string | null } | null;
-        } = await res.json();
-        if (!res.ok) {
-          setError(uploadErrorMessage(data.code, data.detail));
-          return;
-        }
-        if (data.address_proof?.status === "needs_kinship") setNeedsKinship(true);
-        setDone(true);
-      } catch {
-        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
-      }
-    });
-  }
-
-  async function submitKinship(relation: string) {
-    const res = await fetch("/api/me/document/address-proof/kinship", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ relation }),
-    });
-    const data: { address_proof?: { status?: string | null } | null } = await res.json();
-    // aprovou/saiu de needs_kinship → fecha o diálogo
-    if (res.ok && data.address_proof?.status !== "needs_kinship") setNeedsKinship(false);
-  }
-
-  return (
-    <div className="rounded-[var(--radius)] border border-dashed border-brand-border bg-brand-surface p-4 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold">Comprovante de residência</p>
-          <p className="text-xs text-brand-muted">
-            opcional — agiliza sua análise, pode enviar depois
-          </p>
-        </div>
-        {done && !needsKinship && (
-          <span className="text-sm font-semibold text-brand-ok">enviado ✓</span>
-        )}
-      </div>
-      {needsKinship ? (
-        <CopilotKit runtimeUrl="/api/copilotkit">
-          <KinshipChat onSubmit={submitKinship} />
-        </CopilotKit>
-      ) : !done ? (
-        <UploadActions onFile={onFile} disabled={pending} pending={pending} />
-      ) : null}
-      <FieldError>{error}</FieldError>
-    </div>
-  );
-}
+// O card do comprovante de residência morava aqui rotulado "opcional" — mas o
+// back o EXIGE pra sair de `profile`. Virou sub-passo obrigatório do endereço:
+// src/app/(app)/endereco/AddressProofSection.tsx (junto com o KinshipChat).
 
 // Rótulos pt-BR dos campos que o backend pode marcar como faltando (regra do
 // CLAUDE.md: texto voltado a humano em pt-BR). Fallback humaniza a chave crua

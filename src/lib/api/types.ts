@@ -98,10 +98,21 @@ export type SelfieSection = {
   [k: string]: unknown;
 };
 
+/** `me_dict.address_proof` — comprovante de residência (gateia profile→address). */
+export type AddressProofBlock = {
+  exists: boolean;
+  photo: string | null;
+  status: "pending" | "approved" | "rejected" | "review" | "needs_kinship" | null;
+  reason: string | null;
+  needs_kinship: boolean;
+  kinship_relation: string | null;
+};
+
 export type CandidateMe = {
   status: CandidateStatus;
   profile: ProfileSection | null;
   address: AddressSection | null;
+  address_proof?: AddressProofBlock | null;
   documents?: DocumentsBlock | null;
   selfie?: SelfieSection | null;
   /** Pix validado sim/não — a CHAVE não vem no contrato (P2.1). */

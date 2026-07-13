@@ -12,16 +12,22 @@ import type { AddressSection, CandidateMe } from "@/lib/api/types";
 import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
+import { AddressProofSection } from "./AddressProofSection";
 import { EnderecoForm } from "./EnderecoForm";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Seu endereço" };
 
-export default async function EnderecoPage() {
+export default async function EnderecoPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await readSession();
   if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
+  const sp = await searchParams;
 
   const [me, data] = await Promise.all([
     djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me"),
@@ -53,6 +59,29 @@ export default async function EnderecoPage() {
             <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
               Continuar
             </Button>
+          </Card>
+        </Container>
+      </GrainSection>
+    );
+  }
+
+  // Endereço preenchido mas ainda em `profile` = falta o COMPROVANTE aprovado
+  // (gate real do back). Sub-passo obrigatório, no lugar certo do funil.
+  // `?editar=1` reabre o form (ex.: comprovante reprovou porque o ENDEREÇO
+  // estava errado — sem isso a pessoa não teria como corrigi-lo).
+  const addressComplete = (data.missing_fields ?? []).length === 0;
+  const editing = sp.editar === "1";
+  if (!editing && addressComplete && (me.status === "profile" || me.status === "started")) {
+    return (
+      <GrainSection className="bg-brand-bg min-h-[60dvh]">
+        <Container>
+          <PageHeader
+            title="Comprovante de residência"
+            subtitle="Falta só confirmar seu endereço com um comprovante — a análise é automática e leva menos de um minuto."
+          />
+          <FunnelStepper current="address" />
+          <Card className="max-w-xl">
+            <AddressProofSection initial={me.address_proof ?? null} />
           </Card>
         </Container>
       </GrainSection>

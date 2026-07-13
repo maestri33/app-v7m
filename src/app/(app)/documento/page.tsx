@@ -32,6 +32,13 @@ export default async function DocumentoPage() {
     ),
   ]);
 
+  // Gate de etapa FUTURA: sem comprovante aprovado o back ainda está em
+  // `profile` — deep-link/botão voltar caía aqui, a pessoa fotografava o RG e
+  // só então tomava 409. Manda direto pra etapa real.
+  if (me.status === "profile" || me.status === "started") {
+    redirect(STAGE_HREF[me.status]);
+  }
+
   // Etapa já concluída → resumo somente-leitura + CTA pro passo atual.
   if (stagePassed("documents", me.status)) {
     return (

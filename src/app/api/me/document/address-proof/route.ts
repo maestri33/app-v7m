@@ -1,7 +1,9 @@
 /**
- * POST /api/me/document/address-proof — comprovante de residência (opcional).
+ * POST /api/me/document/address-proof — comprovante de residência, OBRIGATÓRIO:
+ * o backend só avança profile→address com ele APROVADO pela IA (gate F1).
  * Backend: `POST /api/v1/collaborators/candidate/documents/address-proof`
- * (multipart `file`, JPEG/PNG/WEBP/PDF). Não bloqueia o avanço do funil.
+ * (multipart `file`, JPEG/PNG/WEBP/PDF). Devolve o `me_dict` com o bloco
+ * `address_proof` em `pending` — o veredito chega pelo poll do candidato.
  */
 import { NextResponse } from "next/server";
 
