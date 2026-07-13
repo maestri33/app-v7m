@@ -5,7 +5,7 @@
  * CopilotKit. Quando o comprovante está no nome de outra pessoa, a IA conversa em pt-BR e, quando o
  * vínculo faz sentido, chama a ação `registrarParentesco` → /api/me/document/address-proof/kinship.
  * O backend (evaluate_kinship, compartilhado com o aluno) avalia o fundamento e corrige o português.
- * O provider <CopilotKit> precisa envolver esta árvore (ver o card do comprovante no DocForm).
+ * O provider <CopilotKit> precisa envolver esta árvore (ver AddressProofSection, no passo endereço).
  */
 import { CopilotChat } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
@@ -17,7 +17,7 @@ e qual o vínculo/parentesco (mãe, pai, cônjuge, avó, tio, locador...). Quand
 sentido, chame a ação "registrarParentesco" com o texto claro do vínculo. NÃO exija documentos nem \
 prova — só uma explicação plausível. Se não fizer sentido, peça gentilmente pra explicar melhor.`;
 
-export function KinshipChat({ onSubmit }: { onSubmit: (relation: string) => Promise<void> }) {
+export function KinshipChat({ onSubmit }: { onSubmit: (relation: string) => Promise<string> }) {
   useCopilotAction({
     name: "registrarParentesco",
     description:
@@ -30,9 +30,10 @@ export function KinshipChat({ onSubmit }: { onSubmit: (relation: string) => Prom
         required: true,
       },
     ],
+    // A resposta vem do RESULTADO real do backend (aprovou/recusou o vínculo) —
+    // antes o chat confirmava "registrado" mesmo quando a explicação era recusada.
     handler: async ({ explicacao }: { explicacao: string }) => {
-      await onSubmit(explicacao);
-      return "Explicação registrada. Vamos conferir e liberar seu comprovante.";
+      return await onSubmit(explicacao);
     },
   });
 

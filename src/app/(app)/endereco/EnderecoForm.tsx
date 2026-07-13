@@ -90,8 +90,12 @@ export function EnderecoForm({ initial }: Props) {
             state: state || null,
           }),
         });
-        const data: { detail?: string; code?: string; expected_status?: string } =
-          await res.json();
+        const data: {
+          detail?: string;
+          code?: string;
+          expected_status?: string;
+          status?: string;
+        } = await res.json();
         if (!res.ok) {
           const redir = wrongStatusHref(data.code, data.expected_status);
           if (redir) {
@@ -101,8 +105,15 @@ export function EnderecoForm({ initial }: Props) {
           setError(data.detail ?? "Não deu pra salvar agora. Tente de novo.");
           return;
         }
-        // Wizard auto-avançante: sucesso navega direto pro próximo passo.
-        router.push(NEXT_STAGE.address);
+        // Avança pelo STATUS REAL do me_dict, não às cegas: o back só sai de
+        // `profile` com o comprovante de residência APROVADO. Se ainda não
+        // avançou, o refresh re-renderiza a página, que mostra o sub-passo do
+        // comprovante (AddressProofSection).
+        if (data.status && data.status !== "profile" && data.status !== "started") {
+          router.push(NEXT_STAGE.address);
+        } else {
+          router.refresh();
+        }
       } catch {
         setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }
