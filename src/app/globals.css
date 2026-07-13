@@ -1011,3 +1011,32 @@ strong {
   0%, 100% { opacity: 0.6; transform: scale(0.94); }
   50% { opacity: 1; transform: scale(1.02); }
 }
+
+/* =============================================================================
+   App shell — fundo animado dark-luxury (versão sutil p/ telas internas densas,
+   handoff §78: véu dourado reduzido). Reaproveita a paleta da Auth sem competir
+   com o conteúdo. Senta ATRÁS do frame (-z-10), superfícies opacas cobrem.
+   ============================================================================= */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, #0b0b0c 0%, #141416 40%, #1d1d20 70%, #0b0b0c 100%);
+  background-size: 220% 220%;
+  animation: app-pan 18s var(--ease-out) infinite alternate;
+}
+.app-bg::before {
+  /* véu escuro + glow dourado discreto topo-direito */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 85% 0%, rgb(217 177 90 / 0.16), transparent 55%),
+    rgb(11 11 12 / 0.45);
+}
+@keyframes app-pan {
+  from { background-position: 0% 0%; }
+  to { background-position: 100% 100%; }
+}

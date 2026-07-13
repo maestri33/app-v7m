@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { FunnelStepper } from "@/components/ui/stepper";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
 import { FUNNEL_ORDER, stageHref } from "@/lib/candidate/funnel";
@@ -31,17 +28,16 @@ export default async function SelfiePage() {
   }
 
   return (
-    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-      <Container>
-        <PageHeader
-          title="Sua selfie"
-          subtitle="Foto ao vivo, sem óculos escuros. A IA confere a vivacidade e compara com o rosto do documento. Se reprovar, ela te explica como refazer."
-        />
-        <FunnelStepper current="selfie" />
-        <Card className="max-w-xl">
-          <SelfieForm />
-        </Card>
-      </Container>
-    </GrainSection>
+    <PageShell>
+      <CompactHeader
+        kicker="V7M · Cadastro"
+        title="Sua selfie"
+        subtitle="Foto ao vivo, sem óculos escuros. A IA confere a vivacidade e compara com o rosto do documento. Se reprovar, ela te explica como refazer."
+      />
+      <FunnelStepper current="selfie" />
+      <div className="auth-card">
+        <SelfieForm />
+      </div>
+    </PageShell>
   );
 }

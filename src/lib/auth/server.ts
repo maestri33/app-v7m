@@ -19,10 +19,9 @@ export type Session = {
   name: string | null;
 };
 
-// Roteamento por role vive em `lib/auth/roles.ts` (eixos stage/gate/grant). NÃO
-// colapsamos pra uma role só: coordinator+promoter veem as DUAS áreas no mesmo
-// shell (reverte a regra de 2026-06-16 "coordenador tem app próprio" — decisão
-// do Victor em 2026-06-23: login único, shell único liberado por role).
+// Roteamento por role vive em `lib/auth/roles.ts`. A área de coordenação mora
+// num app separado (hub.v7m.org) — coordinator/staff no JWT acessam este app
+// como promotor (todo coordenador é promotor).
 
 /** Lê o cookie; se houver, consulta o whoami do Django (devolve TODAS as roles). */
 export async function readSession(): Promise<Session | null> {

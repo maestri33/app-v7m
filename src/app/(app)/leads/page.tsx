@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { Lead, PromoterSummary } from "@/lib/api/types";
 import { readUnlockedSession } from "@/lib/auth/server";
@@ -40,74 +37,73 @@ export default async function LeadsPage() {
   const weekStart = summary.week_start ? new Date(summary.week_start) : null;
 
   return (
-    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-      <Container>
-        <PageHeader
-          title="Seus leads"
-          subtitle="Aguardando pagamento, pago (cai na próxima sexta) ou já recebido — em fechamentos anteriores."
-        />
+    <PageShell width="default">
+      <CompactHeader
+        kicker="V7M · Promotor"
+        title="Seus leads"
+        subtitle="Aguardando pagamento, pago (cai na próxima sexta) ou já recebido — em fechamentos anteriores."
+      />
 
-        {leads.length === 0 ? (
-          <Card className="max-w-2xl space-y-4">
-            <p className="text-[var(--surface-text-muted)]">
-              Seus primeiros leads vão aparecer aqui. Compartilhe seu link de
-              captação — cada matrícula paga é R$100 no seu Pix.
-            </p>
-            <Button href="/painel">Pegar meu link de captação</Button>
-          </Card>
-        ) : (
-          <ul className="space-y-3 max-w-2xl">
-            {leads.map((l) => {
-              const state = leadState(l, weekStart);
-              return (
-                <li key={l.external_id}>
-                  <Card>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span
-                          aria-hidden
-                          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-gold/15 font-display text-brand-gold-ink"
-                        >
-                          {(l.name || "?").trim().charAt(0).toUpperCase()}
-                        </span>
-                        <div className="min-w-0">
-                          <h2 className="font-display text-base leading-snug">
-                            {l.name || "Lead sem nome"}
-                          </h2>
-                          <p className="text-xs text-[var(--surface-text-muted)] mt-0.5">
-                            {new Date(l.created_at).toLocaleString("pt-BR", {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                      {state === "paid_settled" ? (
-                        <Badge tone="ok">Recebido ✓</Badge>
-                      ) : state === "paid_pending" ? (
-                        <Badge tone="gold">Pago · cai sexta</Badge>
-                      ) : (
-                        <Badge tone="warn">Aguardando</Badge>
-                      )}
-                    </div>
-                    {state === "waiting" && l.phone && (
-                      <a
-                        href={`https://wa.me/${l.phone.replace(/\D/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Chamar ${l.name || "o lead"} no WhatsApp`}
-                        className="mt-3 inline-flex min-h-11 items-center rounded-full border border-[var(--surface-border)] bg-[var(--bg)] px-4 py-2 text-sm font-semibold hover:border-brand-gold transition-colors"
+      {leads.length === 0 ? (
+        <div className="auth-card space-y-4">
+          <p className="text-[var(--surface-text-muted)]">
+            Seus primeiros leads vão aparecer aqui. Compartilhe seu link de
+            captação — cada matrícula paga é R$100 no seu Pix.
+          </p>
+          <Button href="/painel">Pegar meu link de captação</Button>
+        </div>
+      ) : (
+        <ul className="space-y-3">
+          {leads.map((l) => {
+            const state = leadState(l, weekStart);
+            return (
+              <li key={l.external_id}>
+                <div className="auth-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span
+                        aria-hidden
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-gold/15 font-display text-brand-gold-ink"
                       >
-                        Chamar no WhatsApp ↗
-                      </a>
+                        {(l.name || "?").trim().charAt(0).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="font-display text-base leading-snug">
+                          {l.name || "Lead sem nome"}
+                        </h2>
+                        <p className="text-xs text-[var(--surface-text-muted)] mt-0.5">
+                          {new Date(l.created_at).toLocaleString("pt-BR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    {state === "paid_settled" ? (
+                      <Badge tone="ok">Recebido ✓</Badge>
+                    ) : state === "paid_pending" ? (
+                      <Badge tone="gold">Pago · cai sexta</Badge>
+                    ) : (
+                      <Badge tone="warn">Aguardando</Badge>
                     )}
-                  </Card>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Container>
-    </GrainSection>
+                  </div>
+                  {state === "waiting" && l.phone && (
+                    <a
+                      href={`https://wa.me/${l.phone.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Chamar ${l.name || "o lead"} no WhatsApp`}
+                      className="mt-3 inline-flex min-h-11 items-center rounded-full border border-[var(--surface-border)] bg-[var(--bg)] px-4 py-2 text-sm font-semibold hover:border-brand-gold transition-colors"
+                    >
+                      Chamar no WhatsApp ↗
+                    </a>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </PageShell>
   );
 }

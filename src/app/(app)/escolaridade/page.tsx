@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { FunnelStepper } from "@/components/ui/stepper";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
 import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
@@ -27,39 +24,36 @@ export default async function EscolaridadePage() {
   // Escolaridade já gravada (etapa passou) → resumo sem form.
   if (stagePassed("education", me.status)) {
     return (
-      <GrainSection className="bg-brand-bg min-h-[60dvh]">
-        <Container>
-          <PageHeader title="Escolaridade" subtitle="Etapa concluída." />
-          <FunnelStepper current={me.status} />
-          <Card className="max-w-xl space-y-5">
-            <div className="banner banner-ok" role="status">
-              <p className="font-display">Escolaridade registrada ✓</p>
-              <p className="text-sm mt-1 opacity-90">
-                Guardamos seu nível de ensino. Falta só a selfie pra fechar o
-                cadastro.
-              </p>
-            </div>
-            <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
-              Continuar
-            </Button>
-          </Card>
-        </Container>
-      </GrainSection>
+      <PageShell>
+        <CompactHeader kicker="V7M · Cadastro" title="Escolaridade" />
+        <FunnelStepper current={me.status} />
+        <div className="auth-card space-y-5">
+          <div className="banner banner-ok" role="status">
+            <p className="font-display">Escolaridade registrada ✓</p>
+            <p className="text-sm mt-1 opacity-90">
+              Guardamos seu nível de ensino. Falta só a selfie pra fechar o
+              cadastro.
+            </p>
+          </div>
+          <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+            Continuar
+          </Button>
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
-      <Container>
-        <PageHeader
-          title="Escolaridade"
-          subtitle="Última pergunta antes da selfie: até onde você estudou? Não precisa ter concluído — é só pra gente te orientar direito."
-        />
-        <FunnelStepper current="education" />
-        <Card className="max-w-xl">
-          <EscolaridadeForm />
-        </Card>
-      </Container>
-    </GrainSection>
+    <PageShell>
+      <CompactHeader
+        kicker="V7M · Cadastro"
+        title="Escolaridade"
+        subtitle="Última pergunta antes da selfie: até onde você estudou? Não precisa ter concluído — é só pra gente te orientar direito."
+      />
+      <FunnelStepper current="education" />
+      <div className="auth-card">
+        <EscolaridadeForm />
+      </div>
+    </PageShell>
   );
 }

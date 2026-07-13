@@ -1,11 +1,11 @@
 /**
- * Modelo de roles do app unificado (candidato → promotor → coordenador).
+ * Modelo de roles do app do promotor (candidato → promotor).
  *
- * Regra do Victor (2026-06-23): **um login, um shell**, seções liberadas por
- * role. O `whoami`/JWT devolve TODAS as roles ativas (back: "emite JWT com
- * TODAS as roles ativas"). Aqui NÃO colapsamos pra uma role só — o erro do
- * antigo `pickFunnelRole`, que escolhia UMA e fazia coordinator+promoter virar
- * só promoter. Em vez disso separamos a lista em três eixos:
+ * O `whoami`/JWT devolve TODAS as roles ativas (back: "emite JWT com TODAS as
+ * roles ativas"). Este app só_rodeia o funil do promotor: `coordinator`/`staff`
+ * ainda vêm no JWT (todo coordenador é promotor), mas a área de coordenação mora
+ * num app separado (hub.v7m.org) — aqui quem tem essas roles acessa como
+ * promotor. Se paramos em três eixos:
  *
  *  - **stage** (eixo 1, linear, do funil): candidate → promoter. É "onde a
  *    pessoa está" no onboarding. Pega-se o mais avançado.
@@ -14,10 +14,10 @@
  *    tudo no LMS. É a PRIORIDADE MÁXIMA (inverte o velho comportamento, em que
  *    `training` era a prioridade mais baixa e a tela de treino te expulsava).
  *  - **grant** (poder administrativo, aditivo, empilha por cima de promotor):
- *    `coordinator`. (`staff` fica pra outro app — aqui só roteia pra fora.)
+ *    `coordinator`/`staff` — reconhecidas, mas NÃO roteiam pra nada neste app.
  *
  * Funções PURAS sobre `string[]` — sem `server-only`, pra valer no server
- * (layout/guard) e no client (nav/seletor de contexto) igual.
+ * (layout/guard) e no client (nav) igual.
  */
 
 /** Roles conhecidas do funil/poderes. `staff` é reconhecida só pra rotear pra fora. */
@@ -36,7 +36,7 @@ export function isOutsider(roles: string[]): boolean {
 }
 
 /** Áreas que o shell pode liberar conforme entitlement. */
-export type Area = "onboarding" | "promoter" | "coordination";
+export type Area = "onboarding" | "promoter";
 
 /**
  * Trava de treinamento. Se `training` está nas roles, o ambiente de promotor
@@ -75,15 +75,14 @@ export function isStaff(roles: string[]): boolean {
 /**
  * A pessoa pode acessar a área? Centraliza o gating do shell.
  *
- * Importante: `training` é trava DURA — quando ativa, nega `promoter` e
- * `coordination` (só o LMS passa, tratado fora daqui pelo guard que força
- * `/treinamento`). `onboarding` só existe enquanto candidato não é promotor.
+ * Importante: `training` é trava DURA — quando ativa, nega `promoter` (só o
+ * LMS passa, tratado fora daqui pelo guard que força `/treinamento`).
+ * `onboarding` só existe enquanto candidato não é promotor.
  */
 export function can(roles: string[], area: Area): boolean {
   if (area === "onboarding") return isOnboarding(roles);
-  if (isTrainingLocked(roles)) return false; // trava: nada de promotor/coordenação
+  if (isTrainingLocked(roles)) return false; // trava: nada de promotor
   if (area === "promoter") return isPromoter(roles) || isOnboarding(roles);
-  if (area === "coordination") return isCoordinator(roles);
   return false;
 }
 

@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { FunnelStepper } from "@/components/ui/stepper";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
 import { FUNNEL_ORDER, stageHref, STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
@@ -35,39 +32,36 @@ export default async function PixPage() {
   // no contrato (P2.1); revalidar mexeria R$0,01 no DICT à toa.
   if (stagePassed("pix", me.status)) {
     return (
-      <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-        <Container>
-          <PageHeader title="Chave Pix" subtitle="Etapa concluída." />
-          <FunnelStepper current={me.status} />
-          <Card className="max-w-xl space-y-5">
-            <div className="banner banner-ok" role="status">
-              <p className="font-display">Chave validada ✓</p>
-              <p className="text-sm mt-1 opacity-90">
-                Confirmada no seu nome. É pra essa chave que as suas comissões
-                vão, toda sexta.
-              </p>
-            </div>
-            <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
-              Continuar
-            </Button>
-          </Card>
-        </Container>
-      </GrainSection>
+      <PageShell>
+        <CompactHeader kicker="V7M · Cadastro" title="Chave Pix" />
+        <FunnelStepper current={me.status} />
+        <div className="auth-card space-y-5">
+          <div className="banner banner-ok" role="status">
+            <p className="font-display">Chave validada ✓</p>
+            <p className="text-sm mt-1 opacity-90">
+              Confirmada no seu nome. É pra essa chave que as suas comissões
+              vão, toda sexta.
+            </p>
+          </div>
+          <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+            Continuar
+          </Button>
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-      <Container>
-        <PageHeader
-          title="Chave Pix"
-          subtitle="É pra onde vão suas comissões. Cole ou digite sua chave — a gente reconhece o tipo sozinho e confirma que ela é sua."
-        />
-        <FunnelStepper current="pix" />
-        <Card className="max-w-xl">
-          <PixForm />
-        </Card>
-      </Container>
-    </GrainSection>
+    <PageShell>
+      <CompactHeader
+        kicker="V7M · Cadastro"
+        title="Chave Pix"
+        subtitle="É pra onde vão suas comissões. Cole ou digite sua chave — a gente reconhece o tipo sozinho e confirma que ela é sua."
+      />
+      <FunnelStepper current="pix" />
+      <div className="auth-card">
+        <PixForm />
+      </div>
+    </PageShell>
   );
 }

@@ -2,93 +2,70 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
-import { ContextSwitcher } from "@/components/layout/ContextSwitcher";
 import { AppNav } from "@/components/layout/AppNav";
 import { AppFooter } from "@/components/layout/AppFooter";
-import { LeadershipNav } from "@/components/layout/LeadershipNav";
 import { TrainingGate } from "@/components/layout/TrainingGate";
+import { FitViewport } from "@/components/ui/fit-viewport";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { isCoordinator, isPromoter, isTrainingLocked } from "@/lib/auth/roles";
+import { isPromoter, isTrainingLocked } from "@/lib/auth/roles";
 import type { Session } from "@/lib/auth/server";
 
-export type ShellContext = "promoter" | "coordination";
-
 /**
- * Shell ÚNICO do app (promotor + coordenação) — uma casca só pras duas áreas.
- * O que muda: a aba de navegação e, pra quem acumula `coordinator`, um seletor
- * de contexto (Promotor | Coordenação) — troca de aba no MESMO login, não de app.
+ * Shell do app do promotor (candidato em onboarding → promotor pleno).
  *
- * Casca app-like (régua do app dos alunos): frame flex de altura de viewport —
- * header fixo no topo, UMA faixa de rolagem (`<main class="app-scroll">`) e a
- * bottom-nav como rodapé do frame (sem `position: fixed`, sem padding de
- * compensação). safe-area no topo (header) e na base (nav).
+ * App-like, alinhado à Auth: fundo animado dark-luxury; navbar fixa (logo +
+ * tema) com a linha-gradiente dourada; UMA área de conteúdo que NUNCA scrolla —
+ * se transborda, FitViewport escala pra caber (handoff §23). Rodapé do frame é
+ * a bottom-nav do promotor (Início·Leads·Comissões·Conta) ou o footer
+ * institucional quando não há nav. safe-area no topo e na base.
  *
- * Quem vê o quê:
- *  - candidato em onboarding: sem nav e sem seletor (só o wizard).
- *  - training travado: sem nav; o TrainingGate empurra pro LMS.
- *  - promotor: aba do promotor.
- *  - coordinator: aba do promotor + seletor + aba de coordenação.
+ * Quem vê o quê: candidato em onboarding (sem nav, só o wizard); training
+ * travado (TrainingGate empurra pro LMS); promotor (bottom-nav). coordinator/
+ * staff acessam como promotor (coordenação mora em hub.v7m.org).
  */
 export function AppShell({
   session,
-  context,
   children,
 }: {
   session: Session;
-  context: ShellContext;
   children: ReactNode;
 }) {
   const locked = isTrainingLocked(session.roles);
-  const showSwitcher = isCoordinator(session.roles) && !locked;
-  const coordination = context === "coordination";
-  // bottom-nav de promotor SÓ no contexto promotor. No contexto coordenação a
-  // navegação é a LeadershipNav (topo) — sem o bottom-nav de promotor, senão
-  // "Leads" duplica (um → /coordenador/leads, outro → /leads) e embaralha o
-  // contexto. O seletor já leva de volta ao promotor.
-  const showPromoterNav = !coordination && isPromoter(session.roles) && !locked;
-  const topNav = coordination ? <LeadershipNav /> : null;
+  const showPromoterNav = isPromoter(session.roles) && !locked;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
+      <div className="app-bg grain" aria-hidden />
       <TrainingGate locked={locked} />
-      <header className="shrink-0 z-40 bg-[var(--bg)]/90 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
-        <Container className="py-4 flex items-center justify-between gap-4">
+      <header className="shrink-0 z-40 bg-brand-char/70 backdrop-blur-md pt-[env(safe-area-inset-top)]">
+        <Container className="py-3 flex items-center justify-between gap-4">
           <Link
             href="/painel"
-            className="group flex items-center gap-2.5 text-lg hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-90 transition-opacity"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.svg" alt="V7M" className="h-5 w-auto" />
             <span className="text-brand-gold-ink font-display" aria-hidden="true">·</span>
-            <span className="font-display text-[var(--surface-text-muted)]">
-              {coordination ? "Coordenação" : "Promotor"}
+            <span className="font-display text-[var(--surface-text-muted)] text-sm">
+              Promotor
             </span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <ThemeToggle />
             <span className="text-sm text-[var(--surface-text-muted)] hidden sm:inline">
               {session.name ?? "Você"}
             </span>
           </div>
         </Container>
-        {(showSwitcher || topNav) && (
-          <Container className="pb-2 flex flex-col gap-2">
-            {showSwitcher && <ContextSwitcher context={context} />}
-            {topNav}
-          </Container>
-        )}
         <div className="gold-rule" />
       </header>
-      {/* bg claro na faixa inteira: página curta em tela alta não deixa o fundo
-          escuro (aurora) vazar abaixo do conteúdo — todas as páginas do shell
-          são claras. */}
-      <main id="main" className="app-scroll flex-1 bg-[var(--bg)]">
-        {children}
+      {/* Conteúdo NUNCA scrolla: FitViewport escala se transbordar. px respeita
+          o gutter; o conteúdo das telas renderiza direto (sem GrainSection). */}
+      <main id="main" className="flex-1 overflow-hidden px-[var(--gutter)] py-5">
+        <FitViewport className="h-full">{children}</FitViewport>
       </main>
-      {/* Rodapé do frame: a bottom-nav do promotor quando ela existe (ela já é o
-          rodapé); senão, o footer institucional discreto. Nunca os dois — pra
-          não comer conteúdo nem colidir. A assinatura dourada segue no header. */}
       {showPromoterNav ? <AppNav /> : <AppFooter />}
     </div>
   );
 }
+

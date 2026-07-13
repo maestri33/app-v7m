@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (isOutsider(session.roles)) return <OutsideApp />;
 
   return (
-    <AppShell session={session} context="promoter">
+    <AppShell session={session}>
       {children}
     </AppShell>
   );
