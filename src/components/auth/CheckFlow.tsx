@@ -1,10 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { animate } from "motion";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
+import { OtpInput } from "@/components/ui/otp-input";
+import { AuthOverlay } from "@/components/auth/AuthShell";
+import {
+  maskPhone,
+  maskCpf,
+  validatePhone,
+  validateCpf,
+  validateEmail,
+} from "@/lib/auth/masks";
 
 type CheckOut = {
   found: boolean;
@@ -40,7 +49,6 @@ function authErrorMessage(
     case "NO_HUB":
       return "Seu link de convite expirou ou veio incompleto — peça um novo pro coordenador do seu polo.";
     case "OTP_NOT_SENT":
-      // O OTP sai SÓ por WhatsApp — não há canal de e-mail.
       return "Não conseguimos enviar o código. Confira se esse número tem WhatsApp ativo e tente de novo.";
     default:
       return detail ?? "Não deu pra completar agora. Tente de novo em instantes.";
@@ -48,7 +56,6 @@ function authErrorMessage(
 }
 
 // check → (login | cadastro inline) → otp. Um fluxo só, a partir do telefone.
-// É a entrada do app — vive na home (/).
 type Stage = "check" | "register" | "otp";
 
 export function CheckFlow() {
@@ -60,13 +67,16 @@ export function CheckFlow() {
   const [externalId, setExternalId] = useState<string | null>(null);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const [error, setError] = useState<{ detail: string; code?: string } | null>(null);
-  // Cooldown de reenvio do código — começa no `otp_wait` do backend.
+  // Erros de validação client-side por campo (blur / após 1º erro).
+  const [fieldErr, setFieldErr] = useState<Record<string, string | null>>({});
   const [resendIn, setResendIn] = useState(0);
   const [resending, setResending] = useState(false);
-  // `otp_sent` honesto do backend: false quando rate-limitado (ou dispatch falhou).
-  // Nunca prometer "mandamos o código" sem o backend confirmar que mandou.
   const [otpSent, setOtpSent] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -74,15 +84,29 @@ export function CheckFlow() {
     return () => clearInterval(id);
   }, [resendIn]);
 
-  // Captura ?ref= da URL na entrada, uma só vez, via lazy initializer (sem efeito).
-  // NESTE app (do promotor) ref = external_id do POLO (hub), NÃO id de promotor —
-  // a confusão "ref=promotor" é do funil de LEAD, que vive no app do aluno. O
-  // register repassa como `hub` pra o candidato cair no polo certo (senão vai pro
-  // polo padrão e não aparece pra um coordenador não-padrão).
+  // Anima a troca de estágio (opacity + x). Motion respeita reduced-motion via CSS global.
+  useEffect(() => {
+    if (panelRef.current) {
+      animate(
+        panelRef.current,
+        { opacity: [0, 1], transform: ["translateX(18px)", "translateX(0px)"] },
+        { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
+      );
+    }
+  }, [stage]);
+
+  // ?ref= = external_id do POLO (hub); o register repassa p/ o candidato cair no polo certo.
   const [hubRef] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("ref");
   });
+
+  function shake(el: HTMLElement | null) {
+    if (!el) return;
+    el.classList.remove("field-shake");
+    void el.offsetWidth; // reflow p/ reiniciar a animação
+    el.classList.add("field-shake");
+  }
 
   function restart() {
     setStage("check");
@@ -92,26 +116,26 @@ export function CheckFlow() {
     setEmail("");
     setExternalId(null);
     setError(null);
+    setFieldErr({});
     setOtpSent(true);
   }
 
-  // Etapa 1 — check() por TELEFONE. O backend deriva o WhatsApp do número e
-  // decide o caminho:
-  //   found=true                  → já cadastrado, OTP disparado → vai pro código
-  //   found=false, whatsapp=true  → número novo com zap → cadastro (telefone travado)
-  //   found=false, whatsapp=false → número sem WhatsApp → não vale
-  //   found=false, whatsapp=null  → WhatsApp fora do ar → pede pra tentar de novo
   async function onCheck(e: React.FormEvent) {
     e.preventDefault();
+    const pErr = validatePhone(phone);
+    setFieldErr({ phone: pErr });
+    if (pErr) {
+      shake(panelRef.current);
+      return;
+    }
     setError(null);
     setLoading(true);
     const phoneDigits = phone.replace(/\D/g, "");
-    const body: { phone?: string } = phoneDigits ? { phone: phoneDigits } : {};
     try {
       const res = await fetch("/api/auth/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ phone: phoneDigits }),
       });
       const data: CheckOut | { detail: string; code?: string; retry_after_s?: number } =
         await res.json();
@@ -122,7 +146,6 @@ export function CheckFlow() {
       }
       const out = data as CheckOut;
       if (out.found) {
-        // external_id do CheckOut já é o do USER (o que o login espera).
         setExternalId(out.external_id ?? null);
         setResendIn(out.otp_wait ?? 60);
         setOtpSent(out.otp_sent ?? true);
@@ -134,15 +157,10 @@ export function CheckFlow() {
         return;
       }
       if (out.whatsapp === false) {
-        setError({
-          detail: "Esse número não tem WhatsApp. Confira o DDD e tente outro.",
-        });
+        setError({ detail: "Esse número não tem WhatsApp. Confira o DDD e tente outro." });
         return;
       }
-      // whatsapp == null → validação do WhatsApp fora do ar (≠ "sem zap").
-      setError({
-        detail: "Não deu pra validar o WhatsApp agora. Tente de novo em instantes.",
-      });
+      setError({ detail: "Não deu pra validar o WhatsApp agora. Tente de novo em instantes." });
     } catch {
       setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
@@ -150,10 +168,15 @@ export function CheckFlow() {
     }
   }
 
-  // Etapa 2 (só número novo) — CPF + e-mail. O telefone vem travado do check
-  // (é pra onde vai o OTP). O register dispara o OTP.
   async function onRegister(e: React.FormEvent) {
     e.preventDefault();
+    const cErr = validateCpf(cpf);
+    const eErr = validateEmail(email);
+    setFieldErr({ cpf: cErr, email: eErr });
+    if (cErr || eErr) {
+      shake(panelRef.current);
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -164,17 +187,12 @@ export function CheckFlow() {
           phone: phone.replace(/\D/g, ""),
           cpf: cpf.replace(/\D/g, ""),
           email: email.trim().toLowerCase(),
-          // ref da URL = polo (hub); o back vincula o candidato a esse polo.
           ...(hubRef ? { hub: hubRef } : {}),
         }),
       });
       const data: {
         external_id?: string;
         user_external_id?: string;
-        // otp_sent/otp_wait ainda NÃO estão no CandidateOut (schema Ninja) — chegam
-        // undefined hoje. O cadastro não é derrubado por falha de OTP, então o
-        // default `true` preserva o fluxo atual e passa a valer sozinho quando
-        // o backend surfacar o campo.
         otp_sent?: boolean;
         otp_wait?: number;
         detail?: string;
@@ -185,8 +203,6 @@ export function CheckFlow() {
         setError({ detail: authErrorMessage(data.code, data.detail, data), code: data.code });
         return;
       }
-      // register devolve external_id do CANDIDATO + user_external_id do USER;
-      // o login espera o do USER (CandidateOut em api/collaborators.py).
       setExternalId(data.user_external_id ?? null);
       setResendIn(data.otp_wait ?? 60);
       setOtpSent(data.otp_sent ?? true);
@@ -198,8 +214,6 @@ export function CheckFlow() {
     }
   }
 
-  // Reenvio do código: re-chama o check com o MESMO telefone (o backend
-  // redispara o OTP) e reinicia o cooldown.
   async function resendOtp() {
     if (resendIn > 0 || resending) return;
     setError(null);
@@ -214,13 +228,13 @@ export function CheckFlow() {
         await res.json();
       if (!res.ok) {
         setError({ detail: authErrorMessage(data.code, data.detail, data), code: data.code });
-        if (data.code === "RATE_LIMITED" && data.retry_after_s) {
-          setResendIn(data.retry_after_s);
-        }
+        if (data.code === "RATE_LIMITED" && data.retry_after_s) setResendIn(data.retry_after_s);
         return;
       }
       setResendIn(data.otp_wait ?? 60);
       setOtpSent(data.otp_sent ?? true);
+      setNotice("Código reenviado pro seu WhatsApp!");
+      setTimeout(() => setNotice(null), 3500);
     } catch {
       setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
@@ -228,10 +242,14 @@ export function CheckFlow() {
     }
   }
 
-  // Etapa 3 — código do WhatsApp → login.
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!externalId) return;
+    if (otp.length !== 6) {
+      setFieldErr({ otp: "O código tem 6 dígitos." });
+      shake(panelRef.current);
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -244,8 +262,11 @@ export function CheckFlow() {
         await res.json();
       if (!res.ok) {
         setError({ detail: authErrorMessage(data.code, data.detail, data), code: data.code });
+        setFieldErr({ otp: "erro" });
         return;
       }
+      // Sucesso → overlay + navegação direta pro painel (sem tela de sucesso).
+      setNavigating(true);
       router.push("/painel");
       router.refresh();
     } catch {
@@ -255,121 +276,193 @@ export function CheckFlow() {
     }
   }
 
-  if (stage === "otp") {
-    return (
-      <form onSubmit={onLogin} className="space-y-5">
-        {otpSent ? (
-          <p className="text-brand-muted-on-dark text-sm">
-            Mandamos um código de 6 dígitos no WhatsApp. Digite abaixo.
-          </p>
-        ) : (
-          <p role="alert" className="text-brand-warn text-sm">
-            Não conseguimos enviar um código agora. Se você já tem um código válido,
-            digite abaixo — senão, use “Reenviar código”.
-          </p>
-        )}
-        <Field
-          tone="dark"
-          label="Código"
-          value={otp}
-          onChange={(v) => setOtp(v.replace(/\D/g, ""))}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]{6}"
-          maxLength={6}
-          required
-          autoFocus
-          inputClassName="text-xl tracking-[0.4em] text-center"
-        />
-        <FieldError tone="dark">{error?.detail}</FieldError>
-        <Button type="submit" size="xl" loading={loading} className="w-full">
-          {loading ? "Entrando…" : "Entrar"}
-        </Button>
-        <button
-          type="button"
-          className="text-brand-gold-light text-sm underline block w-fit mx-auto px-3 py-3 cursor-pointer hover:text-brand-gold-light/80 disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
-          onClick={resendOtp}
-          disabled={resendIn > 0 || resending}
-        >
-          {resending
-            ? "Reenviando…"
-            : resendIn > 0
-              ? `Reenviar código (${resendIn}s)`
-              : "Reenviar código"}
-        </button>
-        <button
-          type="button"
-          className="text-brand-gold-light text-sm underline block w-fit mx-auto px-3 py-3 cursor-pointer hover:text-brand-gold-light/80"
-          onClick={restart}
-        >
-          Usar outro número
-        </button>
-      </form>
-    );
-  }
-
-  if (stage === "register") {
-    return (
-      <form onSubmit={onRegister} className="space-y-5">
-        <p className="text-brand-muted-on-dark text-sm">
-          Número novo por aqui. Confirme seus dados pra criar seu cadastro.
-        </p>
-        <ReadOnlyField
-          tone="dark"
-          label="Telefone (WhatsApp)"
-          value={phone}
-          hint="É pra onde vai o código — por isso fica travado."
-        />
-        <Field
-          tone="dark"
-          label="CPF"
-          value={cpf}
-          onChange={setCpf}
-          inputMode="numeric"
-          placeholder="000.000.000-00"
-          required
-          autoFocus
-        />
-        <Field
-          tone="dark"
-          label="E-mail"
-          value={email}
-          onChange={setEmail}
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          placeholder="voce@email.com"
-          required
-        />
-        <FieldError tone="dark">{error?.detail}</FieldError>
-        <Button type="submit" size="xl" loading={loading} className="w-full">
-          {loading ? "Criando…" : "Criar cadastro"}
-        </Button>
-      </form>
-    );
-  }
-
   return (
-    <form onSubmit={onCheck} className="space-y-5">
-      <p className="text-brand-muted-on-dark text-sm">
-        Entre com seu telefone/WhatsApp.
+    <>
+      {navigating && <AuthOverlay />}
+
+      {/* Bloco de marca */}
+      <div className="text-center mb-5">
+        <p className="text-[11.5px] font-bold uppercase tracking-[0.16em] text-[#f0d493]">
+          Sua renda extra começa aqui
+        </p>
+        <h1 className="mt-2 font-display text-[clamp(24px,6vw,28px)] font-extrabold tracking-[-0.01em] text-white">
+          Promotor V7M
+        </h1>
+        <p className="mt-1 text-[13.5px] text-[#b4b4bb]">Entrar ou criar cadastro</p>
+      </div>
+
+      <div className="auth-card" ref={panelRef}>
+        {stage === "check" && (
+          <form onSubmit={onCheck} className="space-y-4">
+            <div className="text-center">
+              <h2 className="text-[21px] font-bold text-white">Passa seu WhatsApp pra mim?</h2>
+              <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
+                Pode ficar sossegado — é só pra confirmar seu acesso. Sem cadastro? A gente cria na hora.
+              </p>
+            </div>
+            <div className="gold-divider" />
+            <div className="mx-auto max-w-[17.5rem]">
+              <label htmlFor="auth-phone" className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">
+                Telefone (WhatsApp)
+              </label>
+              <div className="relative">
+                <span className="phone-prefix">+55</span>
+                <input
+                  id="auth-phone"
+                  value={phone}
+                  onChange={(e) => {
+                    const masked = maskPhone(e.target.value);
+                    setPhone(masked);
+                    if (fieldErr.phone) setFieldErr({ phone: validatePhone(masked) });
+                  }}
+                  onBlur={() => setFieldErr({ phone: validatePhone(phone) })}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="(11) 98765-4321"
+                  aria-invalid={!!fieldErr.phone}
+                  autoFocus
+                  className="input input-dark text-center text-[16.5px] tabular-nums tracking-[0.03em] pl-16"
+                />
+              </div>
+              {fieldErr.phone && (
+                <p role="alert" className="mt-2 text-[13px] text-[#f0a3a3]">{fieldErr.phone}</p>
+              )}
+            </div>
+            {error && <p role="alert" className="text-center text-[13px] text-[#f0a3a3]">{error.detail}</p>}
+            <Button type="submit" size="xl" loading={loading} className="w-full">
+              {loading ? "Verificando…" : "Continuar"}
+            </Button>
+          </form>
+        )}
+
+        {stage === "register" && (
+          <form onSubmit={onRegister} className="space-y-4">
+            <div className="text-center">
+              <h2 className="text-[21px] font-bold text-white">Criar cadastro</h2>
+              <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
+                Este número ainda não possui cadastro. Confirme seus dados para continuar.
+              </p>
+            </div>
+            <div className="gold-divider" />
+            <div>
+              <span className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">Telefone (WhatsApp)</span>
+              <div className="flex items-center gap-2">
+                <div className="input input-dark flex-1 text-white/70">{phone}</div>
+                <button type="button" onClick={restart} className="min-h-[44px] px-3 text-[13px] font-semibold text-[#f0d493]">
+                  Alterar
+                </button>
+              </div>
+              <p className="mt-2 text-[12.5px] text-[#b4b4bb]">O código de confirmação será enviado para este número.</p>
+            </div>
+            <div>
+              <label htmlFor="auth-cpf" className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">CPF</label>
+              <input
+                id="auth-cpf"
+                value={cpf}
+                onChange={(e) => {
+                  const masked = maskCpf(e.target.value);
+                  setCpf(masked);
+                  if (fieldErr.cpf) setFieldErr({ ...fieldErr, cpf: validateCpf(masked) });
+                }}
+                onBlur={() => setFieldErr({ ...fieldErr, cpf: validateCpf(cpf) })}
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                aria-invalid={!!fieldErr.cpf}
+                autoFocus
+                className="input input-dark tabular-nums"
+              />
+              {fieldErr.cpf && <p role="alert" className="mt-2 text-[13px] text-[#f0a3a3]">{fieldErr.cpf}</p>}
+            </div>
+            <div>
+              <label htmlFor="auth-email" className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">E-mail</label>
+              <input
+                id="auth-email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErr.email) setFieldErr({ ...fieldErr, email: validateEmail(e.target.value) });
+                }}
+                onBlur={() => setFieldErr({ ...fieldErr, email: validateEmail(email) })}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="voce@email.com"
+                aria-invalid={!!fieldErr.email}
+                className="input input-dark"
+              />
+              {fieldErr.email && <p role="alert" className="mt-2 text-[13px] text-[#f0a3a3]">{fieldErr.email}</p>}
+            </div>
+            {error && <p role="alert" className="text-center text-[13px] text-[#f0a3a3]">{error.detail}</p>}
+            <Button type="submit" size="xl" loading={loading} className="w-full">
+              {loading ? "Criando…" : "Criar cadastro"}
+            </Button>
+          </form>
+        )}
+
+        {stage === "otp" && (
+          <form onSubmit={onLogin} className="space-y-4">
+            <div className="text-center">
+              <h2 className="text-[21px] font-bold text-white">Confirme o código</h2>
+              <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
+                {otpSent ? (
+                  <>
+                    Enviamos um código de 6 dígitos para o WhatsApp{" "}
+                    <strong className="text-white">{phone || "seu número"}</strong>.
+                  </>
+                ) : (
+                  "Não conseguimos enviar um código agora. Se você já tem um válido, digite abaixo."
+                )}
+              </p>
+            </div>
+            <div className="gold-divider" />
+            <OtpInput
+              value={otp}
+              onChange={(v) => {
+                setOtp(v);
+                if (fieldErr.otp) setFieldErr({ otp: null });
+              }}
+              error={!!fieldErr.otp}
+              autoFocus
+            />
+            {(fieldErr.otp || error) && (
+              <p role="alert" className="text-center text-[13px] text-[#f0a3a3]">
+                {error?.detail ?? "O código tem 6 dígitos."}
+              </p>
+            )}
+            {notice && <p className="text-center text-[13px] text-[#f0d493]">{notice}</p>}
+            <Button type="submit" size="xl" loading={loading} className="w-full">
+              {loading ? "Entrando…" : "Entrar"}
+            </Button>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={resendOtp}
+                disabled={resendIn > 0 || resending}
+                className="min-h-[44px] rounded-full border border-[rgb(217_177_90/0.4)] px-4 text-[13px] font-semibold text-[#f0d493] transition-colors hover:bg-[rgb(217_177_90/0.08)] disabled:opacity-55 disabled:cursor-not-allowed"
+              >
+                {resending ? "Reenviando…" : resendIn > 0 ? `Reenviar código (${resendIn}s)` : "Reenviar código"}
+              </button>
+              <button
+                type="button"
+                onClick={restart}
+                className="min-h-[44px] px-3 text-[13px] text-[#b4b4bb] transition-colors hover:text-white"
+              >
+                Outro número
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Selos de confiança */}
+      <p className="mt-4 text-center text-[12.5px] text-[rgb(180_180_187/0.75)]">
+        Comissão por matrícula
+        <span className="text-[rgb(217_177_90/0.55)]"> · </span>
+        Recebimento via Pix
+        <span className="text-[rgb(217_177_90/0.55)]"> · </span>
+        100% online
       </p>
-      <Field
-        tone="dark"
-        label="Telefone (WhatsApp)"
-        value={phone}
-        onChange={setPhone}
-        type="tel"
-        inputMode="tel"
-        autoComplete="tel"
-        placeholder="(00) 00000-0000"
-        required
-        autoFocus
-      />
-      <FieldError tone="dark">{error?.detail}</FieldError>
-      <Button type="submit" size="xl" loading={loading} className="w-full">
-        {loading ? "Verificando…" : "Continuar"}
-      </Button>
-    </form>
+    </>
   );
 }
