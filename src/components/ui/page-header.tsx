@@ -28,7 +28,7 @@ export function PageHeader({
       <h1 className={`page-title ${tone === "dark" ? "text-[var(--surface)]" : ""}`.trim()}>{title}</h1>
       {subtitle && (
         <p
-          className={`mt-3 text-lg ${tone === "dark" ? "text-[var(--surface-text-muted)]-on-dark" : "text-[var(--surface-text-muted)]"}`}
+          className={`mt-3 text-lg ${tone === "dark" ? "text-brand-muted-on-dark" : "text-[var(--surface-text-muted)]"}`}
         >
           {subtitle}
         </p>

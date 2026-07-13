@@ -259,7 +259,7 @@ export function CheckFlow() {
     return (
       <form onSubmit={onLogin} className="space-y-5">
         {otpSent ? (
-          <p className="text-[var(--surface-text-muted)]-on-dark text-sm">
+          <p className="text-brand-muted-on-dark text-sm">
             Mandamos um código de 6 dígitos no WhatsApp. Digite abaixo.
           </p>
         ) : (
@@ -311,7 +311,7 @@ export function CheckFlow() {
   if (stage === "register") {
     return (
       <form onSubmit={onRegister} className="space-y-5">
-        <p className="text-[var(--surface-text-muted)]-on-dark text-sm">
+        <p className="text-brand-muted-on-dark text-sm">
           Número novo por aqui. Confirme seus dados pra criar seu cadastro.
         </p>
         <ReadOnlyField
@@ -351,7 +351,7 @@ export function CheckFlow() {
 
   return (
     <form onSubmit={onCheck} className="space-y-5">
-      <p className="text-[var(--surface-text-muted)]-on-dark text-sm">
+      <p className="text-brand-muted-on-dark text-sm">
         Entre com seu telefone/WhatsApp.
       </p>
       <Field
