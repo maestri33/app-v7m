@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { FunnelStepper } from "@/components/ui/stepper";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
-import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
+import { FUNNEL_ORDER, stageHref, STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { PixForm } from "./PixForm";
@@ -23,6 +23,13 @@ export default async function PixPage() {
   if (!session.roles.includes("candidate")) redirect("/painel");
 
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
+
+  // Etapa FUTURA (deep-link/aba velha): sem o documento aprovado, o submit da
+  // chave só renderia 409 depois do esforço. Vai direto pra etapa real.
+  const idx = FUNNEL_ORDER.indexOf(me.status);
+  if (idx >= 0 && idx < FUNNEL_ORDER.indexOf("pix")) {
+    redirect(stageHref(me.status));
+  }
 
   // Chave já validada (etapa passou) → resumo sem form. A chave em si não vem
   // no contrato (P2.1); revalidar mexeria R$0,01 no DICT à toa.

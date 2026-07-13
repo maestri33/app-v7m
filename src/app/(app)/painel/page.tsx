@@ -10,7 +10,7 @@ import { Countdown } from "@/components/ui/countdown";
 import { PageHeader } from "@/components/ui/page-header";
 import { readUnlockedSession } from "@/lib/auth/server";
 import { isOnboarding, isPromoter, OUTSIDE_APP_URL } from "@/lib/auth/roles";
-import { STAGE_HREF } from "@/lib/candidate/funnel";
+import { stageHref } from "@/lib/candidate/funnel";
 import { djangoFetch } from "@/lib/api/client";
 import { formatBRL } from "@/lib/format";
 import type {
@@ -58,9 +58,58 @@ export default async function PainelPage() {
       );
     }
 
+    // rejected = decisão do coordenador (soft): a pessoa continua candidata,
+    // sem role de promotor. Sem este card o redirect caía num status sem
+    // página e explodia o painel.
+    if (me.status === "rejected") {
+      return (
+        <GrainSection className="bg-brand-bg min-h-[60dvh]">
+          <Container>
+            <PageHeader
+              title="Cadastro não aprovado"
+              subtitle="Desta vez não deu — mas dá pra entender o motivo."
+            />
+            <Card className="max-w-2xl">
+              <h2 className="font-display text-lg">Fale com o seu polo</h2>
+              <p className="text-sm text-brand-muted mt-1">
+                O coordenador do polo revisou seu cadastro e não aprovou por
+                enquanto. Entre em contato com o polo pra entender o motivo — em
+                muitos casos dá pra resolver e tentar de novo.
+              </p>
+            </Card>
+          </Container>
+        </GrainSection>
+      );
+    }
+
+    // approved = já é promotor no backend, mas a sessão (roles do cookie) ainda
+    // não refletiu. Um novo login resolve; enquanto isso, celebra em vez de 500.
+    if (me.status === "approved") {
+      return (
+        <GrainSection className="bg-brand-bg min-h-[60dvh]">
+          <Container>
+            <PageHeader
+              title="Cadastro aprovado! 🎉"
+              subtitle="Bem-vindo(a) ao time."
+            />
+            <Card className="max-w-2xl">
+              <h2 className="font-display text-lg">Só falta entrar de novo</h2>
+              <p className="text-sm text-brand-muted mt-1">
+                Seu acesso de promotor já está liberado. Saia e entre de novo no
+                app pra carregar o seu novo painel — treinamento e link de
+                indicação estarão te esperando.
+              </p>
+            </Card>
+          </Container>
+        </GrainSection>
+      );
+    }
+
     // O candidato nunca "escolhe" etapa: cai direto no passo atual do funil.
     // O FunnelStepper de cada página é o indicador de progresso (não clicável).
-    redirect(STAGE_HREF[me.status]);
+    // `stageHref` (com fallback) — um status novo no back não pode virar
+    // redirect(undefined) → 500.
+    redirect(stageHref(me.status));
   }
 
   if (isPromoter(session.roles)) {
