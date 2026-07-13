@@ -13,6 +13,7 @@ export type CandidateStatus =
   | "address"
   | "documents"
   | "pix"
+  | "education"
   | "selfie"
   | "completed";
 
