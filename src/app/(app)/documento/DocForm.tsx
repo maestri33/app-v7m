@@ -11,6 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
 import { StatusBanner } from "@/components/ui/status-banner";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
+import {
+  compressImage,
+  FILE_TOO_LARGE_MSG,
+  MAX_UPLOAD_BYTES,
+} from "@/lib/images/compress";
 import type { AnalysisStatus, DocumentSection } from "@/lib/api/types";
 
 import { KinshipChat } from "./kinship-chat";
@@ -54,13 +59,28 @@ export function DocForm({ initial }: Props) {
   const [justUploaded, setJustUploaded] = useState(false);
   // Aviso suave da classificação por IA (o promotor ACEITA os dois; a IA só orienta se divergir).
   const [classifyHint, setClassifyHint] = useState<string | null>(null);
+  // Nº de polls seguidos em `pending` — backoff exponencial (2,5s→5s→10s… teto
+  // 30s): análise por IA leva 10–60s e revisão humana leva horas; martelar o
+  // backend a cada 2,5s pra sempre não ajuda ninguém.
+  const pendingPolls = useRef(0);
 
   const { data: live, mutate } = useSWR<DocumentSection>(
     "/api/me/document",
     (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
     {
-      refreshInterval: (latest) =>
-        (justUploaded || latest?.analysis_status === "pending") ? pollMs : 0,
+      // Só `pending` mantém o poll (rejected/review/approved param sozinhos);
+      // `justUploaded` fica FORA do intervalo — o mutate() pós-upload já traz
+      // o pending do backend, e mantê-lo aqui deixava o poll ligado pra sempre.
+      refreshInterval: (latest) => {
+        if (latest?.analysis_status !== "pending") {
+          pendingPolls.current = 0;
+          return 0;
+        }
+        const interval = Math.min(pollMs * 2 ** pendingPolls.current, 30_000);
+        pendingPolls.current += 1;
+        return interval;
+      },
+      onSuccess: () => setJustUploaded(false),
       fallbackData: initial,
     },
   );
@@ -101,12 +121,20 @@ export function DocForm({ initial }: Props) {
     }
   }
 
-  function onUpload(file: File) {
+  function onUpload(rawFile: File) {
     if (!nextSlot) return;
     setError(null);
-    void classifyHintFor(file, lockedType ?? docType);
     startTransition(async () => {
       try {
+        // Comprime ANTES de tudo (foto de câmera: 4–12MB → ~300–500KB) e a
+        // MESMA imagem comprimida vai pro classify e pro upload — antes o
+        // arquivo cru subia duas vezes.
+        const file = await compressImage(rawFile);
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setError(FILE_TOO_LARGE_MSG);
+          return;
+        }
+        void classifyHintFor(file, lockedType ?? docType);
         const form = new FormData();
         form.append("slot", nextSlot);
         form.append("photo", file, file.name);
@@ -373,10 +401,15 @@ function AddressProofCard() {
   // Se a análise voltar `needs_kinship` (titular é outra pessoa), abrimos o diálogo por IA.
   const [needsKinship, setNeedsKinship] = useState(false);
 
-  function onFile(file: File) {
+  function onFile(rawFile: File) {
     setError(null);
     startTransition(async () => {
       try {
+        const file = await compressImage(rawFile);
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setError(FILE_TOO_LARGE_MSG);
+          return;
+        }
         const form = new FormData();
         form.append("file", file, file.name);
         const res = await fetch("/api/me/document/address-proof", {
