@@ -8,7 +8,6 @@ import Link from "next/link";
 import { CandidatosList } from "@/components/leadership/CandidatosList";
 import { CandidatoDetailBody } from "@/components/leadership/CandidatoDetailBody";
 import { CandidatoActions } from "@/components/leadership/CandidatoActions";
-import { PrimitiveGallery } from "@/app/dev-preview/PrimitiveGallery";
 import type { Session } from "@/lib/auth/server";
 
 // Preview dev-only do shell unificado: renderiza o AppShell com sessões FALSAS
@@ -77,15 +76,6 @@ const MOCKS: Record<string, Mock> = {
     },
     context: "promoter",
     lockedOverlay: true,
-  },
-  // galeria de primitivos do design system
-  ui: {
-    session: {
-      external_id: "demo",
-      name: "UI Preview",
-      roles: ["promoter"],
-    },
-    context: "promoter",
   },
 };
 
@@ -162,15 +152,6 @@ export default async function DevPreviewPage({
               { external_id: "c3", name: null, since: null, rejected: true },
             ]}
           />
-        </Container>
-      ) : role === "ui" ? (
-        <Container className="py-10">
-          <PageHeader
-            kicker="Design System · V7M"
-            title="Primitivos"
-            subtitle="Galeria viva de todos os componentes do design system."
-          />
-          <PrimitiveGallery />
         </Container>
       ) : (
         <GrainSection className="bg-brand-bg min-h-[60dvh]">

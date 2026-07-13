@@ -200,10 +200,11 @@ Espaçamento interno de componentes segue sistema 4/8dp (Tailwind scale:
 | FileInput | `file-input.tsx` | Estilizado, `forwardRef`, `tone` |
 | Countdown | `countdown.tsx` | ISO countdown, 30s tick, threshold âmbar urgente |
 | AuroraBackground | `aurora-background.tsx` | Decorativo (`aria-hidden`) |
-| Modal | `modal.tsx` | Overlay acessível: focus-trap, ESC, `role="dialog" aria-modal` |
-| DataTable | `data-table.tsx` | Header/linhas + slots vazio/loading/erro/filtro |
-| Money | `money.tsx` | `Intl.NumberFormat` pt-BR |
-| DateBR | `date-br.tsx` | `Intl.DateTimeFormat` pt-BR |
+| ThemeToggle | `theme-toggle.tsx` | Sol/lua Lucide, 3 ciclos (light/dark/system), localStorage |
+
+> **Primitivos do console de leadership** (Modal, DataTable, Money, DateBR) —
+> construir inline junto da 1ª tela que exigir (plano `17-frontend-leadership.md`
+> §4: "em casa quando a tela precisar"). Não adiantar como biblioteca sem call site.
 
 ---
 
