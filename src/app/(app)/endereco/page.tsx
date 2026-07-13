@@ -1,12 +1,9 @@
 import { redirect } from "next/navigation";
 
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ReadOnlyField } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page-header";
 import { FunnelStepper } from "@/components/ui/stepper";
+import { ReadOnlyField } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { AddressSection, CandidateMe } from "@/lib/api/types";
 import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
@@ -37,31 +34,29 @@ export default async function EnderecoPage({
   // Etapa já concluída → resumo somente-leitura + CTA pro passo atual.
   if (stagePassed("address", me.status)) {
     return (
-      <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-        <Container>
-          <PageHeader title="Seu endereço" subtitle="Etapa concluída." />
-          <FunnelStepper current={me.status} />
-          <Card className="max-w-xl space-y-5">
-            <div className="banner banner-ok" role="status">
-              <p className="font-display">Endereço confirmado ✓</p>
-            </div>
-            <ReadOnlyField label="CEP" value={data.zipcode ?? "—"} />
-            <ReadOnlyField label="Rua" value={data.street ?? "—"} />
-            <div className="grid grid-cols-2 gap-3">
-              <ReadOnlyField label="Número" value={data.number ?? "—"} />
-              <ReadOnlyField label="Complemento" value={data.complement ?? "—"} />
-            </div>
-            <ReadOnlyField label="Bairro" value={data.neighborhood ?? "—"} />
-            <div className="grid grid-cols-3 gap-3">
-              <ReadOnlyField className="col-span-2" label="Cidade" value={data.city ?? "—"} />
-              <ReadOnlyField label="UF" value={data.state ?? "—"} />
-            </div>
-            <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
-              Continuar
-            </Button>
-          </Card>
-        </Container>
-      </GrainSection>
+      <PageShell>
+        <CompactHeader kicker="V7M · Cadastro" title="Seu endereço" />
+        <FunnelStepper current={me.status} />
+        <div className="auth-card space-y-5">
+          <div className="banner banner-ok" role="status">
+            <p className="font-display">Endereço confirmado ✓</p>
+          </div>
+          <ReadOnlyField label="CEP" value={data.zipcode ?? "—"} />
+          <ReadOnlyField label="Rua" value={data.street ?? "—"} />
+          <div className="grid grid-cols-2 gap-3">
+            <ReadOnlyField label="Número" value={data.number ?? "—"} />
+            <ReadOnlyField label="Complemento" value={data.complement ?? "—"} />
+          </div>
+          <ReadOnlyField label="Bairro" value={data.neighborhood ?? "—"} />
+          <div className="grid grid-cols-3 gap-3">
+            <ReadOnlyField className="col-span-2" label="Cidade" value={data.city ?? "—"} />
+            <ReadOnlyField label="UF" value={data.state ?? "—"} />
+          </div>
+          <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+            Continuar
+          </Button>
+        </div>
+      </PageShell>
     );
   }
 
@@ -73,33 +68,31 @@ export default async function EnderecoPage({
   const editing = sp.editar === "1";
   if (!editing && addressComplete && (me.status === "profile" || me.status === "started")) {
     return (
-      <GrainSection className="bg-brand-bg min-h-[60dvh]">
-        <Container>
-          <PageHeader
-            title="Comprovante de residência"
-            subtitle="Falta só confirmar seu endereço com um comprovante — a análise é automática e leva menos de um minuto."
-          />
-          <FunnelStepper current="address" />
-          <Card className="max-w-xl">
-            <AddressProofSection initial={me.address_proof ?? null} />
-          </Card>
-        </Container>
-      </GrainSection>
+      <PageShell>
+        <CompactHeader
+          kicker="V7M · Cadastro"
+          title="Comprovante de residência"
+          subtitle="Falta só confirmar seu endereço com um comprovante — a análise é automática e leva menos de um minuto."
+        />
+        <FunnelStepper current="address" />
+        <div className="auth-card">
+          <AddressProofSection initial={me.address_proof ?? null} />
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-      <Container>
-        <PageHeader
-          title="Seu endereço"
-          subtitle="A gente busca o CEP e você só completa o que faltar (número, complemento)."
-        />
-        <FunnelStepper current="address" />
-        <Card className="max-w-xl">
-          <EnderecoForm initial={data} />
-        </Card>
-      </Container>
-    </GrainSection>
+    <PageShell>
+      <CompactHeader
+        kicker="V7M · Cadastro"
+        title="Seu endereço"
+        subtitle="A gente busca o CEP e você só completa o que faltar (número, complemento)."
+      />
+      <FunnelStepper current="address" />
+      <div className="auth-card">
+        <EnderecoForm initial={data} />
+      </div>
+    </PageShell>
   );
 }

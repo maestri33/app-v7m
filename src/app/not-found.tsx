@@ -1,21 +1,20 @@
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 
 export default function NotFound() {
   return (
-    <GrainSection className="bg-[var(--bg)] min-h-[60dvh] flex items-center">
-      <Container>
-        <PageHeader
+    <div className="min-h-dvh flex items-center justify-center px-[var(--gutter)] py-10">
+      <div className="app-bg grain" aria-hidden />
+      <PageShell width="narrow">
+        <CompactHeader
           kicker="V7M · 404"
           title="Página não encontrada"
           subtitle="O link que você abriu não existe ou mudou de endereço. Tente voltar pro início."
         />
-        <Button href="/" size="xl">
+        <Button href="/" size="xl" className="w-full">
           Voltar pro início
         </Button>
-      </Container>
-    </GrainSection>
+      </PageShell>
+    </div>
   );
 }

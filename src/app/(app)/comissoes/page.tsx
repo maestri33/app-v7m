@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { Commission } from "@/lib/api/types";
 import { formatBRL } from "@/lib/format";
@@ -45,58 +42,57 @@ export default async function ComissoesPage() {
     .reduce((s, c) => s + Number(c.amount), 0);
 
   return (
-    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-      <Container>
-        <PageHeader
-          title="Suas comissões"
-          subtitle="R$100 por matrícula paga + R$500 de bônus fixo ao bater 5 na semana. Fecha toda sexta às 18h, pago via Pix."
-        />
+    <PageShell>
+      <CompactHeader
+        kicker="V7M · Promotor"
+        title="Suas comissões"
+        subtitle="R$100 por matrícula paga + R$500 de bônus fixo ao bater 5 na semana. Fecha toda sexta às 18h, pago via Pix."
+      />
 
-        <div className="mb-8 grid gap-3 max-w-2xl sm:grid-cols-2">
-          <Stat label="Pendente" value={formatBRL(totalPending)} />
-          <Stat label="Pago" value={formatBRL(totalPaid)} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Stat label="Pendente" value={formatBRL(totalPending)} />
+        <Stat label="Pago" value={formatBRL(totalPaid)} />
+      </div>
+
+      {commissions.length === 0 ? (
+        <div className="auth-card text-[var(--surface-text-muted)]">
+          Suas comissões vão aparecer aqui depois do primeiro fechamento —
+          toda sexta às 18h, direto na sua chave Pix. Bora buscar a primeira?
         </div>
-
-        {commissions.length === 0 ? (
-          <Card className="max-w-2xl text-[var(--surface-text-muted)]">
-            Suas comissões vão aparecer aqui depois do primeiro fechamento —
-            toda sexta às 18h, direto na sua chave Pix. Bora buscar a primeira?
-          </Card>
-        ) : (
-          <ul className="space-y-3 max-w-2xl">
-            {commissions.map((c) => (
-              <li key={c.external_id}>
-                <Card>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-display text-lg">{formatBRL(c.amount)}</p>
-                      <p className="text-xs text-[var(--surface-text-muted)]">
-                        {sourceLabel(c.source)} ·{" "}
-                        {new Date(c.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                    <Badge
-                      tone={
-                        c.status === "paid"
-                          ? "ok"
-                          : c.status === "failed"
-                            ? "danger"
-                            : "muted"
-                      }
-                    >
-                      {c.status === "paid"
-                        ? "Paga"
-                        : c.status === "failed"
-                          ? "Falhou"
-                          : "Pendente"}
-                    </Badge>
+      ) : (
+        <ul className="space-y-3">
+          {commissions.map((c) => (
+            <li key={c.external_id}>
+              <div className="auth-card">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-display text-lg">{formatBRL(c.amount)}</p>
+                    <p className="text-xs text-[var(--surface-text-muted)]">
+                      {sourceLabel(c.source)} ·{" "}
+                      {new Date(c.created_at).toLocaleDateString("pt-BR")}
+                    </p>
                   </div>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Container>
-    </GrainSection>
+                  <Badge
+                    tone={
+                      c.status === "paid"
+                        ? "ok"
+                        : c.status === "failed"
+                          ? "danger"
+                          : "muted"
+                    }
+                  >
+                    {c.status === "paid"
+                      ? "Paga"
+                      : c.status === "failed"
+                        ? "Falhou"
+                        : "Pendente"}
+                  </Badge>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </PageShell>
   );
 }

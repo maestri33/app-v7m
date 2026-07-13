@@ -1,12 +1,9 @@
 import { redirect } from "next/navigation";
 
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ReadOnlyField } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page-header";
 import { FunnelStepper } from "@/components/ui/stepper";
+import { ReadOnlyField } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, ProfileSection } from "@/lib/api/types";
 import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
@@ -40,46 +37,43 @@ export default async function PerfilPage() {
   // reprovasse; perfil não tem análise) + CTA pro passo atual.
   if (stagePassed("profile", me.status)) {
     return (
-      <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-        <Container>
-          <PageHeader title="Seu perfil" subtitle="Etapa concluída." />
-          <FunnelStepper current={me.status} />
-          <Card className="max-w-xl space-y-5">
-            <div className="banner banner-ok" role="status">
-              <p className="font-display">Perfil confirmado ✓</p>
-            </div>
-            <ReadOnlyField label="Nome" value={initial.name ?? "—"} />
-            <ReadOnlyField
-              label="Data de nascimento"
-              value={formatDateBR(initial.birth_date)}
-              hint="Confirmado pelo CPF, não editável."
-            />
-            <ReadOnlyField label="Nome da mãe" value={initial.mother_name ?? "—"} />
-            <ReadOnlyField label="Nome do pai" value={initial.father_name ?? "—"} />
-            <ReadOnlyField label="Naturalidade" value={initial.birthplace ?? "—"} />
-            <ReadOnlyField label="Estado civil" value={maritalLabel(initial.marital_status)} />
-            <ReadOnlyField label="Nacionalidade" value={initial.nationality ?? "—"} />
-            <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
-              Continuar
-            </Button>
-          </Card>
-        </Container>
-      </GrainSection>
+      <PageShell>
+        <CompactHeader kicker="V7M · Cadastro" title="Seu perfil" />
+        <FunnelStepper current={me.status} />
+        <div className="auth-card space-y-5">
+          <div className="banner banner-ok" role="status">
+            <p className="font-display">Perfil confirmado ✓</p>
+          </div>
+          <ReadOnlyField label="Nome" value={initial.name ?? "—"} />
+          <ReadOnlyField
+            label="Data de nascimento"
+            value={formatDateBR(initial.birth_date)}
+            hint="Confirmado pelo CPF, não editável."
+          />
+          <ReadOnlyField label="Nome da mãe" value={initial.mother_name ?? "—"} />
+          <ReadOnlyField label="Nome do pai" value={initial.father_name ?? "—"} />
+          <ReadOnlyField label="Naturalidade" value={initial.birthplace ?? "—"} />
+          <ReadOnlyField label="Estado civil" value={maritalLabel(initial.marital_status)} />
+          <ReadOnlyField label="Nacionalidade" value={initial.nationality ?? "—"} />
+          <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+            Continuar
+          </Button>
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-      <Container>
-        <PageHeader
-          title="Seu perfil"
-          subtitle="Estado civil, nacionalidade e filiação. O resto vem da extração do seu documento (próxima etapa)."
-        />
-        <FunnelStepper current="profile" />
-        <Card className="max-w-xl">
-          <PerfilForm initial={initial} />
-        </Card>
-      </Container>
-    </GrainSection>
+    <PageShell>
+      <CompactHeader
+        kicker="V7M · Cadastro"
+        title="Seu perfil"
+        subtitle="Estado civil, nacionalidade e filiação. O resto vem da extração do seu documento (próxima etapa)."
+      />
+      <FunnelStepper current="profile" />
+      <div className="auth-card">
+        <PerfilForm initial={initial} />
+      </div>
+    </PageShell>
   );
 }

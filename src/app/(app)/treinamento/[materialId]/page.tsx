@@ -1,10 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { ContentBlock, TrainingMaterial } from "@/lib/api/types";
 import { readSession } from "@/lib/auth/server";
@@ -64,63 +61,61 @@ export default async function MaterialPage({ params }: Props) {
   if (!material) notFound();
 
   return (
-    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
-      <Container>
-        <PageHeader kicker="V7M · Treinamento" title={material.title} />
-        <div className="-mt-6 mb-6">
-          <Badge tone={material.blocking ? "warn" : "muted"}>
-            {material.blocking ? "Obrigatória" : "Extra · opcional"}
-          </Badge>
-        </div>
+    <PageShell>
+      <CompactHeader kicker="V7M · Treinamento" title={material.title} />
+      <div>
+        <Badge tone={material.blocking ? "warn" : "muted"}>
+          {material.blocking ? "Obrigatória" : "Extra · opcional"}
+        </Badge>
+      </div>
 
-        <div className="max-w-2xl space-y-4">
-          {/* A aula: texto + mídia + blocos genéricos */}
-          {(material.text_content ||
-            isHttpUrl(material.photo) ||
-            isHttpUrl(material.video) ||
-            (material.content_blocks?.length ?? 0) > 0) && (
-            <Card className="space-y-4">
-              {material.text_content && (
-                <p className="whitespace-pre-line text-sm leading-relaxed">
-                  {material.text_content}
-                </p>
-              )}
-              {isHttpUrl(material.photo) && (
-                // eslint-disable-next-line @next/next/no-img-element -- mídia externa da aula, domínio desconhecido em build
-                <img
-                  src={material.photo}
-                  alt={`Imagem da matéria ${material.title}`}
-                  className="rounded-[var(--radius-sm)] max-w-full"
-                />
-              )}
-              {isHttpUrl(material.video) && (
-                <video src={material.video} controls className="w-full rounded-[var(--radius-sm)]" />
-              )}
-              {material.content_blocks?.map((b, i) => <Block key={i} block={b} />)}
-            </Card>
-          )}
-
-          {/* A pergunta, em destaque, logo acima da resposta */}
-          {material.question && (
-            <Card className="border-brand-gold/50 space-y-1">
-              <p className="text-xs font-bold uppercase tracking-wider text-brand-gold-ink">
-                Responda com suas palavras
+      <div className="space-y-4">
+        {/* A aula: texto + mídia + blocos genéricos */}
+        {(material.text_content ||
+          isHttpUrl(material.photo) ||
+          isHttpUrl(material.video) ||
+          (material.content_blocks?.length ?? 0) > 0) && (
+          <div className="auth-card space-y-4">
+            {material.text_content && (
+              <p className="whitespace-pre-line text-sm leading-relaxed">
+                {material.text_content}
               </p>
-              <p className="whitespace-pre-line text-sm font-semibold leading-relaxed">
-                {material.question}
-              </p>
-            </Card>
-          )}
+            )}
+            {isHttpUrl(material.photo) && (
+              // eslint-disable-next-line @next/next/no-img-element -- mídia externa da aula, domínio desconhecido em build
+              <img
+                src={material.photo}
+                alt={`Imagem da matéria ${material.title}`}
+                className="rounded-[var(--radius-sm)] max-w-full"
+              />
+            )}
+            {isHttpUrl(material.video) && (
+              <video src={material.video} controls className="w-full rounded-[var(--radius-sm)]" />
+            )}
+            {material.content_blocks?.map((b, i) => <Block key={i} block={b} />)}
+          </div>
+        )}
 
-          <Card>
-            <SubmissionForm
-              materialExternalId={material.material_external_id}
-              submissionStatus={material.submission_status ?? null}
-              justification={material.justification ?? null}
-            />
-          </Card>
+        {/* A pergunta, em destaque, logo acima da resposta */}
+        {material.question && (
+          <div className="auth-card border-brand-gold/50 space-y-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-brand-gold-ink">
+              Responda com suas palavras
+            </p>
+            <p className="whitespace-pre-line text-sm font-semibold leading-relaxed">
+              {material.question}
+            </p>
+          </div>
+        )}
+
+        <div className="auth-card">
+          <SubmissionForm
+            materialExternalId={material.material_external_id}
+            submissionStatus={material.submission_status ?? null}
+            justification={material.justification ?? null}
+          />
         </div>
-      </Container>
-    </GrainSection>
+      </div>
+    </PageShell>
   );
 }
