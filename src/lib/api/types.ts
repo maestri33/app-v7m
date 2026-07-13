@@ -7,6 +7,8 @@
  */
 
 // Valores exatos do backend (users/roles/candidate/models.py:Status — minúsculos).
+// `approved`/`rejected` são pós-funil (decisão do coordenador) — o candidato
+// segue com esses status no me_dict e o front PRECISA tratá-los.
 export type CandidateStatus =
   | "started"
   | "profile"
@@ -15,7 +17,9 @@ export type CandidateStatus =
   | "pix"
   | "education"
   | "selfie"
-  | "completed";
+  | "completed"
+  | "approved"
+  | "rejected";
 
 export type AnalysisStatus = "pending" | "approved" | "rejected" | "review";
 

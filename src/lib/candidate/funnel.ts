@@ -27,7 +27,18 @@ export const STAGE_HREF: Record<CandidateStatus, string> = {
   education: "/escolaridade",
   selfie: "/selfie",
   completed: "/painel",
+  approved: "/painel",
+  rejected: "/painel",
 };
+
+/**
+ * `STAGE_HREF` à prova de drift: se o backend ganhar um status que este build
+ * não conhece, cai no painel em vez de `redirect(undefined)` (500 na cara do
+ * candidato — aconteceu quando `education` nasceu só no back).
+ */
+export function stageHref(status: string | undefined | null): string {
+  return STAGE_HREF[status as CandidateStatus] ?? "/painel";
+}
 
 /** Próximo passo depois de concluir cada etapa (navegação direta dos forms). */
 export const NEXT_STAGE: Record<string, string> = {
