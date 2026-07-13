@@ -6,6 +6,7 @@ import useSWR from "swr";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { StatusBanner } from "@/components/ui/status-banner";
 import { UploadActions } from "@/components/ui/upload-actions";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
@@ -38,6 +39,9 @@ const SLOT_LABEL: Record<string, string> = {
   rg_front: "Envie a FRENTE do seu RG",
   rg_back: "Frente aprovada! Envie o VERSO",
   cnh_full: "Envie sua CNH (frente e verso)",
+  cnh_front: "Envie a FRENTE da sua CNH",
+  cnh_back: "Frente aprovada! Envie o VERSO da CNH",
+  rg_full: "Envie o RG (frente e verso)",
 };
 
 /**
@@ -303,6 +307,9 @@ export function DocForm({ initial }: Props) {
       {/* Campos que a IA não leu → input manual */}
       {!isAnalyzing && status !== "rejected" && missing.length > 0 && (
         <form onSubmit={onMissingSubmit} className="space-y-5">
+          {/* Overlay só aqui: este submit dá router.push pro Server Component
+              (janela em branco). O upload tem o StatusBanner de análise. */}
+          {pending && <LoadingOverlay label="Salvando…" logo />}
           <p className="text-sm text-[var(--surface-text-muted)]">
             A IA não conseguiu ler {missing.length === 1 ? "este campo" : "estes campos"} —
             complete pra seguir:

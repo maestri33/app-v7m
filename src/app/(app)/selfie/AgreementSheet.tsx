@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,36 @@ const PARAGRAPHS = [
 ];
 
 export function AgreementSheet({ onAccept }: { onAccept: () => void }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Acordo obrigatório: sem caminho de cancelar, então SÓ prende o foco (nada de
+  // Escape-fecha). Tab cicla entre o primeiro e o último focável do diálogo;
+  // impede tabular pro fundo (a11y de aria-modal). O autoFocus do botão segue.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex flex-col justify-end bg-black/55"
       role="dialog"
       aria-modal="true"

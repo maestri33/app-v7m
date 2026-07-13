@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
+import { apiErrorMessage } from "@/lib/api/error-messages";
 
 /**
  * Escolaridade — ÚLTIMA pergunta antes da selfie (a selfie aprovada
@@ -54,7 +56,7 @@ export function EscolaridadeForm() {
             router.push(redir);
             return;
           }
-          setError(data.detail ?? "Não deu pra salvar agora. Tente de novo.");
+          setError(apiErrorMessage(data.code, data.detail, data));
           return;
         }
         // Wizard auto-avançante: escolaridade gravada → selfie (último passo).
@@ -67,6 +69,7 @@ export function EscolaridadeForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
+      {pending && <LoadingOverlay label="Salvando…" logo />}
       <fieldset className="space-y-3">
         <legend className="label">Até onde você estudou?</legend>
         <div className="space-y-3">
