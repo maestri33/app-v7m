@@ -5,18 +5,15 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
+import { apiErrorMessage } from "@/lib/api/error-messages";
+import { maskCep, validateCep } from "@/lib/auth/masks";
 import type { AddressSection } from "@/lib/api/types";
 
 type Props = {
   initial: AddressSection;
 };
-
-function formatCep(raw: string) {
-  const d = raw.replace(/\D/g, "").slice(0, 8);
-  if (d.length <= 5) return d;
-  return `${d.slice(0, 5)}-${d.slice(5)}`;
-}
 
 export function EnderecoForm({ initial }: Props) {
   const router = useRouter();
@@ -36,6 +33,12 @@ export function EnderecoForm({ initial }: Props) {
   function onCep(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    // Valida os 8 dígitos no cliente antes de bater no ViaCEP.
+    const cepError = validateCep(cep);
+    if (cepError) {
+      setError(cepError);
+      return;
+    }
     startTransition(async () => {
       try {
         const res = await fetch("/api/me/address", {
@@ -55,7 +58,7 @@ export function EnderecoForm({ initial }: Props) {
             router.push(redir);
             return;
           }
-          setError(data.detail ?? "Não achamos esse CEP. Confere os números e tenta de novo.");
+          setError(apiErrorMessage(data.code, data.detail, data));
           return;
         }
         // Backend devolve o me_dict.canônico; pega o address e re-renderiza.
@@ -102,7 +105,7 @@ export function EnderecoForm({ initial }: Props) {
             router.push(redir);
             return;
           }
-          setError(data.detail ?? "Não deu pra salvar agora. Tente de novo.");
+          setError(apiErrorMessage(data.code, data.detail, data));
           return;
         }
         // Avança pelo STATUS REAL do me_dict, não às cegas: o back só sai de
@@ -126,7 +129,7 @@ export function EnderecoForm({ initial }: Props) {
         <Field
           label="CEP"
           value={cep}
-          onChange={(v) => setCep(formatCep(v))}
+          onChange={(v) => setCep(maskCep(v))}
           inputMode="numeric"
           placeholder="00000-000"
           required
@@ -141,6 +144,7 @@ export function EnderecoForm({ initial }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
+      {pending && <LoadingOverlay label="Salvando endereço…" logo />}
       <div className="grid grid-cols-3 gap-3">
         <ReadOnlyField className="col-span-2" label="CEP" value={cep} />
         <Field label="Número" value={number} onChange={setNumber} required inputMode="numeric" />

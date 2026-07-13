@@ -53,3 +53,18 @@ export function validateEmail(raw: string): string | null {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return "E-mail inválido.";
   return null;
 }
+
+/** 00000-000 */
+export function maskCep(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 5) return d;
+  return `${d.slice(0, 5)}-${d.slice(5)}`;
+}
+
+/** CEP: exatamente 8 dígitos (o ViaCEP é a validação canônica do endereço). */
+export function validateCep(raw: string): string | null {
+  const d = raw.replace(/\D/g, "");
+  if (!d) return "Informe seu CEP.";
+  if (d.length !== 8) return "CEP incompleto. Use os 8 dígitos.";
+  return null;
+}

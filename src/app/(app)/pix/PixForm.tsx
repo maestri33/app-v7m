@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError } from "@/components/ui/field";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
+import { validateCpf } from "@/lib/auth/masks";
 
 /**
  * Sem seletor de tipo: detectamos pelo formato do que foi digitado/colado.
@@ -98,12 +100,29 @@ export function PixForm() {
       try {
         let result;
         if (detected === "AMBIGUOUS") {
-          // 11 dígitos: tenta CPF; 422 PIX_INVALID → tenta celular. Aprovou = ficou.
-          setCheckingLabel("Conferindo como CPF e celular…");
-          result = await validate("CPF");
-          if (!result.ok && result.status === 422 && result.data.code === "PIX_INVALID") {
+          // 11 dígitos: se não passam nos DVs do CPF, é celular — pula direto o
+          // DICT do CPF (economiza a chamada paga). DV ok → tenta CPF; 422
+          // PIX_INVALID → tenta celular. Aprovou = ficou. NÃO bloqueia: celular
+          // legítimo nunca passa em validateCpf, então bloquear quebraria PHONE.
+          if (validateCpf(key)) {
+            setCheckingLabel("Conferindo como celular…");
             result = await validate("PHONE");
+          } else {
+            setCheckingLabel("Conferindo como CPF e celular…");
+            result = await validate("CPF");
+            if (!result.ok && result.status === 422 && result.data.code === "PIX_INVALID") {
+              result = await validate("PHONE");
+            }
           }
+        } else if (detected === "CPF") {
+          // CPF puro: valida DVs no cliente antes de gastar R$0,01 no DICT.
+          const cpfError = validateCpf(key);
+          if (cpfError) {
+            setError(cpfError);
+            return;
+          }
+          setCheckingLabel(`Conferindo como ${TYPE_LABELS[detected]}…`);
+          result = await validate(detected);
         } else {
           setCheckingLabel(`Conferindo como ${TYPE_LABELS[detected]}…`);
           result = await validate(detected);
@@ -141,6 +160,7 @@ export function PixForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
+      {pending && <LoadingOverlay label="Validando chave…" logo />}
       <Field
         label="Chave"
         value={key}

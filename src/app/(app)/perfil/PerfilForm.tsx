@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField, SelectField } from "@/components/ui/field";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
+import { apiErrorMessage } from "@/lib/api/error-messages";
 import { MARITAL_OPTIONS } from "@/lib/candidate/labels";
 import { formatDateBR } from "@/lib/format";
 import type { ProfileSection } from "@/lib/api/types";
@@ -49,7 +50,7 @@ export function PerfilForm({ initial }: Props) {
             router.push(redir);
             return;
           }
-          setError(data.detail ?? "Não deu pra salvar agora. Tente de novo.");
+          setError(apiErrorMessage(data.code, data.detail, data));
           return;
         }
         // Wizard auto-avançante: sucesso navega direto pro próximo passo.

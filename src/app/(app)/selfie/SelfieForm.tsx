@@ -10,6 +10,7 @@ import { FileInput } from "@/components/ui/file-input";
 import { Spinner } from "@/components/ui/spinner";
 import { StatusBanner } from "@/components/ui/status-banner";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
+import { apiErrorMessage } from "@/lib/api/error-messages";
 import type { AnalysisStatus } from "@/lib/api/types";
 
 import { AgreementSheet } from "./AgreementSheet";
@@ -33,15 +34,26 @@ export function SelfieForm() {
   // Aceite do acordo é client-side; a assinatura de verdade é a selfie (o
   // backend guarda foto + data/hora/dispositivo).
   const [accepted, setAccepted] = useState(false);
-  // Intervalo de poll sugerido pelo backend no ack do upload (AnalysisAckOut).
+  // Intervalo de poll sugerido pelo backend no ack do upload (AnalysisAckOut) —
+  // piso inicial do backoff.
   const [pollMs, setPollMs] = useState(POLL_MS);
+  // Backoff exponencial (piso→2x→…→teto 30s) só enquanto `pending`: análise por
+  // IA leva 10–60s e revisão humana leva horas; alinhado ao DocForm.
+  const pendingPolls = useRef(0);
 
   const { data, mutate } = useSWR<SelfieSection>(
     "/api/me/selfie",
     (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
     {
-      refreshInterval: (latest) =>
-        latest?.taken_at && latest?.analysis_status === "pending" ? pollMs : 0,
+      refreshInterval: (latest) => {
+        if (!latest?.taken_at || latest?.analysis_status !== "pending") {
+          pendingPolls.current = 0;
+          return 0;
+        }
+        const interval = Math.min(pollMs * 2 ** pendingPolls.current, 30_000);
+        pendingPolls.current += 1;
+        return interval;
+      },
     },
   );
 
@@ -84,7 +96,7 @@ export function SelfieForm() {
             router.push(redir);
             return;
           }
-          setError(result.detail ?? "Não conseguimos receber sua selfie agora. Tente de novo.");
+          setError(apiErrorMessage(result.code, result.detail, result));
           return;
         }
         await mutate();

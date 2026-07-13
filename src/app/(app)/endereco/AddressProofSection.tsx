@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { StatusBanner } from "@/components/ui/status-banner";
 import { UploadActions } from "@/components/ui/upload-actions";
 import { wrongStatusHref } from "@/lib/candidate/funnel";
+import { apiErrorMessage } from "@/lib/api/error-messages";
 import {
   compressImage,
   FILE_TOO_LARGE_MSG,
@@ -97,7 +98,7 @@ export function AddressProofSection({ initial }: Props) {
             router.push(redir);
             return;
           }
-          setError(data.detail ?? "Não conseguimos receber o arquivo agora. Tente de novo.");
+          setError(apiErrorMessage(data.code, data.detail, data));
           return;
         }
         await mutate(); // traz o `pending` e liga o poll
