@@ -37,8 +37,8 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === "") return null;
   return (
     <div className="contents">
-      <dt className="text-brand-muted">{label}</dt>
-      <dd className="text-brand-ink break-words">{value}</dd>
+      <dt className="text-[var(--surface-text-muted)]">{label}</dt>
+      <dd className="text-[var(--surface-text)] break-words">{value}</dd>
     </div>
   );
 }
@@ -58,7 +58,7 @@ export function CandidatoDetailBody({
 }) {
   if (errorCode) {
     return (
-      <Card className="text-brand-muted">
+      <Card className="text-[var(--surface-text-muted)]">
         {errorCode === "CANDIDATE_NOT_FOUND" || errorCode === "NOT_HUB_COORDINATOR"
           ? "Esse candidato não é do seu polo."
           : `Não deu pra carregar o candidato agora (${errorCode}). Atualize a página.`}
@@ -66,7 +66,7 @@ export function CandidatoDetailBody({
     );
   }
   if (!data) {
-    return <Card className="text-brand-muted">Sem dados.</Card>;
+    return <Card className="text-[var(--surface-text-muted)]">Sem dados.</Card>;
   }
 
   const u = data.user ?? {};
@@ -122,14 +122,14 @@ export function CandidatoDetailBody({
           <Badge tone={selfieTone(data.selfie_status)}>{data.selfie_status}</Badge>
         </div>
         {data.selfie_description && (
-          <p className="mt-2 text-sm text-brand-muted">{data.selfie_description}</p>
+          <p className="mt-2 text-sm text-[var(--surface-text-muted)]">{data.selfie_description}</p>
         )}
         {data.selfie_image && (
           // eslint-disable-next-line @next/next/no-img-element -- selfie é data-uri/URL do back; next/image exigiria allowlist remota
           <img
             src={data.selfie_image}
             alt="Selfie do candidato"
-            className="mt-3 max-h-64 w-auto rounded-lg border border-brand-border"
+            className="mt-3 max-h-64 w-auto rounded-lg border border-[var(--surface-border)]"
           />
         )}
       </Card>
@@ -141,8 +141,8 @@ export function CandidatoDetailBody({
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
             {extras.map(([k, v]) => (
               <div key={k} className="contents">
-                <dt className="text-brand-muted">{k}</dt>
-                <dd className="text-brand-ink break-words">
+                <dt className="text-[var(--surface-text-muted)]">{k}</dt>
+                <dd className="text-[var(--surface-text)] break-words">
                   {isPrimitive(v) ? String(v) : JSON.stringify(v)}
                 </dd>
               </div>

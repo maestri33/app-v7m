@@ -38,7 +38,7 @@ export default async function MatriculaDetailPage({
     <Container className="py-10">
       <Link
         href="/coordenador/matriculas"
-        className="inline-flex items-center min-h-11 text-sm text-brand-muted hover:text-brand-ink transition-colors"
+        className="inline-flex items-center min-h-11 text-sm text-[var(--surface-text-muted)] hover:text-[var(--surface-text)] transition-colors"
       >
         ← Matrículas
       </Link>

@@ -57,7 +57,7 @@ export default async function TreinamentoPage() {
   const watching = allBlockingDone || materials.some(isGrading);
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         {watching && <TrainingRefresh />}
         <PageHeader
@@ -80,7 +80,7 @@ export default async function TreinamentoPage() {
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-2 text-xs text-brand-muted">
+          <p className="mt-2 text-xs text-[var(--surface-text-muted)]">
             {blockingDone.length} de {blocking.length} matérias obrigatórias
             concluídas
           </p>
@@ -117,7 +117,7 @@ export default async function TreinamentoPage() {
               )}
             </Card>
           ) : (
-            <Card className="text-brand-muted">
+            <Card className="text-[var(--surface-text-muted)]">
               Suas matérias estão sendo preparadas — assim que chegarem,
               aparecem aqui sozinhas. Você não precisa fazer nada por enquanto.
             </Card>
@@ -125,7 +125,7 @@ export default async function TreinamentoPage() {
 
           {extras.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-brand-muted">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--surface-text-muted)]">
                 Extra · opcional
               </p>
               <ul className="space-y-2">
@@ -156,7 +156,7 @@ export default async function TreinamentoPage() {
                   ✓ {done.length} matéria{done.length === 1 ? "" : "s"} concluída
                   {done.length === 1 ? "" : "s"}
                 </span>
-                <span className="text-xs font-normal text-brand-muted">
+                <span className="text-xs font-normal text-[var(--surface-text-muted)]">
                   <span className="group-open:hidden">ver</span>
                   <span className="hidden group-open:inline">ocultar</span>
                 </span>

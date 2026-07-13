@@ -64,7 +64,7 @@ export default async function MaterialPage({ params }: Props) {
   if (!material) notFound();
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         <PageHeader kicker="V7M · Treinamento" title={material.title} />
         <div className="-mt-6 mb-6">

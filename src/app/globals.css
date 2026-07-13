@@ -74,6 +74,69 @@
   /* Elevação (cartões em superfície clara) */
   --shadow-card: 0 1px 2px rgb(11 11 12 / 0.04), 0 10px 28px -18px rgb(11 11 12 / 0.22);
   --shadow-card-hover: 0 2px 6px rgb(11 11 12 / 0.07), 0 20px 44px -22px rgb(11 11 12 / 0.32);
+
+  /* ── Papéis semânticos (tema claro, default) ──
+     Não entram no @theme inline — são resolvidos em runtime para o dark mode
+     flipar sem recompilar. Uso: bg-[var(--bg)] text-[var(--text)] etc. */
+  --bg: var(--paper-soft);
+  --surface: var(--paper);
+  --surface-alt: var(--paper-soft);
+  --surface-text: var(--black);
+  --surface-text-muted: var(--muted-on-light);
+  --surface-border: var(--line-light);
+  --surface-border-hover: var(--gold-deep);
+  /* scrim de modal (preto translúcido) */
+  --scrim: rgb(11 11 12 / 0.55);
+}
+
+/* ── Dark mode ── */
+:root[data-theme="dark"] {
+  --bg: var(--char);
+  --surface: var(--char-2);
+  --surface-alt: var(--char);
+  --surface-text: var(--paper);
+  --surface-text-muted: var(--muted-on-dark);
+  --surface-border: rgb(231 228 221 / 0.12);
+  --surface-border-hover: var(--gold-soft);
+  --scrim: rgb(11 11 12 / 0.7);
+
+  /* status → variantes -soft (legíveis sobre escuro) */
+  --ok: var(--ok-soft);
+  --danger: var(--danger-soft);
+  --warn: var(--warn-soft);
+  --info: var(--info-soft);
+
+  /* elevação em dark: sombra não funciona sobre preto → tom sobre tom */
+  --shadow-card: none;
+  --shadow-card-hover: 0 0 0 1px rgb(240 212 147 / 0.25);
+
+  /* anel de foco — mais visível sobre escuro */
+  --ring: 0 0 0 4px rgb(240 212 147 / 0.5);
+
+  /* aurora: reduz opacidade no dark (já está sobre --char) */
+  & .aurora::before { opacity: 0.3; }
+  & .aurora::after  { opacity: 0.2; }
+}
+
+/* Fallback: se usuário nunca escolheu, respeita prefers-color-scheme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: var(--char);
+    --surface: var(--char-2);
+    --surface-alt: var(--char);
+    --surface-text: var(--paper);
+    --surface-text-muted: var(--muted-on-dark);
+    --surface-border: rgb(231 228 221 / 0.12);
+    --surface-border-hover: var(--gold-soft);
+    --scrim: rgb(11 11 12 / 0.7);
+    --ok: var(--ok-soft);
+    --danger: var(--danger-soft);
+    --warn: var(--warn-soft);
+    --info: var(--info-soft);
+    --shadow-card: none;
+    --shadow-card-hover: 0 0 0 1px rgb(240 212 147 / 0.25);
+    --ring: 0 0 0 4px rgb(240 212 147 / 0.5);
+  }
 }
 
 /* =============================================================================
@@ -164,8 +227,8 @@ body {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.65;
-  color: var(--black);
-  background: var(--paper);
+  color: var(--surface-text);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: clip;
@@ -376,16 +439,17 @@ strong {
 
   /* ---------------------------------------------------------------------------
      Campos de formulário — tom CLARO (default, telas /app) e ESCURO (auth)
+     Migrados p/ papéis semânticos; -dark variants viram no-ops p/ compat.
      --------------------------------------------------------------------------- */
   .label {
     display: block;
     font-size: 0.82rem;
     font-weight: 600;
-    color: var(--muted-on-light);
+    color: var(--surface-text-muted);
     margin-bottom: 0.5rem;
   }
   .label-dark {
-    color: var(--muted-on-dark);
+    color: var(--surface-text-muted); /* ponytail: dark mode faz o flip automático */
   }
 
   .input {
@@ -393,19 +457,19 @@ strong {
     border-radius: var(--radius);
     padding: 0.8rem 1rem;
     font: inherit;
-    color: var(--black);
-    background: var(--paper);
-    border: 1px solid var(--line-light);
+    color: var(--surface-text);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
     transition:
       border-color 0.15s var(--ease-out),
       box-shadow 0.15s var(--ease-out);
   }
   .input::placeholder {
-    color: var(--muted-on-light);
+    color: var(--surface-text-muted);
     opacity: 0.65;
   }
   .input:hover:not(:disabled) {
-    border-color: var(--gold-deep);
+    border-color: var(--surface-border-hover);
   }
   .input:focus-visible {
     outline: none;
@@ -416,18 +480,18 @@ strong {
     opacity: 0.6;
     cursor: not-allowed;
   }
-  /* Tom escuro (telas de auth sobre grafite) */
+  /* Tom escuro herdado da auth — dark mode faz o flip automático */
   .input-dark {
-    color: var(--paper);
-    background: var(--char-2);
-    border-color: rgb(231 228 221 / 0.2);
+    color: var(--surface-text);
+    background: var(--surface);
+    border-color: var(--surface-border);
   }
   .input-dark::placeholder {
-    color: var(--muted-on-dark);
+    color: var(--surface-text-muted);
     opacity: 0.6;
   }
   .input-dark:hover:not(:disabled) {
-    border-color: var(--gold-soft);
+    border-color: var(--surface-border-hover);
   }
 
   /* Campo somente-leitura (vem do CPFHub/ViaCEP) */
@@ -435,23 +499,23 @@ strong {
     width: 100%;
     border-radius: var(--radius);
     padding: 0.8rem 1rem;
-    background: var(--paper-soft);
-    border: 1px solid var(--line-light);
-    color: var(--muted-on-light);
+    background: var(--surface-alt);
+    border: 1px solid var(--surface-border);
+    color: var(--surface-text-muted);
   }
   .input-readonly.input-dark {
-    background: var(--char);
-    border-color: rgb(231 228 221 / 0.1);
-    color: rgb(255 255 255 / 0.7);
+    background: var(--surface-alt);
+    border-color: var(--surface-border);
+    color: var(--surface-text-muted);
   }
 
   .field-hint {
     font-size: 0.75rem;
-    color: var(--muted-on-light);
+    color: var(--surface-text-muted);
     margin-top: 0.4rem;
   }
   .field-hint-dark {
-    color: rgb(180 180 187 / 0.75);
+    color: var(--surface-text-muted); /* ponytail: dark mode automático */
   }
 
   .field-error {
@@ -461,14 +525,14 @@ strong {
     margin-top: 0.5rem;
   }
   .field-error-dark {
-    color: var(--danger-soft);
+    color: var(--danger); /* ponytail: status já flipa via --danger → --danger-soft */
   }
 
   /* Input de arquivo (selfie/documento) */
   .file-input {
     width: 100%;
     font-size: 0.9rem;
-    color: var(--black);
+    color: var(--surface-text);
   }
   .file-input::file-selector-button {
     margin-right: 0.75rem;
@@ -486,16 +550,17 @@ strong {
     filter: brightness(1.05);
   }
   .file-input-dark {
-    color: var(--paper);
+    color: var(--surface-text); /* ponytail: dark mode automático */
   }
 
   /* ---------------------------------------------------------------------------
      Cartões (substitui os ~8 divs repetidos border+bg-white+hover)
+     Migrados p/ papéis semânticos — dark mode automático.
      --------------------------------------------------------------------------- */
   .card {
     border-radius: var(--radius);
-    background: var(--paper);
-    border: 1px solid var(--line-light);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
     padding: 1.25rem;
     box-shadow: var(--shadow-card);
   }
@@ -535,29 +600,29 @@ strong {
   }
   .badge-ok {
     color: var(--ok);
-    border-color: rgb(47 143 91 / 0.35);
-    background: rgb(47 143 91 / 0.1);
+    border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+    background: color-mix(in srgb, var(--ok) 10%, transparent);
   }
   .badge-danger {
     color: var(--danger);
-    border-color: rgb(192 57 43 / 0.35);
-    background: rgb(192 57 43 / 0.09);
+    border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+    background: color-mix(in srgb, var(--danger) 9%, transparent);
   }
   .badge-warn {
     color: var(--warn);
-    border-color: rgb(176 122 19 / 0.4);
-    background: rgb(176 122 19 / 0.1);
+    border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+    background: color-mix(in srgb, var(--warn) 10%, transparent);
   }
   .badge-muted {
-    color: var(--muted-on-light);
-    border-color: var(--line-light);
+    color: var(--surface-text-muted);
+    border-color: var(--surface-border);
     background: transparent;
   }
   /* Dourado da marca — "pago, cai no fechamento da sexta" */
   .badge-gold {
     color: var(--gold-ink);
-    border-color: rgb(217 177 90 / 0.55);
-    background: rgb(217 177 90 / 0.14);
+    border-color: color-mix(in srgb, var(--gold) 55%, transparent);
+    background: color-mix(in srgb, var(--gold) 14%, transparent);
   }
 
   /* ---------------------------------------------------------------------------
@@ -570,23 +635,23 @@ strong {
   }
   .banner-ok {
     color: var(--ok);
-    border-color: rgb(47 143 91 / 0.3);
-    background: rgb(47 143 91 / 0.08);
+    border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+    background: color-mix(in srgb, var(--ok) 8%, transparent);
   }
   .banner-danger {
     color: var(--danger);
-    border-color: rgb(192 57 43 / 0.3);
-    background: rgb(192 57 43 / 0.07);
+    border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+    background: color-mix(in srgb, var(--danger) 7%, transparent);
   }
   .banner-warn {
     color: var(--warn);
-    border-color: rgb(176 122 19 / 0.32);
-    background: rgb(176 122 19 / 0.09);
+    border-color: color-mix(in srgb, var(--warn) 32%, transparent);
+    background: color-mix(in srgb, var(--warn) 9%, transparent);
   }
   .banner-info {
     color: var(--info);
-    border-color: rgb(47 111 176 / 0.3);
-    background: rgb(47 111 176 / 0.08);
+    border-color: color-mix(in srgb, var(--info) 30%, transparent);
+    background: color-mix(in srgb, var(--info) 8%, transparent);
   }
 
   /* ---------------------------------------------------------------------------

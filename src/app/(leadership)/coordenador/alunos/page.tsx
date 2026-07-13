@@ -34,11 +34,11 @@ export default async function AlunosPage() {
       />
 
       {errorCode ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Não deu pra carregar os alunos agora ({errorCode}). Atualize a página.
         </Card>
       ) : items.length === 0 ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Nenhum aluno no seu polo por enquanto.
         </Card>
       ) : (

@@ -200,7 +200,7 @@ export function SubmissionForm({ materialExternalId, submissionStatus, justifica
             variant="ghost"
             onClick={startRecording}
             disabled={pending}
-            className="w-full border-brand-border text-brand-ink"
+            className="w-full border-[var(--surface-border)] text-[var(--surface-text)]"
           >
             <Mic size={16} aria-hidden /> Gravar resposta em áudio
           </Button>

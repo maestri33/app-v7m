@@ -56,8 +56,8 @@ export function AlunosList({ items }: { items: HubStudentRow[] }) {
                 <h2 className="font-display text-lg">{s.name ?? "Sem nome"}</h2>
                 <Badge tone={statusTone(s.status)}>{statusLabel(s.status)}</Badge>
               </div>
-              {s.phone && <p className="text-sm text-brand-muted mt-1">{s.phone}</p>}
-              {since && <p className="text-sm text-brand-muted mt-1">desde {since}</p>}
+              {s.phone && <p className="text-sm text-[var(--surface-text-muted)] mt-1">{s.phone}</p>}
+              {since && <p className="text-sm text-[var(--surface-text-muted)] mt-1">desde {since}</p>}
             </CardLink>
           </li>
         );

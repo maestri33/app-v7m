@@ -13,7 +13,7 @@ export function ContextSwitcher({ context }: { context: "promoter" | "coordinati
 
   return (
     <nav
-      className="inline-flex w-fit rounded-full border border-brand-border bg-brand-surface p-0.5 text-sm mt-2"
+      className="inline-flex w-fit rounded-full border border-[var(--surface-border)] bg-[var(--surface)] p-0.5 text-sm mt-2"
       aria-label="Trocar contexto"
     >
       <Link
@@ -21,8 +21,8 @@ export function ContextSwitcher({ context }: { context: "promoter" | "coordinati
         aria-current={onPromoter ? "page" : undefined}
         className={
           onPromoter
-            ? "inline-flex items-center min-h-11 rounded-full px-4 bg-brand-ink text-brand-paper"
-            : "inline-flex items-center min-h-11 rounded-full px-4 text-brand-muted hover:text-brand-ink transition-colors"
+            ? "inline-flex items-center min-h-11 rounded-full px-4 bg-[var(--surface-text)] text-[var(--bg)]"
+            : "inline-flex items-center min-h-11 rounded-full px-4 text-[var(--surface-text-muted)] hover:text-[var(--surface-text)] transition-colors"
         }
       >
         Promotor
@@ -32,8 +32,8 @@ export function ContextSwitcher({ context }: { context: "promoter" | "coordinati
         aria-current={!onPromoter ? "page" : undefined}
         className={
           !onPromoter
-            ? "inline-flex items-center min-h-11 rounded-full px-4 bg-brand-ink text-brand-paper"
-            : "inline-flex items-center min-h-11 rounded-full px-4 text-brand-muted hover:text-brand-ink transition-colors"
+            ? "inline-flex items-center min-h-11 rounded-full px-4 bg-[var(--surface-text)] text-[var(--bg)]"
+            : "inline-flex items-center min-h-11 rounded-full px-4 text-[var(--surface-text-muted)] hover:text-[var(--surface-text)] transition-colors"
         }
       >
         Coordenação

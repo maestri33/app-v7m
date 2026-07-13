@@ -32,11 +32,11 @@ export default async function MatriculasPage() {
       />
 
       {errorCode ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Não deu pra carregar as matrículas agora ({errorCode}). Atualize a página.
         </Card>
       ) : !data || data.length === 0 ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Nenhuma matrícula aguardando no seu polo. Tudo em dia.
         </Card>
       ) : (

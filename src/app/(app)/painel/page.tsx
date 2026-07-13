@@ -39,7 +39,7 @@ export default async function PainelPage() {
     // trava) aparecem depois disso, lidos do /me. Aqui não há mais o que preencher.
     if (me.status === "completed") {
       return (
-        <GrainSection className="bg-brand-bg min-h-[60dvh]">
+        <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
           <Container>
             <PageHeader
               title="Cadastro completo!"
@@ -47,7 +47,7 @@ export default async function PainelPage() {
             />
             <Card className="max-w-2xl">
               <h2 className="font-display text-lg">Aguardando aprovação do polo</h2>
-              <p className="text-sm text-brand-muted mt-1">
+              <p className="text-sm text-[var(--surface-text-muted)] mt-1">
                 Recebemos seu perfil, documento, Pix e selfie. O coordenador do
                 seu polo confere e libera — quando aprovar, o treinamento aparece
                 aqui sozinho. Por ora, não precisa fazer mais nada.
@@ -143,7 +143,7 @@ export default async function PainelPage() {
       paid >= goal ? "🏆" : paid >= Math.ceil(goal * 0.6) ? "⚡" : paid >= 1 ? "🔥" : "🌱";
 
     return (
-      <GrainSection className="bg-brand-bg min-h-[60dvh]">
+      <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
         <Container>
           <PageHeader
             title={`Olá, ${session.name ?? "promotor"}`}
@@ -160,25 +160,25 @@ export default async function PainelPage() {
             {/* Recebido × previsto */}
             <div className="grid grid-cols-2 gap-3">
               <Card>
-                <p className="text-xs uppercase tracking-wider text-brand-muted">
+                <p className="text-xs uppercase tracking-wider text-[var(--surface-text-muted)]">
                   Já recebido
                 </p>
                 <p className="font-display mt-1 text-2xl">
                   {formatBRL(summary.lifetime.total_received)}
                 </p>
-                <p className="text-xs text-brand-muted mt-0.5">fechamentos passados</p>
+                <p className="text-xs text-[var(--surface-text-muted)] mt-0.5">fechamentos passados</p>
               </Card>
               <Card className="border-brand-gold/50">
                 <p className="text-xs uppercase tracking-wider text-brand-gold-ink">
                   Previsto pra sexta
                 </p>
                 <p className="font-display mt-1 text-2xl">{formatBRL(projected)}</p>
-                <p className="text-xs text-brand-muted mt-0.5">se fechar assim</p>
+                <p className="text-xs text-[var(--surface-text-muted)] mt-0.5">se fechar assim</p>
               </Card>
             </div>
 
             {/* HERO: meta da semana */}
-            <div className="rounded-[var(--radius)] border border-brand-gold/40 bg-brand-char p-5 text-brand-paper">
+            <div className="rounded-[var(--radius)] border border-brand-gold/40 bg-brand-char p-5 text-[var(--surface)]">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-gold-light">
                   Meta da semana
@@ -195,7 +195,7 @@ export default async function PainelPage() {
                 <span aria-hidden className="text-[2rem] leading-none">{heroEmoji}</span>
                 <span>
                   {paid}
-                  <span className="text-lg text-brand-muted-on-dark"> / {goal} matrículas</span>
+                  <span className="text-lg text-[var(--surface-text-muted)]-on-dark"> / {goal} matrículas</span>
                 </span>
               </p>
               <div className="my-3 flex gap-1.5" aria-hidden>
@@ -215,13 +215,13 @@ export default async function PainelPage() {
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <div className="rounded-[var(--radius-sm)] bg-white/5 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted-on-dark">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--surface-text-muted)]-on-dark">
                     Acumulado na semana
                   </p>
                   <p className="font-display text-lg">
                     {formatBRL(summary.week_commission_total)}
                   </p>
-                  <p className="text-[10px] text-brand-muted-on-dark">
+                  <p className="text-[10px] text-[var(--surface-text-muted)]-on-dark">
                     R$100 por matrícula paga
                   </p>
                 </div>
@@ -239,7 +239,7 @@ export default async function PainelPage() {
 
               {/* Leads da semana */}
               {weekLeads.length === 0 && (
-                <p className="mt-4 rounded-[var(--radius-sm)] bg-white/5 px-3 py-3 text-sm text-brand-muted-on-dark">
+                <p className="mt-4 rounded-[var(--radius-sm)] bg-white/5 px-3 py-3 text-sm text-[var(--surface-text-muted)]-on-dark">
                   Sua semana começa agora: compartilhe seu link logo abaixo e a
                   primeira matrícula aparece aqui. 🌱
                 </p>
@@ -275,7 +275,7 @@ export default async function PainelPage() {
                           Chamar ↗
                         </a>
                       ) : (
-                        <span className="text-[10px] text-brand-muted-on-dark">
+                        <span className="text-[10px] text-[var(--surface-text-muted)]-on-dark">
                           sem contato
                         </span>
                       )}
@@ -293,11 +293,11 @@ export default async function PainelPage() {
             {/* Link de captação */}
             {me.ref_url && (
               <Card>
-                <p className="text-xs uppercase tracking-wider text-brand-muted mb-2">
+                <p className="text-xs uppercase tracking-wider text-[var(--surface-text-muted)] mb-2">
                   Seu link de captação
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <code className="rounded bg-brand-bg px-2 py-1 border border-brand-border text-sm break-all">
+                  <code className="rounded bg-[var(--bg)] px-2 py-1 border border-[var(--surface-border)] text-sm break-all">
                     {me.ref_url}
                   </code>
                   <CopyButton value={me.ref_url} label="Copiar link" />
@@ -308,12 +308,12 @@ export default async function PainelPage() {
             {/* Estude você também — auto-matrícula (sem comissão) */}
             {studyPricing?.pix && (
               <Card className="space-y-2">
-                <p className="text-xs uppercase tracking-wider text-brand-muted">
+                <p className="text-xs uppercase tracking-wider text-[var(--surface-text-muted)]">
                   Estude você também
                 </p>
-                <p className="text-sm text-brand-muted">
+                <p className="text-sm text-[var(--surface-text-muted)]">
                   Conclua seus estudos na mesma escola que você indica — matrícula
-                  por <strong className="text-brand-ink">{formatBRL(studyPricing.pix)}</strong> no
+                  por <strong className="text-[var(--surface-text)]">{formatBRL(studyPricing.pix)}</strong> no
                   Pix{studyPricing.card?.installments
                     ? `, ou ${studyPricing.card.installments}× de ${formatBRL(studyPricing.card.installment)} no cartão`
                     : ""}.
@@ -324,19 +324,19 @@ export default async function PainelPage() {
 
             {/* Jornada / lifetime */}
             <Card>
-              <p className="text-xs uppercase tracking-wider text-brand-muted mb-3">
+              <p className="text-xs uppercase tracking-wider text-[var(--surface-text-muted)] mb-3">
                 Sua jornada
               </p>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <p className="font-display text-xl">{summary.lifetime.total_students}</p>
-                  <p className="text-xs text-brand-muted leading-snug">
+                  <p className="text-xs text-[var(--surface-text-muted)] leading-snug">
                     vidas que você ajudou a mudar
                   </p>
                 </div>
                 <div>
                   <p className="font-display text-xl">{summary.lifetime.goals_hit}×</p>
-                  <p className="text-xs text-brand-muted leading-snug">
+                  <p className="text-xs text-[var(--surface-text-muted)] leading-snug">
                     metas semanais batidas
                   </p>
                 </div>
@@ -344,7 +344,7 @@ export default async function PainelPage() {
                   <p className="font-display text-xl">
                     {formatBRL(summary.lifetime.total_received)}
                   </p>
-                  <p className="text-xs text-brand-muted leading-snug">recebido no total</p>
+                  <p className="text-xs text-[var(--surface-text-muted)] leading-snug">recebido no total</p>
                 </div>
               </div>
             </Card>

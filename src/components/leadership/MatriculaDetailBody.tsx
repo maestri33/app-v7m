@@ -22,7 +22,7 @@ export function MatriculaDetailBody({
 }) {
   if (errorCode) {
     return (
-      <Card className="text-brand-muted">
+      <Card className="text-[var(--surface-text-muted)]">
         {errorCode === "ENROLLMENT_NOT_FOUND" || errorCode === "NOT_HUB_COORDINATOR"
           ? "Essa matrícula não é do seu polo."
           : `Não deu pra carregar a matrícula agora (${errorCode}). Atualize a página.`}
@@ -30,7 +30,7 @@ export function MatriculaDetailBody({
     );
   }
   if (!data) {
-    return <Card className="text-brand-muted">Sem dados.</Card>;
+    return <Card className="text-[var(--surface-text-muted)]">Sem dados.</Card>;
   }
 
   const fields = Object.entries(data).filter(([, v]) => isPrimitive(v));
@@ -43,8 +43,8 @@ export function MatriculaDetailBody({
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
             {fields.map(([k, v]) => (
               <div key={k} className="contents">
-                <dt className="text-brand-muted">{k}</dt>
-                <dd className="text-brand-ink break-words">{String(v)}</dd>
+                <dt className="text-[var(--surface-text-muted)]">{k}</dt>
+                <dd className="text-[var(--surface-text)] break-words">{String(v)}</dd>
               </div>
             ))}
           </dl>
@@ -54,13 +54,13 @@ export function MatriculaDetailBody({
       {nested.map(([k, v]) => (
         <Card key={k}>
           <h2 className="font-display text-base mb-2">{k}</h2>
-          <pre className="overflow-auto rounded border border-brand-border bg-brand-bg p-3 text-xs text-brand-ink">
+          <pre className="overflow-auto rounded border border-[var(--surface-border)] bg-[var(--bg)] p-3 text-xs text-[var(--surface-text)]">
             {JSON.stringify(v, null, 2)}
           </pre>
         </Card>
       ))}
 
-      <Card className="text-sm text-brand-muted">
+      <Card className="text-sm text-[var(--surface-text-muted)]">
         Fazer a matrícula — pagar a taxa (2 parcelas) e concluir, gerando o login da
         plataforma do aluno — mexe em dinheiro e credenciais reais e entra num passo
         dedicado.

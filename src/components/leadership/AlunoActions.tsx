@@ -52,10 +52,10 @@ function studentMessage(body: ErrBody): string {
 }
 
 const TEXTAREA_CLS =
-  "w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40";
+  "w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40";
 const INPUT_CLS = TEXTAREA_CLS;
 const FILE_CLS =
-  "w-full text-sm text-brand-ink file:mr-3 file:rounded-lg file:border-0 file:bg-brand-gold-ink/10 file:px-3 file:py-2 file:text-sm file:text-brand-gold-ink";
+  "w-full text-sm text-[var(--surface-text)] file:mr-3 file:rounded-lg file:border-0 file:bg-brand-gold-ink/10 file:px-3 file:py-2 file:text-sm file:text-brand-gold-ink";
 
 /**
  * Ações L2 do detalhe do aluno: corrigir prova, abrir/resolver pendência, liberar
@@ -224,7 +224,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
       {/* Corrigir prova */}
       <Card>
         <h2 className="font-display text-base">Corrigir prova</h2>
-        <p className="text-sm text-brand-muted mt-1">
+        <p className="text-sm text-[var(--surface-text-muted)] mt-1">
           Passou → segue pra conferência da documentação; reprovou → o aluno refaz.
           A correção muda o status real do aluno.
         </p>
@@ -255,7 +255,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
                 Reprovou
               </Button>
             </div>
-            <label htmlFor="exam-notes" className="block text-sm text-brand-ink">
+            <label htmlFor="exam-notes" className="block text-sm text-[var(--surface-text)]">
               Observações (opcional)
             </label>
             <textarea
@@ -266,7 +266,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
               placeholder="Notas internas sobre a correção"
               className={TEXTAREA_CLS}
             />
-            <p className="text-sm text-brand-ink">
+            <p className="text-sm text-[var(--surface-text)]">
               Confirmar a correção? Isso muda o status do aluno na hora.
             </p>
             <div className="flex flex-wrap gap-3">
@@ -287,7 +287,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
       {openPendencies.length > 0 && (
         <Card>
           <h2 className="font-display text-base">Resolver pendência</h2>
-          <p className="text-sm text-brand-muted mt-1">
+          <p className="text-sm text-[var(--surface-text-muted)] mt-1">
             Resolver uma pendência tira o aluno do estado de pendência. Sem nenhuma
             pendência aberta, ele segue pro diploma.
           </p>
@@ -300,7 +300,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
               return (
                 <li key={p.external_id} className="text-sm">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-brand-ink">{p.description}</span>
+                    <span className="text-[var(--surface-text)]">{p.description}</span>
                     {!isThis && (
                       <Button
                         type="button"
@@ -313,7 +313,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
                   </div>
                   {isThis && (
                     <div className="mt-2 space-y-2">
-                      <p className="text-brand-ink">
+                      <p className="text-[var(--surface-text)]">
                         Confirmar que esta pendência foi resolvida?
                       </p>
                       <div className="flex flex-wrap gap-3">
@@ -346,7 +346,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
       {/* Abrir pendência */}
       <Card>
         <h2 className="font-display text-base">Abrir pendência</h2>
-        <p className="text-sm text-brand-muted mt-1">
+        <p className="text-sm text-[var(--surface-text-muted)] mt-1">
           Lança uma pendência (documento ou taxa) → o aluno vai pra pendência. O valor
           da taxa é só registro: não move dinheiro aqui.
         </p>
@@ -377,7 +377,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
                 Taxa
               </Button>
             </div>
-            <label htmlFor="pendency-desc" className="block text-sm text-brand-ink">
+            <label htmlFor="pendency-desc" className="block text-sm text-[var(--surface-text)]">
               Descrição
             </label>
             <textarea
@@ -390,7 +390,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
             />
             {pendencyKind === "fee" && (
               <>
-                <label htmlFor="pendency-amount" className="block text-sm text-brand-ink">
+                <label htmlFor="pendency-amount" className="block text-sm text-[var(--surface-text)]">
                   Valor de referência (R$, opcional)
                 </label>
                 <input
@@ -404,7 +404,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
                 />
               </>
             )}
-            <p className="text-sm text-brand-ink">
+            <p className="text-sm text-[var(--surface-text)]">
               Confirmar a abertura? O aluno passa a ter uma pendência em aberto.
             </p>
             <div className="flex flex-wrap gap-3">
@@ -424,7 +424,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
       {/* Liberar documentação */}
       <Card>
         <h2 className="font-display text-base">Liberar documentação</h2>
-        <p className="text-sm text-brand-muted mt-1">
+        <p className="text-sm text-[var(--surface-text-muted)] mt-1">
           Confirma que não há pendência → libera a emissão do diploma. Não funciona
           enquanto houver pendência em aberto.
         </p>
@@ -439,7 +439,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
 
         {mode === "clear" && (
           <div className="mt-4 space-y-3">
-            <p className="text-sm text-brand-ink">
+            <p className="text-sm text-[var(--surface-text)]">
               Confirmar que a documentação está completa? Isso libera o diploma.
             </p>
             <div className="flex flex-wrap gap-3">
@@ -464,7 +464,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
       {!data.diploma && (
         <Card>
           <h2 className="font-display text-base">Emitir diploma</h2>
-          <p className="text-sm text-brand-muted mt-1">
+          <p className="text-sm text-[var(--surface-text-muted)] mt-1">
             Anexe o diploma (PDF ou imagem) e, se houver, o histórico → o aluno fica
             aguardando a retirada e é avisado pra comparecer ao polo. Ação irreversível.
           </p>
@@ -479,7 +479,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
 
           {mode === "diploma" && (
             <div className="mt-4 space-y-3">
-              <label htmlFor="diploma-file" className="block text-sm text-brand-ink">
+              <label htmlFor="diploma-file" className="block text-sm text-[var(--surface-text)]">
                 Diploma (PDF ou imagem) — obrigatório
               </label>
               <input
@@ -489,7 +489,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
                 onChange={(e) => setDiplomaFile(e.target.files?.[0] ?? null)}
                 className={FILE_CLS}
               />
-              <label htmlFor="transcript-file" className="block text-sm text-brand-ink">
+              <label htmlFor="transcript-file" className="block text-sm text-[var(--surface-text)]">
                 Histórico (opcional)
               </label>
               <input
@@ -499,7 +499,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
                 onChange={(e) => setTranscriptFile(e.target.files?.[0] ?? null)}
                 className={FILE_CLS}
               />
-              <p className="text-sm text-brand-ink">
+              <p className="text-sm text-[var(--surface-text)]">
                 Confirmar a emissão do diploma? Não dá pra desfazer.
               </p>
               <div className="flex flex-wrap gap-3">
@@ -521,7 +521,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
       {data.diploma && !data.diploma.picked_up && (
         <Card>
           <h2 className="font-display text-base">Registrar retirada</h2>
-          <p className="text-sm text-brand-muted mt-1">
+          <p className="text-sm text-[var(--surface-text-muted)] mt-1">
             Anexe a foto do aluno recebendo o diploma no polo → ele passa a VETERANO.
             Ação irreversível.
           </p>
@@ -536,7 +536,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
 
           {mode === "pickup" && (
             <div className="mt-4 space-y-3">
-              <label htmlFor="pickup-file" className="block text-sm text-brand-ink">
+              <label htmlFor="pickup-file" className="block text-sm text-[var(--surface-text)]">
                 Foto da retirada — obrigatória
               </label>
               <input
@@ -546,7 +546,7 @@ export function AlunoActions({ data }: { data: StudentDetail }) {
                 onChange={(e) => setPickupFile(e.target.files?.[0] ?? null)}
                 className={FILE_CLS}
               />
-              <p className="text-sm text-brand-ink">
+              <p className="text-sm text-[var(--surface-text)]">
                 Confirmar a retirada? O aluno vira veterano na hora.
               </p>
               <div className="flex flex-wrap gap-3">

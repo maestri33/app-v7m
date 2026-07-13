@@ -33,9 +33,12 @@ export const metadata: Metadata = {
 };
 
 // Casca tipo app: ocupa toda a viewport com safe-area (notch/home indicator).
-// Sem travar zoom (a11y) — apenas viewport-fit cover + theme color preto.
+// Sem travar zoom (a11y) — apenas viewport-fit cover + theme color por tema.
 export const viewport: Viewport = {
-  themeColor: "#0b0b0c",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f4f1" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0c" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -47,8 +50,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${geist.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-brand-bg text-brand-ink">
+    <html lang="pt-BR" className={`${geist.variable} h-full`} suppressHydrationWarning>
+      <head>
+        {/* Anti-FOUC: seta data-theme antes do primeiro paint (CSP permite unsafe-inline) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){try{var t=localStorage.getItem('v7m-theme')||'system';var d=t==='system'?(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):t;document.documentElement.dataset.theme=d;}catch(e){}})();
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col">
         <a href="#main" className="skip-link">
           Pular para o conteúdo
         </a>

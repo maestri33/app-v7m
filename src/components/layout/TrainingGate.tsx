@@ -28,9 +28,9 @@ export function TrainingGate({ locked }: { locked: boolean }) {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-bg px-6 text-center"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg)] px-6 text-center"
     >
-      <p className="text-brand-muted">
+      <p className="text-[var(--surface-text-muted)]">
         Treinamento obrigatório — levando você para as matérias…
       </p>
     </div>

@@ -36,7 +36,7 @@ export default async function CandidatoDetailPage({
     <Container className="py-10">
       <Link
         href="/coordenador/candidatos"
-        className="inline-flex items-center min-h-11 text-sm text-brand-muted hover:text-brand-ink transition-colors"
+        className="inline-flex items-center min-h-11 text-sm text-[var(--surface-text-muted)] hover:text-[var(--surface-text)] transition-colors"
       >
         ← Candidatos
       </Link>

@@ -40,7 +40,7 @@ export default async function LeadsPage() {
   const weekStart = summary.week_start ? new Date(summary.week_start) : null;
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Seus leads"
@@ -49,7 +49,7 @@ export default async function LeadsPage() {
 
         {leads.length === 0 ? (
           <Card className="max-w-2xl space-y-4">
-            <p className="text-brand-muted">
+            <p className="text-[var(--surface-text-muted)]">
               Seus primeiros leads vão aparecer aqui. Compartilhe seu link de
               captação — cada matrícula paga é R$100 no seu Pix.
             </p>
@@ -74,7 +74,7 @@ export default async function LeadsPage() {
                           <h2 className="font-display text-base leading-snug">
                             {l.name || "Lead sem nome"}
                           </h2>
-                          <p className="text-xs text-brand-muted mt-0.5">
+                          <p className="text-xs text-[var(--surface-text-muted)] mt-0.5">
                             {new Date(l.created_at).toLocaleString("pt-BR", {
                               dateStyle: "short",
                               timeStyle: "short",
@@ -96,7 +96,7 @@ export default async function LeadsPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`Chamar ${l.name || "o lead"} no WhatsApp`}
-                        className="mt-3 inline-flex min-h-11 items-center rounded-full border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold hover:border-brand-gold transition-colors"
+                        className="mt-3 inline-flex min-h-11 items-center rounded-full border border-[var(--surface-border)] bg-[var(--bg)] px-4 py-2 text-sm font-semibold hover:border-brand-gold transition-colors"
                       >
                         Chamar no WhatsApp ↗
                       </a>

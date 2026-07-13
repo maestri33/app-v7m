@@ -27,7 +27,7 @@ export function AppNav() {
 
   return (
     <nav
-      className="shrink-0 border-t border-brand-border bg-brand-bg/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]"
+      className="shrink-0 border-t border-[var(--surface-border)] bg-[var(--bg)]/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]"
       aria-label="Navegação principal"
     >
       <div className="mx-auto flex max-w-md items-center justify-around">
@@ -45,7 +45,7 @@ export function AppNav() {
               className={
                 active
                   ? "flex min-h-14 min-w-[72px] flex-col items-center justify-center px-2 py-1 text-xs font-medium text-brand-gold-ink transition-colors"
-                  : "flex min-h-14 min-w-[72px] flex-col items-center justify-center px-2 py-1 text-xs text-brand-muted transition-colors hover:text-brand-ink"
+                  : "flex min-h-14 min-w-[72px] flex-col items-center justify-center px-2 py-1 text-xs text-[var(--surface-text-muted)] transition-colors hover:text-[var(--surface-text)]"
               }
             >
               <Icon size={22} strokeWidth={active ? 2.2 : 1.8} aria-hidden="true" />

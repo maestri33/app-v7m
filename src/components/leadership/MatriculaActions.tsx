@@ -177,7 +177,7 @@ export function MatriculaActions({
       {showPay && (
         <Card>
           <h2 className="font-display text-base">Pagar 1ª parcela (à vista)</h2>
-          <p className="text-sm text-brand-muted mt-1">
+          <p className="text-sm text-[var(--surface-text-muted)] mt-1">
             Pegue o QR Pix da 1ª parcela na plataforma parceira e cole aqui.
             Nosso app dispara o pagamento via Asaas/DICT (saída real da empresa).
           </p>
@@ -201,7 +201,7 @@ export function MatriculaActions({
                 onChange={(e) => setQr(e.target.value)}
                 rows={3}
                 placeholder="Cole aqui o código Pix que você pegou na plataforma parceira"
-                className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-xs font-mono text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+                className="w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-xs font-mono text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
               />
               <p className="text-sm text-black">
                 Confirmar pagamento? Isso vai disparar a 1ª parcela via Asaas/DICT
@@ -226,7 +226,7 @@ export function MatriculaActions({
       {showSchedule && (
         <Card>
           <h2 className="font-display text-base">Agendar 2ª parcela (~30d)</h2>
-          <p className="text-sm text-brand-muted mt-1">
+          <p className="text-sm text-[var(--surface-text-muted)] mt-1">
             Pegue o QR Pix da 2ª parcela na plataforma parceira (com vencimento).
             Cole aqui — o app agenda o pagamento; o Asaas dispara no vencimento.
             Pode ser feito em paralelo com a 1ª parcela.
@@ -251,7 +251,7 @@ export function MatriculaActions({
                 onChange={(e) => setQr(e.target.value)}
                 rows={3}
                 placeholder="Cole aqui o código Pix com vencimento ~30d"
-                className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-xs font-mono text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+                className="w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-xs font-mono text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
               />
               <p className="text-sm text-black">
                 Confirmar agendamento? O Asaas disparará o pagamento no vencimento
@@ -276,7 +276,7 @@ export function MatriculaActions({
       {showConclude && (
         <Card>
           <h2 className="font-display text-base">Concluir matrícula</h2>
-          <p className="text-sm text-brand-muted mt-1">
+          <p className="text-sm text-[var(--surface-text-muted)] mt-1">
             Com as 2 parcelas resolvidas, pegue o login e a senha do aluno na
             plataforma parceira e cole aqui. Ao concluir, o aluno vira student e
             o JWT antigo dele é invalidado (vai precisar entrar de novo).
@@ -300,7 +300,7 @@ export function MatriculaActions({
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
                 placeholder="login que você pegou na plataforma parceira"
-                className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+                className="w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
                 autoComplete="off"
               />
               <label htmlFor="platform-password" className="block text-sm text-black">
@@ -312,7 +312,7 @@ export function MatriculaActions({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="senha que você pegou na plataforma parceira"
-                className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+                className="w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
                 autoComplete="off"
               />
               <label htmlFor="platform-url" className="block text-sm text-black">
@@ -323,7 +323,7 @@ export function MatriculaActions({
                 value={platformUrl}
                 onChange={(e) => setPlatformUrl(e.target.value)}
                 placeholder="https://..."
-                className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+                className="w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
                 autoComplete="off"
               />
               <label htmlFor="platform-notes" className="block text-sm text-black">
@@ -335,7 +335,7 @@ export function MatriculaActions({
                 onChange={(e) => setPlatformNotes(e.target.value)}
                 rows={2}
                 placeholder="Observações sobre a matrícula (não vai pro aluno)"
-                className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+                className="w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
               />
               <p className="text-sm text-black">
                 Confirmar conclusão? O aluno vira student e o JWT antigo é invalidado.
@@ -356,7 +356,7 @@ export function MatriculaActions({
       )}
 
       {!showPay && !showSchedule && !showConclude && (
-        <Card className="text-sm text-brand-muted">
+        <Card className="text-sm text-[var(--surface-text-muted)]">
           As duas parcelas já foram resolvidas e a matrícula ainda não foi
           concluída. Aguardando ação do coordenador.
         </Card>

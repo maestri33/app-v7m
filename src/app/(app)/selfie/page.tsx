@@ -31,7 +31,7 @@ export default async function SelfiePage() {
   }
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Sua selfie"

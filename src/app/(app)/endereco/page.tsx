@@ -37,7 +37,7 @@ export default async function EnderecoPage({
   // Etapa já concluída → resumo somente-leitura + CTA pro passo atual.
   if (stagePassed("address", me.status)) {
     return (
-      <GrainSection className="bg-brand-bg min-h-[60dvh]">
+      <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
         <Container>
           <PageHeader title="Seu endereço" subtitle="Etapa concluída." />
           <FunnelStepper current={me.status} />
@@ -89,7 +89,7 @@ export default async function EnderecoPage({
   }
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Seu endereço"

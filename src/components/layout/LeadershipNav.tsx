@@ -32,7 +32,7 @@ export function LeadershipNav() {
               key={it.href}
               title="Em breve"
               aria-disabled="true"
-              className="inline-flex items-center min-h-11 border-b-2 border-transparent text-brand-muted/50 cursor-not-allowed"
+              className="inline-flex items-center min-h-11 border-b-2 border-transparent text-[var(--surface-text-muted)]/50 cursor-not-allowed"
             >
               {it.label}
             </span>
@@ -47,7 +47,7 @@ export function LeadershipNav() {
             className={
               active
                 ? "inline-flex items-center min-h-11 border-b-2 border-brand-gold-ink text-brand-gold-ink font-medium"
-                : "inline-flex items-center min-h-11 border-b-2 border-transparent text-brand-muted hover:text-brand-ink transition-colors"
+                : "inline-flex items-center min-h-11 border-b-2 border-transparent text-[var(--surface-text-muted)] hover:text-[var(--surface-text)] transition-colors"
             }
           >
             {it.label}

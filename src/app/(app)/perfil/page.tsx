@@ -40,7 +40,7 @@ export default async function PerfilPage() {
   // reprovasse; perfil não tem análise) + CTA pro passo atual.
   if (stagePassed("profile", me.status)) {
     return (
-      <GrainSection className="bg-brand-bg min-h-[60dvh]">
+      <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
         <Container>
           <PageHeader title="Seu perfil" subtitle="Etapa concluída." />
           <FunnelStepper current={me.status} />
@@ -69,7 +69,7 @@ export default async function PerfilPage() {
   }
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Seu perfil"

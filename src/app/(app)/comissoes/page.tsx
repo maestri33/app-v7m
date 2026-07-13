@@ -45,7 +45,7 @@ export default async function ComissoesPage() {
     .reduce((s, c) => s + Number(c.amount), 0);
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Suas comissões"
@@ -58,7 +58,7 @@ export default async function ComissoesPage() {
         </div>
 
         {commissions.length === 0 ? (
-          <Card className="max-w-2xl text-brand-muted">
+          <Card className="max-w-2xl text-[var(--surface-text-muted)]">
             Suas comissões vão aparecer aqui depois do primeiro fechamento —
             toda sexta às 18h, direto na sua chave Pix. Bora buscar a primeira?
           </Card>
@@ -70,7 +70,7 @@ export default async function ComissoesPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-display text-lg">{formatBRL(c.amount)}</p>
-                      <p className="text-xs text-brand-muted">
+                      <p className="text-xs text-[var(--surface-text-muted)]">
                         {sourceLabel(c.source)} ·{" "}
                         {new Date(c.created_at).toLocaleDateString("pt-BR")}
                       </p>

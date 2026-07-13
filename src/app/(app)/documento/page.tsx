@@ -42,7 +42,7 @@ export default async function DocumentoPage() {
   // Etapa já concluída → resumo somente-leitura + CTA pro passo atual.
   if (stagePassed("documents", me.status)) {
     return (
-      <GrainSection className="bg-brand-bg min-h-[60dvh]">
+      <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
         <Container>
           <PageHeader title="Seu documento" subtitle="Etapa concluída." />
           <FunnelStepper current={me.status} />
@@ -84,7 +84,7 @@ export default async function DocumentoPage() {
   };
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Seu documento"

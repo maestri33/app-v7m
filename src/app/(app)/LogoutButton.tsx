@@ -29,7 +29,7 @@ export function LogoutButton({ className }: LogoutButtonProps) {
       disabled={loading}
       className={
         className ??
-        "text-brand-muted hover:text-brand-ink underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        "text-[var(--surface-text-muted)] hover:text-[var(--surface-text)] underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       }
     >
       {loading ? "Saindo…" : "Sair do app"}
