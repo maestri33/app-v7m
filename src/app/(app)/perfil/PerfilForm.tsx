@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField, SelectField } from "@/components/ui/field";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import { MARITAL_OPTIONS } from "@/lib/candidate/labels";
 import { formatDateBR } from "@/lib/format";
@@ -61,6 +62,9 @@ export function PerfilForm({ initial }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
+      {/* pending cobre fetch + navegação pro próximo passo (server component
+          que busca dados) — o spinner do botão sozinho não deixa claro. */}
+      {pending && <LoadingOverlay label="Salvando…" logo />}
       <ReadOnlyField label="Nome" value={initial.name ?? "—"} />
       <ReadOnlyField
         label="Data de nascimento"
