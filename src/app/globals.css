@@ -373,8 +373,9 @@ strong {
     font-weight: 700;
     font-size: clamp(1.02rem, 0.95rem + 0.4vw, 1.18rem);
     line-height: 1.15;
-    padding: 1.05em 1.9em;
-    border-radius: 999px;
+    padding: 0.7em 1.7em;
+    min-height: 3rem; /* handoff §4: h48 */
+    border-radius: 10px; /* handoff §4: radius 10 (mesmo raio do otp-slot/file-button) */
     background: var(--gold-grad);
     color: var(--black);
     text-decoration: none;
@@ -392,14 +393,14 @@ strong {
     cursor: pointer;
   }
   .btn:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px); /* handoff §4 */
     box-shadow:
       0 18px 40px -14px rgb(217 177 90 / 0.75),
       inset 0 1px 0 rgb(255 255 255 / 0.45),
       inset 0 -3px 0 rgb(11 11 12 / 0.18);
   }
   .btn:active {
-    transform: translateY(0) scale(0.99);
+    transform: translateY(0) scale(0.985); /* handoff §4 */
   }
   .btn:focus-visible {
     outline: 3px solid var(--paper);
@@ -417,7 +418,8 @@ strong {
 
   /* Tamanho grande (faltava — Button usava .btn-xl sem CSS) */
   .btn-xl {
-    padding: 1.15em 2.15em;
+    padding: 0.85em 2em;
+    min-height: 3.25rem; /* variante grande — um degrau acima do h48 base */
     font-size: clamp(1.05rem, 0.97rem + 0.45vw, 1.25rem);
   }
 
@@ -426,6 +428,7 @@ strong {
     background: transparent;
     color: var(--paper);
     border: 1px solid rgb(240 212 147 / 0.4);
+    border-radius: 999px; /* handoff §4: secundário = pill outline (base já é radius 10) */
     box-shadow: none;
   }
   .btn-ghost:hover {
@@ -454,7 +457,8 @@ strong {
 
   .input {
     width: 100%;
-    border-radius: var(--radius);
+    border-radius: 10px; /* handoff §5: radius 10 */
+    min-height: 3rem; /* handoff §5: h48 */
     padding: 0.8rem 1rem;
     font: inherit;
     color: var(--surface-text);
@@ -497,7 +501,7 @@ strong {
   /* Campo somente-leitura (vem do CPFHub/ViaCEP) */
   .input-readonly {
     width: 100%;
-    border-radius: var(--radius);
+    border-radius: 10px; /* handoff §5: alinhado ao .input */
     padding: 0.8rem 1rem;
     background: var(--surface-alt);
     border: 1px solid var(--surface-border);
@@ -525,7 +529,7 @@ strong {
     margin-top: 0.5rem;
   }
   .field-error-dark {
-    color: var(--danger); /* ponytail: status já flipa via --danger → --danger-soft */
+    color: #f0a3a3; /* handoff §5: vermelho suave em superfície escura (mesmo tom inline da auth) */
   }
 
   /* Input de arquivo (selfie/documento) */
@@ -986,4 +990,24 @@ strong {
   40% { transform: translateX(7px); }
   60% { transform: translateX(-4px); }
   80% { transform: translateX(4px); }
+}
+
+/* Loading overlay (global) — logo opcional respirando no centro do anel.
+   Empilha anel + logo na mesma célula do grid (overlap centrado); o anel gira,
+   a logo só "respira". Movimento coberto pelo kill-switch global acima. */
+.overlay-mark {
+  display: grid;
+  place-items: center;
+}
+.overlay-mark > * {
+  grid-area: 1 / 1;
+}
+.overlay-logo {
+  width: 44px;
+  height: auto;
+  animation: overlay-breathe 2.4s var(--ease-out) infinite;
+}
+@keyframes overlay-breathe {
+  0%, 100% { opacity: 0.6; transform: scale(0.94); }
+  50% { opacity: 1; transform: scale(1.02); }
 }

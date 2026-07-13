@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Container } from "@/components/layout/Container";
 import { ContextSwitcher } from "@/components/layout/ContextSwitcher";
 import { AppNav } from "@/components/layout/AppNav";
+import { AppFooter } from "@/components/layout/AppFooter";
 import { LeadershipNav } from "@/components/layout/LeadershipNav";
 import { TrainingGate } from "@/components/layout/TrainingGate";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -50,14 +51,16 @@ export function AppShell({
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <TrainingGate locked={locked} />
-      <header className="shrink-0 z-40 border-b border-[var(--surface-border)] bg-[var(--bg)]/90 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
+      <header className="shrink-0 z-40 bg-[var(--bg)]/90 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
         <Container className="py-4 flex items-center justify-between gap-4">
           <Link
             href="/painel"
-            className="font-display text-lg text-[var(--surface-text)] hover:text-brand-gold-ink transition-colors"
+            className="group flex items-center gap-2.5 text-lg hover:opacity-90 transition-opacity"
           >
-            V7M<span className="text-brand-gold-ink"> · </span>
-            <span className="text-[var(--surface-text-muted)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="V7M" className="h-5 w-auto" />
+            <span className="text-brand-gold-ink font-display" aria-hidden="true">·</span>
+            <span className="font-display text-[var(--surface-text-muted)]">
               {coordination ? "Coordenação" : "Promotor"}
             </span>
           </Link>
@@ -74,6 +77,7 @@ export function AppShell({
             {topNav}
           </Container>
         )}
+        <div className="gold-rule" />
       </header>
       {/* bg claro na faixa inteira: página curta em tela alta não deixa o fundo
           escuro (aurora) vazar abaixo do conteúdo — todas as páginas do shell
@@ -81,7 +85,10 @@ export function AppShell({
       <main id="main" className="app-scroll flex-1 bg-[var(--bg)]">
         {children}
       </main>
-      {showPromoterNav && <AppNav />}
+      {/* Rodapé do frame: a bottom-nav do promotor quando ela existe (ela já é o
+          rodapé); senão, o footer institucional discreto. Nunca os dois — pra
+          não comer conteúdo nem colidir. A assinatura dourada segue no header. */}
+      {showPromoterNav ? <AppNav /> : <AppFooter />}
     </div>
   );
 }
