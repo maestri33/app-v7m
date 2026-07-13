@@ -60,7 +60,7 @@ export default async function ContaPage() {
     .join("");
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         <PageHeader kicker="V7M · Você" title="Sua conta" />
 
@@ -77,14 +77,14 @@ export default async function ContaPage() {
             ) : (
               <div
                 aria-hidden
-                className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[image:var(--gold-grad)] font-display text-lg text-brand-ink"
+                className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[image:var(--gold-grad)] font-display text-lg text-[var(--surface-text)]"
               >
                 {initials}
               </div>
             )}
             <div className="min-w-0">
               <p className="font-display text-lg truncate">{session.name ?? "—"}</p>
-              <p className="text-sm text-brand-muted flex flex-wrap items-center gap-2">
+              <p className="text-sm text-[var(--surface-text-muted)] flex flex-wrap items-center gap-2">
                 {promoter && (
                   <Badge tone={promoter.status === "active" ? "ok" : "danger"}>
                     {promoter.status === "active" ? "Ativo" : "Suspenso"}
@@ -126,7 +126,7 @@ export default async function ContaPage() {
             <Row label="Papéis ativos">{labels.join(" · ") || "—"}</Row>
           </div>
 
-          <LogoutButton className="inline-flex items-center justify-center rounded-full border border-brand-border bg-brand-surface px-6 py-3 text-sm font-semibold text-brand-muted transition-colors hover:border-danger hover:text-danger" />
+          <LogoutButton className="inline-flex items-center justify-center rounded-full border border-[var(--surface-border)] bg-[var(--surface)] px-6 py-3 text-sm font-semibold text-[var(--surface-text-muted)] transition-colors hover:border-danger hover:text-danger" />
         </div>
       </Container>
     </GrainSection>
@@ -137,7 +137,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="card flex items-center justify-between gap-4 py-3.5">
       <p className="text-sm font-medium">{label}</p>
-      <p className="text-sm text-brand-muted text-right">{children}</p>
+      <p className="text-sm text-[var(--surface-text-muted)] text-right">{children}</p>
     </div>
   );
 }

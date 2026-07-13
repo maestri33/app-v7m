@@ -64,8 +64,8 @@ function ReviewRow({ item }: { item: ReviewItem }) {
   const inner = (
     <div className="flex items-start justify-between gap-3">
       <div>
-        <p className="text-brand-ink">{item.name ?? "Sem nome"}</p>
-        <p className="text-xs text-brand-muted mt-0.5">
+        <p className="text-[var(--surface-text)]">{item.name ?? "Sem nome"}</p>
+        <p className="text-xs text-[var(--surface-text-muted)] mt-0.5">
           {item.doc_type ? `${item.doc_type} · ` : ""}
           {since ? `desde ${since}` : item.kind}
         </p>
@@ -79,12 +79,12 @@ function ReviewRow({ item }: { item: ReviewItem }) {
   );
 
   if (!href) {
-    return <div className="rounded-lg border border-brand-border px-3 py-2">{inner}</div>;
+    return <div className="rounded-lg border border-[var(--surface-border)] px-3 py-2">{inner}</div>;
   }
   return (
     <Link
       href={href}
-      className="block rounded-lg border border-brand-border px-3 py-2 hover:border-brand-gold-ink transition-colors focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+      className="block rounded-lg border border-[var(--surface-border)] px-3 py-2 hover:border-brand-gold-ink transition-colors focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
     >
       {inner}
     </Link>
@@ -115,11 +115,11 @@ export default async function RevisoesPage() {
       />
 
       {errorCode ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Não deu pra carregar a fila agora ({errorCode}). Atualize a página.
         </Card>
       ) : total === 0 ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Nada na fila. Tudo em dia no seu polo.
         </Card>
       ) : (
@@ -146,7 +146,7 @@ export default async function RevisoesPage() {
         </div>
       )}
 
-      <p className="mt-6 text-sm text-brand-muted">
+      <p className="mt-6 text-sm text-[var(--surface-text-muted)]">
         Cada item abre o workspace da seção certa (Candidatos, Matrículas, Alunos ou
         Promotores), onde você toma a decisão. Promotores travados no treino caem na
         lista de Promotores, onde dá pra aprovar a matéria em aberto.

@@ -6,6 +6,7 @@ import { ContextSwitcher } from "@/components/layout/ContextSwitcher";
 import { AppNav } from "@/components/layout/AppNav";
 import { LeadershipNav } from "@/components/layout/LeadershipNav";
 import { TrainingGate } from "@/components/layout/TrainingGate";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { isCoordinator, isPromoter, isTrainingLocked } from "@/lib/auth/roles";
 import type { Session } from "@/lib/auth/server";
 
@@ -49,20 +50,23 @@ export function AppShell({
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <TrainingGate locked={locked} />
-      <header className="shrink-0 z-40 border-b border-brand-border bg-brand-bg/90 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
+      <header className="shrink-0 z-40 border-b border-[var(--surface-border)] bg-[var(--bg)]/90 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
         <Container className="py-4 flex items-center justify-between gap-4">
           <Link
             href="/painel"
-            className="font-display text-lg hover:text-brand-gold-ink transition-colors"
+            className="font-display text-lg text-[var(--surface-text)] hover:text-brand-gold-ink transition-colors"
           >
             V7M<span className="text-brand-gold-ink"> · </span>
-            <span className="text-brand-muted">
+            <span className="text-[var(--surface-text-muted)]">
               {coordination ? "Coordenação" : "Promotor"}
             </span>
           </Link>
-          <span className="text-sm text-brand-muted hidden sm:inline">
-            {session.name ?? "Você"}
-          </span>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <span className="text-sm text-[var(--surface-text-muted)] hidden sm:inline">
+              {session.name ?? "Você"}
+            </span>
+          </div>
         </Container>
         {(showSwitcher || topNav) && (
           <Container className="pb-2 flex flex-col gap-2">
@@ -74,7 +78,7 @@ export function AppShell({
       {/* bg claro na faixa inteira: página curta em tela alta não deixa o fundo
           escuro (aurora) vazar abaixo do conteúdo — todas as páginas do shell
           são claras. */}
-      <main id="main" className="app-scroll flex-1 bg-brand-bg">
+      <main id="main" className="app-scroll flex-1 bg-[var(--bg)]">
         {children}
       </main>
       {showPromoterNav && <AppNav />}

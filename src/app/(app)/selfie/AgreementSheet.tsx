@@ -26,7 +26,7 @@ export function AgreementSheet({ onAccept }: { onAccept: () => void }) {
       aria-modal="true"
       aria-labelledby="selfie-agreement-title"
     >
-      <div className="flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[26px] border-t border-brand-gold/40 bg-brand-surface">
+      <div className="flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[26px] border-t border-brand-gold/40 bg-[var(--surface)]">
         <div className="shrink-0 space-y-3 px-5 pb-3 pt-4">
           <div className="mx-auto h-1 w-10 rounded-full bg-brand-border" aria-hidden />
           <div className="flex items-center gap-3">
@@ -46,7 +46,7 @@ export function AgreementSheet({ onAccept }: { onAccept: () => void }) {
             </div>
           ))}
         </div>
-        <div className="shrink-0 border-t border-brand-border px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
+        <div className="shrink-0 border-t border-[var(--surface-border)] px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
           {/* autoFocus: teclado/leitor de tela entram direto na ação do diálogo */}
           <Button type="button" size="xl" onClick={onAccept} autoFocus className="w-full">
             Li e concordo — continuar

@@ -35,17 +35,17 @@ export default async function LeadsPage({
       />
 
       {errorCode ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Não deu pra carregar os leads ({errorCode}). Atualize a página.
         </Card>
       ) : leads.length === 0 ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Nenhum lead {status ? "com esse status" : "por aqui"} ainda.
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded border border-brand-border">
+        <div className="overflow-x-auto rounded border border-[var(--surface-border)]">
           <table className="w-full text-sm">
-            <thead className="bg-brand-bg text-left text-brand-muted">
+            <thead className="bg-[var(--bg)] text-left text-[var(--surface-text-muted)]">
               <tr>
                 <th className="px-4 py-3 font-medium">Nome</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -59,9 +59,9 @@ export default async function LeadsPage({
               {leads.map((l) => (
                 <tr
                   key={l.external_id}
-                  className="border-t border-brand-border hover:bg-brand-bg/60"
+                  className="border-t border-[var(--surface-border)] hover:bg-[var(--bg)]/60"
                 >
-                  <td className="px-4 py-3 text-brand-ink">{l.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-[var(--surface-text)]">{l.name ?? "—"}</td>
                   <td className="px-4 py-3">{l.status ?? "—"}</td>
                   <td className="px-4 py-3 hidden sm:table-cell">{l.phone ?? "—"}</td>
                   <td className="px-4 py-3 text-right">

@@ -13,8 +13,8 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === "") return null;
   return (
     <div className="contents">
-      <dt className="text-brand-muted">{label}</dt>
-      <dd className="text-brand-ink break-words">{value}</dd>
+      <dt className="text-[var(--surface-text-muted)]">{label}</dt>
+      <dd className="text-[var(--surface-text)] break-words">{value}</dd>
     </div>
   );
 }
@@ -39,7 +39,7 @@ export function AlunoDetailBody({
 }) {
   if (errorCode) {
     return (
-      <Card className="text-brand-muted">
+      <Card className="text-[var(--surface-text-muted)]">
         {errorCode === "STUDENT_NOT_FOUND" || errorCode === "NOT_HUB_COORDINATOR"
           ? "Esse aluno não é do seu polo."
           : `Não deu pra carregar o aluno agora (${errorCode}). Atualize a página.`}
@@ -47,7 +47,7 @@ export function AlunoDetailBody({
     );
   }
   if (!data) {
-    return <Card className="text-brand-muted">Sem dados.</Card>;
+    return <Card className="text-[var(--surface-text-muted)]">Sem dados.</Card>;
   }
 
   const u = data.user ?? { external_id: "" };
@@ -85,7 +85,7 @@ export function AlunoDetailBody({
       <Card>
         <h2 className="font-display text-base mb-2">Documentos</h2>
         {data.documents.length === 0 ? (
-          <p className="text-sm text-brand-muted">Nenhum documento enviado.</p>
+          <p className="text-sm text-[var(--surface-text-muted)]">Nenhum documento enviado.</p>
         ) : (
           <ul className="grid gap-2">
             {data.documents.map((d) => (
@@ -93,7 +93,7 @@ export function AlunoDetailBody({
                 key={d.doc_type}
                 className="flex items-center justify-between gap-3 text-sm"
               >
-                <span className="text-brand-ink">{d.doc_type}</span>
+                <span className="text-[var(--surface-text)]">{d.doc_type}</span>
                 <Badge tone={docStatusTone(d.validation_status)}>
                   {d.validation_status}
                 </Badge>
@@ -101,7 +101,7 @@ export function AlunoDetailBody({
             ))}
           </ul>
         )}
-        <p className="mt-3 text-xs text-brand-muted">
+        <p className="mt-3 text-xs text-[var(--surface-text-muted)]">
           A decisão de documento em revisão é feita pela fila de Revisões (ela leva o
           documento específico). Aqui é só leitura do estado.
         </p>
@@ -111,7 +111,7 @@ export function AlunoDetailBody({
       <Card>
         <h2 className="font-display text-base mb-2">Pendências</h2>
         {openPendencies.length === 0 ? (
-          <p className="text-sm text-brand-muted">Nenhuma pendência em aberto.</p>
+          <p className="text-sm text-[var(--surface-text-muted)]">Nenhuma pendência em aberto.</p>
         ) : (
           <ul className="grid gap-3">
             {openPendencies.map((p) => {
@@ -119,11 +119,11 @@ export function AlunoDetailBody({
               return (
                 <li key={p.external_id} className="text-sm">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-brand-ink">{p.description}</span>
+                    <span className="text-[var(--surface-text)]">{p.description}</span>
                     <Badge tone="warn">{p.kind}</Badge>
                   </div>
                   {amount && (
-                    <p className="text-brand-muted mt-1">Valor de referência: {amount}</p>
+                    <p className="text-[var(--surface-text-muted)] mt-1">Valor de referência: {amount}</p>
                   )}
                 </li>
               );

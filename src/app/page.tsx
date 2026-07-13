@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export default function HomePage() {
   return (
     <main id="main">
-      <GrainSection className="bg-brand-ink text-brand-paper min-h-[100dvh] flex items-center">
+      <GrainSection className="bg-brand-ink text-[var(--surface)] min-h-[100dvh] flex items-center">
         <Container narrow>
           <PageHeader
             tone="dark"

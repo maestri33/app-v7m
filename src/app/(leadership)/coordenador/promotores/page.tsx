@@ -61,11 +61,11 @@ export default async function PromotoresPage() {
       />
 
       {errorCode ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Não deu pra carregar os promotores agora ({errorCode}). Atualize a página.
         </Card>
       ) : items.length === 0 ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Nenhum promotor no seu polo por enquanto.
         </Card>
       ) : (

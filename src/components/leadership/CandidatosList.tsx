@@ -41,7 +41,7 @@ export function CandidatosList({ items }: { items: CandidateAwaiting[] }) {
                 )}
               </div>
               {since && (
-                <p className="text-sm text-brand-muted mt-1">desde {since}</p>
+                <p className="text-sm text-[var(--surface-text-muted)] mt-1">desde {since}</p>
               )}
             </CardLink>
           </li>

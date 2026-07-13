@@ -55,12 +55,12 @@ export default async function CandidatosPage() {
       {recruitUrl && (
         <Card className="mb-6 max-w-2xl">
           <h2 className="font-display text-base">Link de recrutamento do polo</h2>
-          <p className="text-sm text-brand-muted mt-1 mb-3">
+          <p className="text-sm text-[var(--surface-text-muted)] mt-1 mb-3">
             Compartilhe com quem você quer trazer. Quem se cadastrar por este link já
             entra como candidato do seu polo.
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <code className="rounded bg-brand-surface px-2 py-1 border border-brand-border text-brand-ink text-sm break-all">
+            <code className="rounded bg-[var(--surface)] px-2 py-1 border border-[var(--surface-border)] text-[var(--surface-text)] text-sm break-all">
               {recruitUrl}
             </code>
             <CopyButton value={recruitUrl} label="Copiar link" />
@@ -69,11 +69,11 @@ export default async function CandidatosPage() {
       )}
 
       {errorCode ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Não deu pra carregar os candidatos agora ({errorCode}). Atualize a página.
         </Card>
       ) : !data || data.length === 0 ? (
-        <Card className="text-brand-muted">
+        <Card className="text-[var(--surface-text-muted)]">
           Nenhum candidato aguardando no seu polo. Tudo em dia.
         </Card>
       ) : (

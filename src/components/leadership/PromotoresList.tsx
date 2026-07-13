@@ -119,7 +119,7 @@ export function PromotoresList({ items }: { items: PromoterWithPending[] }) {
                 {suspended ? (
                   confirming === reactivateKey ? (
                     <div className="space-y-2">
-                      <p className="text-sm text-brand-ink">
+                      <p className="text-sm text-[var(--surface-text)]">
                         Reativar este promotor? Ele volta a captar e receber.
                       </p>
                       <div className="flex flex-wrap gap-3">
@@ -144,7 +144,7 @@ export function PromotoresList({ items }: { items: PromoterWithPending[] }) {
                   )
                 ) : confirming === suspendKey ? (
                   <div className="space-y-2">
-                    <p className="text-sm text-brand-ink">
+                    <p className="text-sm text-[var(--surface-text)]">
                       Suspender este promotor? Enquanto suspenso, ele não capta nem recebe.
                     </p>
                     <div className="flex flex-wrap gap-3">
@@ -169,11 +169,11 @@ export function PromotoresList({ items }: { items: PromoterWithPending[] }) {
 
               {/* Matérias obrigatórias em aberto (destrava aprovando) */}
               {p.pending_materials.length > 0 && (
-                <div className="mt-4 border-t border-brand-border pt-4">
-                  <h3 className="text-sm font-medium text-brand-ink">
+                <div className="mt-4 border-t border-[var(--surface-border)] pt-4">
+                  <h3 className="text-sm font-medium text-[var(--surface-text)]">
                     Matérias obrigatórias em aberto
                   </h3>
-                  <p className="text-xs text-brand-muted mt-1">
+                  <p className="text-xs text-[var(--surface-text-muted)] mt-1">
                     Aprovar uma matéria destrava quem não tem prática digital pra
                     submeter a resposta.
                   </p>
@@ -183,7 +183,7 @@ export function PromotoresList({ items }: { items: PromoterWithPending[] }) {
                       return (
                         <li key={m.material_external_id} className="text-sm">
                           <div className="flex items-center justify-between gap-3">
-                            <span className="text-brand-ink">{m.title}</span>
+                            <span className="text-[var(--surface-text)]">{m.title}</span>
                             {confirming !== matKey && (
                               <Button
                                 type="button"
@@ -196,7 +196,7 @@ export function PromotoresList({ items }: { items: PromoterWithPending[] }) {
                           </div>
                           {confirming === matKey && (
                             <div className="mt-2 space-y-2">
-                              <p className="text-brand-ink">
+                              <p className="text-[var(--surface-text)]">
                                 Aprovar esta matéria no lugar do promotor? Decisão final.
                               </p>
                               <div className="flex flex-wrap gap-3">

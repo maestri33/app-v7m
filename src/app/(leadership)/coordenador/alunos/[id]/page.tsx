@@ -37,7 +37,7 @@ export default async function AlunoDetailPage({
     <Container className="py-10">
       <Link
         href="/coordenador/alunos"
-        className="inline-flex items-center min-h-11 text-sm text-brand-muted hover:text-brand-ink transition-colors"
+        className="inline-flex items-center min-h-11 text-sm text-[var(--surface-text-muted)] hover:text-[var(--surface-text)] transition-colors"
       >
         ← Alunos
       </Link>

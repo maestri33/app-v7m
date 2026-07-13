@@ -38,7 +38,7 @@ export function KinshipChat({ onSubmit }: { onSubmit: (relation: string) => Prom
   });
 
   return (
-    <div className="overflow-hidden rounded-[var(--radius)] border border-brand-border">
+    <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--surface-border)]">
       <CopilotChat
         instructions={INSTRUCTIONS}
         labels={{

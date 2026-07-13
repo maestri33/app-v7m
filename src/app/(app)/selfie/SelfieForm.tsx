@@ -97,7 +97,7 @@ export function SelfieForm() {
   // Esperando a 1ª resposta do backend — sem decidir modal antes da hora.
   if (!data) {
     return (
-      <p className="flex items-center gap-2 text-sm text-brand-muted" role="status">
+      <p className="flex items-center gap-2 text-sm text-[var(--surface-text-muted)]" role="status">
         <Spinner /> Carregando…
       </p>
     );
@@ -107,7 +107,7 @@ export function SelfieForm() {
   if (!takenAt && !accepted) {
     return (
       <>
-        <p className="text-sm text-brand-muted">
+        <p className="text-sm text-[var(--surface-text-muted)]">
           Antes de tirar a selfie, leia e aceite o acordo de parceria.
         </p>
         <AgreementSheet onAccept={() => setAccepted(true)} />
@@ -127,7 +127,7 @@ export function SelfieForm() {
     return (
       <div className="space-y-3 text-center py-4">
         <h2 className="font-display text-lg">Selfie em análise manual</h2>
-        <p className="text-sm text-brand-muted">
+        <p className="text-sm text-[var(--surface-text-muted)]">
           Avisamos por WhatsApp assim que confirmarmos — não devia demorar.
         </p>
       </div>
@@ -146,7 +146,7 @@ export function SelfieForm() {
       )}
 
       <div className="space-y-3">
-        <p id="selfie-photo-label" className="text-sm text-brand-muted">
+        <p id="selfie-photo-label" className="text-sm text-[var(--surface-text-muted)]">
           {status === "rejected"
             ? "Siga as dicas acima e tire outra selfie — dá pra resolver agora, sem esperar ninguém."
             : "Selfie ao vivo, bem iluminada, sem óculos escuros e sem chapéu. Ela é a assinatura eletrônica do seu acordo."}

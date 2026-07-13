@@ -25,10 +25,10 @@ export function PageHeader({
           {kicker}
         </p>
       )}
-      <h1 className={`page-title ${tone === "dark" ? "text-brand-paper" : ""}`.trim()}>{title}</h1>
+      <h1 className={`page-title ${tone === "dark" ? "text-[var(--surface)]" : ""}`.trim()}>{title}</h1>
       {subtitle && (
         <p
-          className={`mt-3 text-lg ${tone === "dark" ? "text-brand-muted-on-dark" : "text-brand-muted"}`}
+          className={`mt-3 text-lg ${tone === "dark" ? "text-[var(--surface-text-muted)]-on-dark" : "text-[var(--surface-text-muted)]"}`}
         >
           {subtitle}
         </p>

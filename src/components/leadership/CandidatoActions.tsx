@@ -193,7 +193,7 @@ export function CandidatoActions({
       {/* Aprovar / Rejeitar candidato */}
       <Card>
         <h2 className="font-display text-base">Decisão do candidato</h2>
-        <p className="text-sm text-brand-muted mt-1">
+        <p className="text-sm text-[var(--surface-text-muted)] mt-1">
           Aprovar promove a pessoa a promotor e já atribui o treinamento obrigatório.
           Recusar exige um motivo, que a pessoa vai ver. As duas ações mexem em
           identidade e status reais.
@@ -210,7 +210,7 @@ export function CandidatoActions({
 
         {mode === "approve" && (
           <div className="mt-4 space-y-3">
-            <p className="text-sm text-brand-ink">
+            <p className="text-sm text-[var(--surface-text)]">
               Confirmar a aprovação? Isso promove a pessoa a promotor na hora.
             </p>
             <div className="flex flex-wrap gap-3">
@@ -226,7 +226,7 @@ export function CandidatoActions({
 
         {mode === "reject" && (
           <div className="mt-4 space-y-3">
-            <label htmlFor="reject-reason" className="block text-sm text-brand-ink">
+            <label htmlFor="reject-reason" className="block text-sm text-[var(--surface-text)]">
               Motivo da recusa
             </label>
             <textarea
@@ -235,7 +235,7 @@ export function CandidatoActions({
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               placeholder="Explique o que impediu a aprovação. A pessoa vai ler."
-              className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+              className="w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
             />
             <div className="flex flex-wrap gap-3">
               <Button type="button" onClick={rejectCandidate} loading={pending}>
@@ -255,7 +255,7 @@ export function CandidatoActions({
       {showSelfieActions && (
         <Card>
           <h2 className="font-display text-base">Selfie</h2>
-          <p className="text-sm text-brand-muted mt-1">
+          <p className="text-sm text-[var(--surface-text-muted)] mt-1">
             Status atual: <strong>{detail?.selfie_status}</strong>. Aprovar ou recusar a
             selfie só faz sentido enquanto ela estiver em revisão.
           </p>
@@ -270,7 +270,7 @@ export function CandidatoActions({
 
           {mode === "selfie" && (
             <div className="mt-4 space-y-3">
-              <label htmlFor="selfie-reason" className="block text-sm text-brand-ink">
+              <label htmlFor="selfie-reason" className="block text-sm text-[var(--surface-text)]">
                 Motivo (obrigatório ao recusar)
               </label>
               <textarea
@@ -279,7 +279,7 @@ export function CandidatoActions({
                 onChange={(e) => setReason(e.target.value)}
                 rows={2}
                 placeholder="Ex: rosto coberto, foto borrada, pessoa diferente do documento..."
-                className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+                className="w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
               />
               <div className="flex flex-wrap gap-3">
                 <Button type="button" onClick={() => approve("selfie")} loading={pending}>
@@ -307,7 +307,7 @@ export function CandidatoActions({
       {/* Decidir / resetar documento */}
       <Card>
         <h2 className="font-display text-base">Documento</h2>
-        <p className="text-sm text-brand-muted mt-1">
+        <p className="text-sm text-[var(--surface-text-muted)] mt-1">
           Decidir o documento (aprovar/reprovar) ou resetar a etapa de documento (a
           pessoa volta a preencher/enviar). Documento e selfie são revisados pelo back.
         </p>
@@ -325,7 +325,7 @@ export function CandidatoActions({
 
         {mode === "document" && (
           <div className="mt-4 space-y-3">
-            <label htmlFor="doc-reason" className="block text-sm text-brand-ink">
+            <label htmlFor="doc-reason" className="block text-sm text-[var(--surface-text)]">
               Motivo (obrigatório ao recusar)
             </label>
             <textarea
@@ -334,7 +334,7 @@ export function CandidatoActions({
               onChange={(e) => setReason(e.target.value)}
               rows={2}
               placeholder="Ex: documento ilegível, dados não conferem, foto cortada..."
-              className="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
+              className="w-full rounded-lg border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--surface-text)] focus:outline-none focus:ring-2 focus:ring-brand-gold-ink/40"
             />
             <div className="flex flex-wrap gap-3">
               <Button type="button" onClick={() => approve("document")} loading={pending}>
@@ -357,7 +357,7 @@ export function CandidatoActions({
 
         {mode === "document-reset" && (
           <div className="mt-4 space-y-3">
-            <p className="text-sm text-brand-ink">
+            <p className="text-sm text-[var(--surface-text)]">
               Resetar a etapa de documento? A pessoa voltará para &quot;Documento&quot; e poderá
               reenviar. Perfil, endereço e Pix ficam mantidos.
             </p>

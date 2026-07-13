@@ -10,7 +10,7 @@ export function Stat({
 }) {
   return (
     <div className="card">
-      <p className="text-xs uppercase tracking-wider text-brand-muted">{label}</p>
+      <p className="text-xs uppercase tracking-wider text-[var(--surface-text-muted)]">{label}</p>
       <p className={`font-display mt-1 ${size === "xl" ? "text-3xl" : "text-2xl"}`}>
         {value}
       </p>

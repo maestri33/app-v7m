@@ -224,7 +224,7 @@ export function DocForm({ initial }: Props) {
                 className={`flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border px-4 py-3 transition-colors ${
                   effectiveType === t
                     ? "border-brand-gold bg-brand-gold-light/10"
-                    : "border-brand-border bg-brand-surface"
+                    : "border-[var(--surface-border)] bg-[var(--surface)]"
                 } cursor-pointer hover:border-brand-gold-dark`}
               >
                 <input
@@ -253,11 +253,11 @@ export function DocForm({ initial }: Props) {
 
       {/* Upload: 1 slot por vez, some durante análise */}
       {hasSlot && !isAnalyzing && status !== "rejected" && (
-        <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-brand-surface p-4 space-y-3">
+        <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-[var(--surface)] p-4 space-y-3">
           <p className="text-sm font-semibold">
             {slotLabel ?? `Envie: ${nextSlot}`}
           </p>
-          <p className="text-xs text-brand-muted">
+          <p className="text-xs text-[var(--surface-text-muted)]">
             tire uma foto ou envie um arquivo — imagem ou PDF
           </p>
           <UploadActions
@@ -276,7 +276,7 @@ export function DocForm({ initial }: Props) {
 
       {/* Rejected: re-abre upload pro mesmo slot */}
       {hasSlot && status === "rejected" && (
-        <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-brand-surface p-4 space-y-3">
+        <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-[var(--surface)] p-4 space-y-3">
           <p className="text-sm font-semibold">
             {slotLabel ?? `Envie: ${nextSlot}`}
           </p>
@@ -303,7 +303,7 @@ export function DocForm({ initial }: Props) {
       {/* Campos que a IA não leu → input manual */}
       {!isAnalyzing && status !== "rejected" && missing.length > 0 && (
         <form onSubmit={onMissingSubmit} className="space-y-5">
-          <p className="text-sm text-brand-muted">
+          <p className="text-sm text-[var(--surface-text-muted)]">
             A IA não conseguiu ler {missing.length === 1 ? "este campo" : "estes campos"} —
             complete pra seguir:
           </p>

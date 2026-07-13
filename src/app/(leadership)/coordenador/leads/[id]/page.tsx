@@ -31,10 +31,10 @@ function Section({
       <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         {Object.entries(obj).map(([k, v]) => (
           <div key={k}>
-            <dt className="text-xs uppercase tracking-wide text-brand-muted">
+            <dt className="text-xs uppercase tracking-wide text-[var(--surface-text-muted)]">
               {k.replace(/_/g, " ")}
             </dt>
-            <dd className="text-brand-ink break-words">{renderValue(v)}</dd>
+            <dd className="text-[var(--surface-text)] break-words">{renderValue(v)}</dd>
           </div>
         ))}
       </dl>
@@ -67,13 +67,13 @@ export default async function LeadDetailPage({
     <Container narrow className="py-10">
       <Link
         href="/coordenador/leads"
-        className="text-sm text-brand-muted hover:text-brand-ink underline"
+        className="text-sm text-[var(--surface-text-muted)] hover:text-[var(--surface-text)] underline"
       >
         ← Voltar pros leads
       </Link>
 
       {errorCode ? (
-        <Card className="mt-6 text-brand-muted">
+        <Card className="mt-6 text-[var(--surface-text-muted)]">
           {notInHub
             ? "Esse lead não é do seu polo (ou não existe)."
             : `Não deu pra carregar o lead (${errorCode}).`}
@@ -86,7 +86,7 @@ export default async function LeadDetailPage({
             subtitle={lead.status ?? undefined}
           />
           {lead.failed_reason && (
-            <Card className="text-brand-muted">
+            <Card className="text-[var(--surface-text-muted)]">
               Motivo da falha: {lead.failed_reason}
             </Card>
           )}

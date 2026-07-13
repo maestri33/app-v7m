@@ -40,8 +40,8 @@ export function MatriculasList({ items }: { items: HubEnrollmentRow[] }) {
                 <h2 className="font-display text-lg">{e.name ?? "Sem nome"}</h2>
                 <Badge tone={awaiting ? "warn" : "muted"}>{statusLabel(e.status)}</Badge>
               </div>
-              {e.phone && <p className="text-sm text-brand-muted mt-1">{e.phone}</p>}
-              {since && <p className="text-sm text-brand-muted mt-1">desde {since}</p>}
+              {e.phone && <p className="text-sm text-[var(--surface-text-muted)] mt-1">{e.phone}</p>}
+              {since && <p className="text-sm text-[var(--surface-text-muted)] mt-1">desde {since}</p>}
             </CardLink>
           </li>
         );

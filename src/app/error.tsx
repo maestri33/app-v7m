@@ -19,7 +19,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh] flex items-center">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh] flex items-center">
       <Container>
         <PageHeader
           kicker="V7M · Erro"
@@ -27,7 +27,7 @@ export default function GlobalError({
           subtitle="A gente já registrou. Tenta de novo — se persistir, abre o app de novo e entra de novo na sua conta."
         />
         {error.digest && (
-          <p className="text-xs text-brand-muted/70 mb-4">ref: {error.digest}</p>
+          <p className="text-xs text-[var(--surface-text-muted)]/70 mb-4">ref: {error.digest}</p>
         )}
         <Button type="button" onClick={reset} size="xl">
           Tentar de novo

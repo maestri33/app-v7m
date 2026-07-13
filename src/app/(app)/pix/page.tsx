@@ -35,7 +35,7 @@ export default async function PixPage() {
   // no contrato (P2.1); revalidar mexeria R$0,01 no DICT à toa.
   if (stagePassed("pix", me.status)) {
     return (
-      <GrainSection className="bg-brand-bg min-h-[60dvh]">
+      <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
         <Container>
           <PageHeader title="Chave Pix" subtitle="Etapa concluída." />
           <FunnelStepper current={me.status} />
@@ -57,7 +57,7 @@ export default async function PixPage() {
   }
 
   return (
-    <GrainSection className="bg-brand-bg min-h-[60dvh]">
+    <GrainSection className="bg-[var(--bg)] min-h-[60dvh]">
       <Container>
         <PageHeader
           title="Chave Pix"

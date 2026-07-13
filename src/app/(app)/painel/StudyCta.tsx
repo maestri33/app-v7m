@@ -62,7 +62,7 @@ export function StudyCta() {
         )}
         {typeof qrPayload === "string" && qrPayload && (
           <div className="flex flex-wrap items-center gap-2">
-            <code className="max-w-full break-all rounded border border-brand-border bg-brand-bg px-2 py-1 text-xs">
+            <code className="max-w-full break-all rounded border border-[var(--surface-border)] bg-[var(--bg)] px-2 py-1 text-xs">
               {qrPayload.slice(0, 42)}…
             </code>
             <CopyButton value={qrPayload} label="Copiar código Pix" />
