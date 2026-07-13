@@ -195,7 +195,7 @@ export default async function PainelPage() {
                 <span aria-hidden className="text-[2rem] leading-none">{heroEmoji}</span>
                 <span>
                   {paid}
-                  <span className="text-lg text-[var(--surface-text-muted)]-on-dark"> / {goal} matrículas</span>
+                  <span className="text-lg text-brand-muted-on-dark"> / {goal} matrículas</span>
                 </span>
               </p>
               <div className="my-3 flex gap-1.5" aria-hidden>
@@ -215,13 +215,13 @@ export default async function PainelPage() {
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <div className="rounded-[var(--radius-sm)] bg-white/5 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--surface-text-muted)]-on-dark">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted-on-dark">
                     Acumulado na semana
                   </p>
                   <p className="font-display text-lg">
                     {formatBRL(summary.week_commission_total)}
                   </p>
-                  <p className="text-[10px] text-[var(--surface-text-muted)]-on-dark">
+                  <p className="text-[10px] text-brand-muted-on-dark">
                     R$100 por matrícula paga
                   </p>
                 </div>
@@ -239,7 +239,7 @@ export default async function PainelPage() {
 
               {/* Leads da semana */}
               {weekLeads.length === 0 && (
-                <p className="mt-4 rounded-[var(--radius-sm)] bg-white/5 px-3 py-3 text-sm text-[var(--surface-text-muted)]-on-dark">
+                <p className="mt-4 rounded-[var(--radius-sm)] bg-white/5 px-3 py-3 text-sm text-brand-muted-on-dark">
                   Sua semana começa agora: compartilhe seu link logo abaixo e a
                   primeira matrícula aparece aqui. 🌱
                 </p>
@@ -275,7 +275,7 @@ export default async function PainelPage() {
                           Chamar ↗
                         </a>
                       ) : (
-                        <span className="text-[10px] text-[var(--surface-text-muted)]-on-dark">
+                        <span className="text-[10px] text-brand-muted-on-dark">
                           sem contato
                         </span>
                       )}

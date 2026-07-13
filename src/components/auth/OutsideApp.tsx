@@ -26,7 +26,7 @@ export function OutsideApp() {
         <Image src="/icon.svg" alt="V7M" width={40} height={40} className="h-full w-full object-contain" />
       </div>
       <h1 className="font-display text-xl text-white">Esse acesso é de outro app</h1>
-      <p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--surface-text-muted)]-on-dark">
+      <p className="mt-2 max-w-xs text-sm leading-relaxed text-brand-muted-on-dark">
         Sua conta não tem papel de candidato, treinamento ou promotor por aqui —
         essa área é do Supletivo. Vamos te levar pra lá.
       </p>
