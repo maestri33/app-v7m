@@ -61,7 +61,25 @@ export default async function PainelPage() {
         </PanelCard>
       );
     }
-    redirect(stageHref(me.status));
+    const href = stageHref(me.status);
+    // Status DESCONHECIDO (o backend ganhou um status que este build não conhece)
+    // → stageHref cai em "/painel"; redirecionar pra própria rota é LOOP infinito
+    // (ERR_TOO_MANY_REDIRECTS — já aconteceu quando `education` nasceu só no back).
+    // Em vez de travar a pessoa, mostra um card neutro; o funil segue quando o
+    // build acompanhar o backend.
+    if (href === "/painel") {
+      return (
+        <PanelCard>
+          <PanelTitle>Tudo certo por aqui 👍</PanelTitle>
+          <PanelSub>Estamos preparando o seu próximo passo.</PanelSub>
+          <PanelBody>
+            Seu cadastro está em andamento. Se esta tela ficar parada, atualize a
+            página ou volte daqui a pouco — nada foi perdido.
+          </PanelBody>
+        </PanelCard>
+      );
+    }
+    redirect(href);
   }
 
   if (isPromoter(session.roles)) {

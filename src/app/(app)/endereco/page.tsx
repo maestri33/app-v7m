@@ -76,7 +76,10 @@ export default async function EnderecoPage({
         />
         <FunnelStepper current="address" />
         <div className="auth-card">
-          <AddressProofSection initial={me.address_proof ?? null} />
+          <AddressProofSection
+            initial={me.address_proof ?? null}
+            aiEnabled={Boolean(process.env.OMNIROUTE_BASE_URL && process.env.OMNIROUTE_API_KEY)}
+          />
         </div>
       </PageShell>
     );

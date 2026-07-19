@@ -24,12 +24,29 @@ const API_KEY = process.env.OMNIROUTE_API_KEY ?? "";
 // "auto/best-vision": alias do OmniRoute que resolve pro melhor modelo com visão + tool_calling.
 const MODEL = process.env.OMNIROUTE_MODEL ?? "auto/best-vision";
 
-const openai = new OpenAI({ baseURL: `${BASE_URL}/v1`, apiKey: API_KEY });
-const serviceAdapter = new OpenAIAdapter({ openai, model: MODEL });
-
-const runtime = new CopilotRuntime();
+// IA configurada? Sem BASE_URL/API_KEY, `new OpenAI({baseURL:"/v1"})` seria uma
+// URL inválida e TODA mensagem do chat falharia — e o passo do comprovante
+// (needs_kinship) dependia SÓ desse chat. Aqui a rota falha rápido e explícito
+// (503) pra UI cair no formulário manual em vez de pendurar um chat morto.
+const AI_CONFIGURED = BASE_URL !== "" && API_KEY !== "";
 
 export const POST = async (req: NextRequest) => {
+  if (!AI_CONFIGURED) {
+    return new Response(
+      JSON.stringify({ detail: "Assistente indisponível.", code: "AI_UNCONFIGURED" }),
+      { status: 503, headers: { "Content-Type": "application/json" } },
+    );
+  }
+  // timeout curto + sem retry: gateway lento/inalcançável degrada em segundos,
+  // não nos ~10min (default do SDK × retries) que penduravam o chat.
+  const openai = new OpenAI({
+    baseURL: `${BASE_URL}/v1`,
+    apiKey: API_KEY,
+    timeout: 15000,
+    maxRetries: 0,
+  });
+  const serviceAdapter = new OpenAIAdapter({ openai, model: MODEL });
+  const runtime = new CopilotRuntime();
   const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
     runtime,
     serviceAdapter,

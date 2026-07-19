@@ -26,6 +26,13 @@ export default async function SelfiePage() {
   if (idx >= 0 && idx < FUNNEL_ORDER.indexOf("education")) {
     redirect(stageHref(me.status));
   }
+  // Selfie é a última etapa: se o funil já passou dela (selfie aprovada →
+  // completed, ou decisão do polo → approved/rejected), forwarda pro painel em
+  // vez de mostrar o uploader de novo. É o par server-side do refresh do
+  // SelfieForm — juntos evitam o ping-pong selfie⇄painel.
+  if (me.status === "completed" || me.status === "approved" || me.status === "rejected") {
+    redirect("/painel");
+  }
 
   return (
     <PageShell>

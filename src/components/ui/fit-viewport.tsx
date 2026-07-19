@@ -7,11 +7,12 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 const MIN_SCALE = 0.65;
 
 /**
- * FitViewport — enquandra o conteúdo na altura disponível SEM scrollar.
- * Se o conteúdo transborda, aplica transform: scale() pra caber (handoff §23,
- * a técnica `fitToViewport()` da Auth). Re-medide em resize e em mudança de
- * conteúdo (ResizeObserver). Respeita prefers-reduced-motion (só escala, sem
- * animação de transição pesada).
+ * FitViewport — enquadra o conteúdo na altura disponível.
+ * Se o conteúdo transborda POUCO, encolhe com transform: scale() pra caber SEM
+ * scrollar (handoff §23, a técnica `fitToViewport()` da Auth). Mas se for alto
+ * demais pra caber legível (precisaria de escala < MIN_SCALE), NÃO corta: volta
+ * ao tamanho real e deixa SCROLLAR — o botão de enviar nunca fica inalcançável.
+ * Re-mede em resize e em mudança de conteúdo (ResizeObserver, criado uma vez).
  */
 export function FitViewport({
   children,
@@ -23,6 +24,7 @@ export function FitViewport({
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [scrollable, setScrollable] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -33,8 +35,16 @@ export function FitViewport({
       const avail = container.clientHeight;
       // scrollHeight reflete o layout natural — transform NÃO o afeta.
       const needed = content.scrollHeight;
-      const next = needed > avail ? Math.max(MIN_SCALE, avail / needed) : 1;
-      setScale((prev) => (Math.abs(prev - next) > 0.005 ? next : prev));
+      const ideal = needed > avail ? avail / needed : 1;
+      if (ideal >= MIN_SCALE) {
+        // Cabe encolhendo (ou já cabe) → mantém o "não scrolla".
+        setScale((prev) => (Math.abs(prev - ideal) > 0.005 ? ideal : prev));
+        setScrollable((s) => (s ? false : s));
+      } else {
+        // Alto demais pra caber legível → tamanho real + scroll (nada cortado).
+        setScale((prev) => (prev !== 1 ? 1 : prev));
+        setScrollable((s) => (s ? s : true));
+      }
     };
 
     measure();
@@ -42,12 +52,12 @@ export function FitViewport({
     ro.observe(container);
     ro.observe(content);
     return () => ro.disconnect();
-  });
+  }, []);
 
   return (
     <div
       ref={containerRef}
-      className={`flex justify-center overflow-hidden ${className}`}
+      className={`flex justify-center ${scrollable ? "overflow-y-auto" : "overflow-hidden"} ${className}`}
     >
       <div
         ref={contentRef}

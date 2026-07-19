@@ -9,7 +9,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { djangoFetch } from "@/lib/api/client";
+import { djangoFetch, DjangoError } from "@/lib/api/client";
 import { isTrainingLocked } from "@/lib/auth/roles";
 
 // `WhoamiOut` real = {external_id, roles, name} — phone/cpf NÃO vêm (P2.1).
@@ -31,8 +31,16 @@ export async function readSession(): Promise<Session | null> {
 
   try {
     return await djangoFetch<Session>("/api/v1/collaborators/whoami");
-  } catch {
-    return null;
+  } catch (e) {
+    // 401 (mesmo após o refresh-on-401 do client) = sessão realmente inválida →
+    // null manda pro login. QUALQUER outra falha (timeout, 5xx, backend fora do
+    // ar, JSON quebrado) NÃO é "deslogado": propaga pro error boundary
+    // ("algo deu errado + tentar de novo"). Antes, um 500 passageiro no whoami
+    // expulsava TODO MUNDO pro login a cada navegação.
+    if (e instanceof DjangoError && (e.status === 401 || e.code === "UNAUTHORIZED")) {
+      return null;
+    }
+    throw e;
   }
 }
 

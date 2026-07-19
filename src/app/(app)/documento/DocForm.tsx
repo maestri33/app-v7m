@@ -23,6 +23,14 @@ type Props = {
 
 const POLL_MS = 2500;
 
+// Fetcher que FALHA em erro (r.ok) + timeout: sem isto, um envelope de erro
+// {detail,code} "resolvia" o SWR e virava `doc` (tela em branco, poll parava).
+async function fetchDoc(url: string): Promise<DocumentSection> {
+  const r = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(12000) });
+  if (!r.ok) throw new Error(`document ${r.status}`);
+  return r.json();
+}
+
 function uploadErrorMessage(code: string | undefined, detail: string | undefined) {
   switch (code) {
     case "IMAGE_TYPE_INVALID":
@@ -66,7 +74,7 @@ export function DocForm({ initial }: Props) {
 
   const { data: live, mutate } = useSWR<DocumentSection>(
     "/api/me/document",
-    (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
+    fetchDoc,
     {
       // Só `pending` mantém o poll (rejected/review/approved param sozinhos);
       // `justUploaded` fica FORA do intervalo — o mutate() pós-upload já traz
@@ -91,12 +99,24 @@ export function DocForm({ initial }: Props) {
   const status: AnalysisStatus | null = doc.analysis_status ?? null;
   const missing = (doc.missing_fields ?? []).filter((f) => f !== "doc_type");
   const hasSlot = nextSlot != null;
-  const isAnalyzing = justUploaded || (hasSlot && status === "pending");
+  // Só está "analisando" quando há DE FATO uma foto em análise. Antes, um slot
+  // pendente SEM foto ainda enviada (ou `analysis_status` defaultado pra
+  // "pending" na página) escondia o uploader e mostrava "IA lendo…" pra sempre —
+  // o candidato não tinha como subir a foto e ficava preso no passo do documento.
+  const hasAnyPhoto =
+    Boolean(doc.has_front || doc.has_back || doc.has_full) ||
+    Object.keys(doc.photos ?? {}).length > 0;
+  const isAnalyzing = justUploaded || (hasSlot && status === "pending" && hasAnyPhoto);
 
-  // Aprovado, sem slot pendente, sem campo faltando → auto-avança.
+  // Aprovado, sem slot pendente, sem campo faltando → auto-avança (one-shot).
+  // `router.refresh()` (não `push`): deixa o server component reavaliar `me.status`
+  // e mostrar o resumo "Continuar"; um `push("/pix")` na janela em que o doc já
+  // aprovou mas `me.status` ainda não virou "pix" fazia ping-pong com o guard do /pix.
+  const advancedRef = useRef(false);
   useEffect(() => {
-    if (status === "approved" && !hasSlot && missing.length === 0) {
-      router.push(NEXT_STAGE.documents);
+    if (status === "approved" && !hasSlot && missing.length === 0 && !advancedRef.current) {
+      advancedRef.current = true;
+      router.refresh();
     }
   }, [status, hasSlot, missing.length, router]);
 

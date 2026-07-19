@@ -16,6 +16,12 @@ import {
   setAuthCookies,
 } from "../auth/cookies";
 
+// Teto de espera por chamada ao Django. Sem isto, o `fetch` do Node (undici) só
+// desiste em ~300s por request E as chamadas empilham (layout+página+refresh) —
+// a página inteira fica em branco por minutos quando o backend "oscila". Com o
+// teto, um backend lento vira erro tratável (code TIMEOUT) em vez de tela morta.
+const BACKEND_TIMEOUT_MS = 8000;
+
 export type DjangoFetchOptions = Omit<RequestInit, "headers"> & {
   headers?: Record<string, string>;
   /** Quando true, repassa o `Authorization: Bearer <access_token>` do cookie. Default: true. */
@@ -54,11 +60,15 @@ export function getErrorMessage(error: unknown): string {
         return "Você não tem permissão para isso.";
       case "DESCRIPTION_REQUIRED":
         return "Preencha o motivo obrigatório.";
+      case "TIMEOUT":
+        return "O servidor demorou pra responder. Tente de novo em instantes.";
+      case "UPSTREAM_UNREACHABLE":
+        return "Não foi possível falar com o servidor agora. Tente de novo em instantes.";
       default:
         return error.body.detail ?? "Não deu pra completar agora. Tente de novo.";
     }
   }
-  if (error instanceof Error && error.name === "AbortError") {
+  if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) {
     return "Tempo esgotado. Verifique sua conexão e tente novamente.";
   }
   return "Não foi possível conectar. Verifique sua conexão e tente novamente.";
@@ -108,13 +118,32 @@ export async function djangoFetch<T = unknown>(
   return body as T;
 }
 
-/** Uma ida ao Django (sem retry). Lê o corpo como texto e tenta JSON. */
+/** Uma ida ao Django (sem retry). Lê o corpo como texto e tenta JSON.
+ *  Timeout duro (BACKEND_TIMEOUT_MS): backend lento/pendurado vira um DjangoError
+ *  tratável (TIMEOUT/UPSTREAM_UNREACHABLE) em vez de pendurar o render/submit. */
 async function rawFetch(
   path: string,
   rest: Omit<DjangoFetchOptions, "headers" | "authenticated">,
   headers: Record<string, string>,
 ): Promise<{ res: Response; body: unknown }> {
-  const res = await fetch(`${BACKEND_URL}${path}`, { ...rest, headers, cache: "no-store" });
+  let res: Response;
+  try {
+    res = await fetch(`${BACKEND_URL}${path}`, {
+      ...rest,
+      headers,
+      cache: "no-store",
+      signal: rest.signal ?? AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+    });
+  } catch (e) {
+    const timedOut =
+      e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+    throw new DjangoError(timedOut ? 504 : 502, {
+      detail: timedOut
+        ? "O servidor demorou pra responder."
+        : "Não foi possível falar com o servidor.",
+      code: timedOut ? "TIMEOUT" : "UPSTREAM_UNREACHABLE",
+    });
+  }
   const text = await res.text();
   const body: unknown = text ? safeJson(text) : null;
   return { res, body };
@@ -138,6 +167,7 @@ async function tryRefresh(
       headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refresh }),
       cache: "no-store",
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     const text = await res.text();

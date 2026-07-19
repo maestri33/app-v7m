@@ -68,7 +68,10 @@ export default async function DocumentoPage() {
     doc_type: doc.doc_type,
     number: doc.number,
     issuing_agency: doc.issuing_agency ?? undefined,
-    analysis_status: doc.analysis_status ?? "pending",
+    // NÃO defaultar pra "pending": um documento ainda-sem-foto (ou cujo GET
+    // falhou → {}) resolvia pra "pending" e o DocForm escondia o uploader e
+    // mostrava "IA lendo…" pra sempre. undefined = "aguardando upload".
+    analysis_status: doc.analysis_status,
     analysis_reason: doc.analysis_reason ?? null,
     missing_fields: doc.missing_fields ?? [],
     has_front: doc.has_front,

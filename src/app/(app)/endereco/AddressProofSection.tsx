@@ -24,8 +24,18 @@ import { KinshipChat } from "./kinship-chat";
 
 const POLL_MS = 2500;
 
+// Fetcher que FALHA em erro (r.ok) + timeout: um envelope {detail,code} não pode
+// virar `me` (senão `sent` volta a false no meio da análise e o poll para).
+async function fetchMe(url: string): Promise<CandidateMe> {
+  const r = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(12000) });
+  if (!r.ok) throw new Error(`candidate ${r.status}`);
+  return r.json();
+}
+
 type Props = {
   initial: AddressProofBlock | null;
+  /** IA (CopilotKit) configurada no server? Se não, mostra SÓ o form manual. */
+  aiEnabled?: boolean;
 };
 
 /**
@@ -37,7 +47,7 @@ type Props = {
  * assíncrona: o upload devolve `pending` e o veredito chega pelo poll do
  * `me_dict` (backoff exponencial, para em estado terminal).
  */
-export function AddressProofSection({ initial }: Props) {
+export function AddressProofSection({ initial, aiEnabled = false }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +55,7 @@ export function AddressProofSection({ initial }: Props) {
 
   const { data: me, mutate } = useSWR<CandidateMe>(
     "/api/me/candidate",
-    (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
+    fetchMe,
     {
       refreshInterval: (latest) => {
         const st = latest?.address_proof?.status;
@@ -126,7 +136,11 @@ export function AddressProofSection({ initial }: Props) {
     return "Explicação registrada! Vamos seguir com o seu cadastro.";
   }
 
-  // needs_kinship: titular é outra pessoa → diálogo do vínculo.
+  // needs_kinship: titular é outra pessoa → explica o vínculo. O FORM MANUAL é
+  // sempre o caminho principal (funciona sem IA nenhuma — o backend faz o
+  // trabalho de verdade). O chat de IA é um EXTRA opcional, e só aparece quando
+  // configurado. Antes, este passo dependia SÓ do chat: sem OMNIROUTE (o
+  // default), o candidato ficava PERMANENTEMENTE preso num gate obrigatório.
   if (status === "needs_kinship") {
     return (
       <div className="space-y-4">
@@ -134,9 +148,19 @@ export function AddressProofSection({ initial }: Props) {
           O comprovante está no nome de outra pessoa — sem problema: explica pra
           gente qual o seu vínculo com ela.
         </p>
-        <CopilotKit runtimeUrl="/api/copilotkit">
-          <KinshipChat onSubmit={submitKinship} />
-        </CopilotKit>
+        <KinshipManualForm onSubmit={submitKinship} />
+        {aiEnabled && (
+          <details className="rounded-[var(--radius)] border border-[var(--surface-border)]">
+            <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-brand-gold-ink">
+              Prefere explicar conversando? Fale com o assistente
+            </summary>
+            <div className="p-2 pt-0">
+              <CopilotKit runtimeUrl="/api/copilotkit">
+                <KinshipChat onSubmit={submitKinship} />
+              </CopilotKit>
+            </div>
+          </details>
+        )}
       </div>
     );
   }
@@ -206,5 +230,57 @@ export function AddressProofSection({ initial }: Props) {
       )}
       <FieldError>{error}</FieldError>
     </div>
+  );
+}
+
+/**
+ * Form manual do vínculo (needs_kinship) — SEM IA. Envia a explicação direto pro
+ * mesmo endpoint que a ação da IA usava (`onSubmit` → address-proof/kinship). É o
+ * que garante que o passo SEMPRE dá pra concluir, com ou sem assistente ligado.
+ */
+function KinshipManualForm({
+  onSubmit,
+}: {
+  onSubmit: (relation: string) => Promise<string>;
+}) {
+  const [relation, setRelation] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const text = relation.trim();
+    if (!text) {
+      setMsg("Escreva de quem é a conta e qual o seu vínculo com essa pessoa.");
+      return;
+    }
+    setMsg(null);
+    startTransition(async () => {
+      setMsg(await onSubmit(text));
+    });
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3">
+      <label htmlFor="kinship-relation" className="block text-sm font-semibold text-brand-ink">
+        De quem é a conta e qual o seu vínculo?
+      </label>
+      <textarea
+        id="kinship-relation"
+        value={relation}
+        onChange={(e) => setRelation(e.target.value)}
+        rows={3}
+        placeholder="Ex.: é a conta da minha mãe, Maria da Silva."
+        className="w-full rounded-[var(--radius-sm)] border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm"
+      />
+      <Button type="submit" size="xl" loading={pending} className="w-full">
+        {pending ? "Enviando…" : "Enviar explicação"}
+      </Button>
+      {msg && (
+        <p className="text-sm text-brand-muted" role="status">
+          {msg}
+        </p>
+      )}
+    </form>
   );
 }

@@ -9,7 +9,7 @@ import { FieldError } from "@/components/ui/field";
 import { FileInput } from "@/components/ui/file-input";
 import { Spinner } from "@/components/ui/spinner";
 import { StatusBanner } from "@/components/ui/status-banner";
-import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
+import { wrongStatusHref } from "@/lib/candidate/funnel";
 import { apiErrorMessage } from "@/lib/api/error-messages";
 import type { AnalysisStatus } from "@/lib/api/types";
 
@@ -26,6 +26,15 @@ type SelfieSection = {
 
 const POLL_MS = 2500;
 
+// Fetcher que FALHA em erro (r.ok) e tem timeout — sem isso, um 4xx/5xx com
+// corpo JSON "resolvia" o SWR (envelope vira `data`) e um fetch pendurado
+// deixava a tela presa em "Carregando…" pra sempre.
+async function fetchSelfie(url: string): Promise<SelfieSection> {
+  const r = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(12000) });
+  if (!r.ok) throw new Error(`selfie ${r.status}`);
+  return r.json();
+}
+
 export function SelfieForm() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -41,9 +50,9 @@ export function SelfieForm() {
   // IA leva 10–60s e revisão humana leva horas; alinhado ao DocForm.
   const pendingPolls = useRef(0);
 
-  const { data, mutate } = useSWR<SelfieSection>(
+  const { data, error: loadError, mutate } = useSWR<SelfieSection>(
     "/api/me/selfie",
-    (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
+    fetchSelfie,
     {
       refreshInterval: (latest) => {
         if (!latest?.taken_at || latest?.analysis_status !== "pending") {
@@ -61,11 +70,15 @@ export function SelfieForm() {
   const status: AnalysisStatus = data?.analysis_status ?? "pending";
   const hubWhatsapp = data?.hub_whatsapp ?? null;
 
-  // Aprovada → wizard auto-avançante: direto pro painel (visão "aguardando
-  // aprovação do polo").
+  // Aprovada → o funil avança NO BACKEND; damos UM refresh (one-shot) pro server
+  // component reavaliar, e a página forwarda pro painel quando `me.status` passar
+  // de selfie. Um `router.push("/painel")` aqui entrava em ping-pong com o guard
+  // do painel na janela em que a selfie já aprovou mas o status ainda não avançou.
+  const advancedRef = useRef(false);
   useEffect(() => {
-    if (takenAt && status === "approved") {
-      router.push(NEXT_STAGE.selfie);
+    if (takenAt && status === "approved" && !advancedRef.current) {
+      advancedRef.current = true;
+      router.refresh();
     }
   }, [takenAt, status, router]);
 
@@ -106,6 +119,20 @@ export function SelfieForm() {
     });
   }
 
+  // Falha ao carregar (rede/timeout/erro) → saída clara, nunca spinner infinito.
+  if (loadError && !data) {
+    return (
+      <div className="space-y-3" role="alert">
+        <p className="text-sm text-[var(--surface-text-muted)]">
+          Não consegui carregar sua selfie agora. Verifique a conexão e tente de novo.
+        </p>
+        <Button type="button" size="xl" onClick={() => mutate()} className="w-full">
+          Tentar de novo
+        </Button>
+      </div>
+    );
+  }
+
   // Esperando a 1ª resposta do backend — sem decidir modal antes da hora.
   if (!data) {
     return (
@@ -133,6 +160,23 @@ export function SelfieForm() {
   // que só dispara com re-uploads). Cai no form principal: o StatusBanner
   // mostra o motivo e o uploader deixa refazer na hora; o polo vira caminho
   // alternativo, não o único.
+
+  // Aprovada: o efeito já deu UM refresh; enquanto o backend não avança o status
+  // (e a página não forwarda pro painel), mostra o estado aprovado com um escape
+  // manual — nunca o formulário de upload de novo, nunca um push em ping-pong.
+  if (takenAt && status === "approved") {
+    return (
+      <div className="space-y-3 text-center py-4">
+        <div className="banner banner-ok" role="status">
+          <p className="font-display">Selfie aprovada ✓</p>
+        </div>
+        <p className="text-sm text-[var(--surface-text-muted)]">Finalizando seu cadastro…</p>
+        <Button type="button" size="xl" onClick={() => router.refresh()} className="w-full">
+          Atualizar
+        </Button>
+      </div>
+    );
+  }
 
   // Análise manual: nada a fazer aqui, aviso chega por WhatsApp.
   if (takenAt && status === "review") {

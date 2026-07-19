@@ -10,7 +10,15 @@ export const dynamic = "force-dynamic";
 type LoginResponse = { access_token: string; refresh_token: string; token_type?: string };
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { detail: "Requisição inválida.", code: "BAD_REQUEST" },
+      { status: 400 },
+    );
+  }
   try {
     const data = await djangoFetch<LoginResponse>("/api/v1/collaborators/auth/login", {
       method: "POST",
