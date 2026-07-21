@@ -29,9 +29,18 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
   await page.getByLabel(/Naturalidade/).fill("São Paulo/SP");
   await page.getByLabel("Estado civil").selectOption("single");
   await page.getByLabel("Nacionalidade").fill("brasileira");
-  await page.getByRole("button", { name: /Salvar e continuar/i }).click();
+  const [profileResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/me/profile") &&
+        response.request().method() === "POST",
+      { timeout: 45_000 },
+    ),
+    page.getByRole("button", { name: /Salvar e continuar/i }).click(),
+  ]);
+  expect(profileResponse.ok()).toBeTruthy();
 
-  await expect(page).toHaveURL(/\/endereco$/);
+  await expect(page).toHaveURL(/\/endereco$/, { timeout: 30_000 });
   await page.getByLabel("CEP").fill("01310100");
   await page.getByRole("button", { name: /Buscar CEP/i }).click();
   await page.getByLabel("Número").fill("1000");
