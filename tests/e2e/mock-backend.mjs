@@ -11,6 +11,7 @@ function freshState() {
     educationPresent: false,
     addressProof: null,
     classifyIsDocument: true,
+    failNextClassify: false,
     failNextProof: false,
     address: {
       zipcode: null,
@@ -94,6 +95,10 @@ function handle(request, response) {
   }
   if (path === "/__classify" && request.method === "POST") {
     state.classifyIsDocument = url.searchParams.get("document") !== "0";
+    return json(response, 200, { ok: true });
+  }
+  if (path === "/__fail-next-classify" && request.method === "POST") {
+    state.failNextClassify = true;
     return json(response, 200, { ok: true });
   }
   if (path === "/__fail-next-proof" && request.method === "POST") {
@@ -214,6 +219,13 @@ function handle(request, response) {
     path === "/api/v1/collaborators/candidate/documents/classify" &&
     request.method === "POST"
   ) {
+    if (state.failNextClassify) {
+      state.failNextClassify = false;
+      return json(response, 503, {
+        detail: "Classificador temporariamente indisponível.",
+        code: "CLASSIFIER_UNAVAILABLE",
+      });
+    }
     return json(response, 200, {
       is_document: state.classifyIsDocument,
       doc_type: state.classifyIsDocument ? "rg" : null,

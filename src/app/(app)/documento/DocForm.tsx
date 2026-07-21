@@ -46,10 +46,17 @@ export function DocForm({ initial }: Props) {
     const body = new FormData();
     body.append("file", file, file.name);
     const response = await fetch("/api/me/document/classify", { method: "POST", body });
-    if (!response.ok) return true;
+    if (!response.ok) {
+      setError("Não conseguimos confirmar o documento agora. Tente enviar novamente.");
+      return false;
+    }
     const classification: ClassifyResult = await response.json();
     if (classification.is_document === false) {
       setError("Essa imagem não parece ser um documento. Confira a foto e tente novamente.");
+      return false;
+    }
+    if (classification.is_document !== true) {
+      setError("Não foi possível confirmar se o arquivo é um documento. Tente outra foto.");
       return false;
     }
     if (classification.doc_type && classification.doc_type !== docType) {
