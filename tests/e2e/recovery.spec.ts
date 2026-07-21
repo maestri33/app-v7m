@@ -25,9 +25,14 @@ test("erros de documento e comprovante permitem corrigir sem recomeçar", async 
   await page.getByRole("button", { name: /entrar/i }).click();
   await expect(page).toHaveURL(/\/documento$/);
 
-  await request.post(`${mockBackend}/__classify?document=0`);
+  await request.post(`${mockBackend}/__fail-next-classify`);
   await page.getByLabel("RG").check();
   const documentInput = page.locator('input[type="file"][accept="image/*,application/pdf"]');
+  await documentInput.setInputFiles(fixture);
+  await expect(page.getByText(/Não conseguimos confirmar o documento agora/i)).toBeVisible();
+  await expect(page.getByText(/Primeiro envie a FRENTE do RG/i)).toBeVisible();
+
+  await request.post(`${mockBackend}/__classify?document=0`);
   await documentInput.setInputFiles(fixture);
   await expect(page.getByText(/Essa imagem não parece ser um documento/i)).toBeVisible();
   await expect(page).toHaveURL(/\/documento$/);
