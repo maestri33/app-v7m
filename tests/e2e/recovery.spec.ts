@@ -46,6 +46,7 @@ test("erros de documento e comprovante permitem corrigir sem recomeçar", async 
   await documentInput.setInputFiles(fixture);
   await expect(page.getByText(/VERSO do RG/i)).toBeVisible();
 
+  await request.post(`${mockBackend}/__classify?document=1&completeness=front&legible=0`);
   await documentInput.setInputFiles(fixture);
   await expect(page.getByText(/parece ser a FRENTE do RG/i)).toBeVisible();
   await expect(page).toHaveURL(/\/documento$/);

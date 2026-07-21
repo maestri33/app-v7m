@@ -68,13 +68,6 @@ export function DocForm({ initial }: Props) {
       );
       return null;
     }
-    if (classification.is_legible !== true) {
-      setError(
-        classification.reason ??
-          "O documento não está legível o suficiente. Tire outra foto com boa luz e sem cortes.",
-      );
-      return null;
-    }
     if (docType === "rg") {
       const expectedSide = rgFrontSent ? "back" : "front";
       const detectedSide = classification.completeness;
@@ -97,6 +90,13 @@ export function DocForm({ initial }: Props) {
     }
     if (docType === "cnh" && classification.completeness !== "full") {
       setError("Envie a CNH aberta, mostrando o documento inteiro, ou o PDF da CNH Digital.");
+      return null;
+    }
+    if (classification.is_legible !== true) {
+      setError(
+        classification.reason ??
+          "O documento não está legível o suficiente. Tire outra foto com boa luz e sem cortes.",
+      );
       return null;
     }
     return classification;
