@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, Square } from "lucide-react";
 
@@ -38,6 +38,22 @@ export function SubmissionForm({ materialExternalId, submissionStatus, justifica
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+
+  const refreshSessionAndOpenPanel = useCallback(async () => {
+    try {
+      const response = await fetch("/api/auth/refresh", { method: "POST" });
+      window.location.assign(response.ok ? "/painel" : "/");
+    } catch {
+      setError("A conexão oscilou ao liberar o painel. Tente novamente.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (submissionStatus !== "approved") return;
+    void fetch("/api/auth/refresh", { method: "POST" })
+      .then((response) => window.location.assign(response.ok ? "/painel" : "/"))
+      .catch(() => undefined);
+  }, [submissionStatus]);
 
   // ── Gravação de áudio (MediaRecorder) ──────────────────────────────────────
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -139,11 +155,15 @@ export function SubmissionForm({ materialExternalId, submissionStatus, justifica
 
   if (submissionStatus === "approved") {
     return (
-      <div className="banner banner-ok" role="status">
-        <p className="font-display">Matéria concluída ✓</p>
-        <p className="text-sm mt-1 opacity-90">
-          Resposta aprovada pela IA. Pode voltar pras matérias.
-        </p>
+      <div className="space-y-3">
+        <div className="banner banner-ok" role="status">
+          <p className="font-display">Matéria concluída ✓</p>
+          <p className="text-sm mt-1 opacity-90">Liberando seu painel…</p>
+        </div>
+        <FieldError>{error}</FieldError>
+        <Button type="button" onClick={refreshSessionAndOpenPanel} className="w-full">
+          Abrir painel
+        </Button>
       </div>
     );
   }

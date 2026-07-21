@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,15 @@ type Props = {
   initial: ProfileSection;
 };
 
+const subscribeHydration = () => () => {};
+
 export function PerfilForm({ initial }: Props) {
   const router = useRouter();
+  const ready = useSyncExternalStore(
+    subscribeHydration,
+    () => true,
+    () => false,
+  );
   const [pending, startTransition] = useTransition();
   const [motherName, setMotherName] = useState(initial.mother_name ?? "");
   const [fatherName, setFatherName] = useState(initial.father_name ?? "");
@@ -65,7 +72,9 @@ export function PerfilForm({ initial }: Props) {
     <form onSubmit={onSubmit} className="space-y-5">
       {/* pending cobre fetch + navegação pro próximo passo (server component
           que busca dados) — o spinner do botão sozinho não deixa claro. */}
-      {pending && <LoadingOverlay label="Salvando…" logo />}
+      {(!ready || pending) && (
+        <LoadingOverlay label={ready ? "Salvando…" : "Preparando formulário…"} logo />
+      )}
       <ReadOnlyField label="Nome" value={initial.name ?? "—"} />
       <ReadOnlyField
         label="Data de nascimento"
@@ -83,8 +92,14 @@ export function PerfilForm({ initial }: Props) {
       />
       <Field label="Nacionalidade" value={nationality} onChange={setNationality} />
       <FieldError>{error}</FieldError>
-      <Button type="submit" size="xl" loading={pending} className="w-full">
-        {pending ? "Salvando…" : "Salvar e continuar"}
+      <Button
+        type="submit"
+        size="xl"
+        loading={pending}
+        disabled={!ready}
+        className="w-full"
+      >
+        {!ready ? "Preparando…" : pending ? "Salvando…" : "Salvar e continuar"}
       </Button>
     </form>
   );
