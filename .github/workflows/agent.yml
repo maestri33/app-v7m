@@ -11,16 +11,19 @@ concurrency:
   cancel-in-progress: false
 jobs:
   fix:
-    # Anti-RCE (#5): só dispara se QUEM aplicou a etiqueta `agent` for o dono.
-    # O corpo da issue vira prompt do Claude com --dangerously-skip-permissions
-    # num runner com acesso à prod; texto de terceiro NÃO pode acionar código.
+    # Anti-RCE: além do gate humano, executa em runner efêmero sem acesso à produção.
     if: github.event.label.name == 'agent' && github.actor == 'maestri33'
-    runs-on: [self-hosted, devagent]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.AGENT_GH_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instala Claude Code
+        run: npm install --global @anthropic-ai/claude-code
       - name: Claude resolve a issue
         env:
           ANTHROPIC_API_KEY: dummy

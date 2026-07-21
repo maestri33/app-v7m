@@ -4,7 +4,7 @@ name: Loop de Melhoria (gerador de propostas)
 #
 # SEGURANÇA — o humano é o portão (não removível):
 #  - este job abre issue com `agent-candidate`, NUNCA com `agent`. O `agent.yml` (que mexe no código
-#    e roda com acesso a prod) só dispara se `github.actor == 'maestri33'`; um ator de schedule
+#    em runner efêmero) só dispara se `github.actor == 'maestri33'`; um ator de schedule
 #    (github-actions[bot]) abrindo `agent` seria BLOQUEADO de propósito. Então: o loop PROPÕE, o
 #    Victor revisa e re-etiqueta pra `agent` → aí sim o devagent resolve. O loop nunca executa código.
 #  - dedup: se já existe issue `agent-candidate` aberta, NÃO abre outra (não empilha ruído).
@@ -21,11 +21,16 @@ permissions:
   issues: write
 jobs:
   propose:
-    runs-on: [self-hosted, devagent]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instala Claude Code
+        run: npm install --global @anthropic-ai/claude-code
 
       - name: Pula se já há proposta aberta (dedup)
         id: guard

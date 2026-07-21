@@ -5,7 +5,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { Countdown } from "@/components/ui/countdown";
 import { readUnlockedSession } from "@/lib/auth/server";
 import { isOnboarding, isPromoter, OUTSIDE_APP_URL } from "@/lib/auth/roles";
-import { stageHref } from "@/lib/candidate/funnel";
+import { candidateStageHref } from "@/lib/candidate/funnel";
 import { djangoFetch } from "@/lib/api/client";
 import { formatBRL } from "@/lib/format";
 import type {
@@ -61,7 +61,7 @@ export default async function PainelPage() {
         </PanelCard>
       );
     }
-    redirect(stageHref(me.status));
+    redirect(candidateStageHref(me));
   }
 
   if (isPromoter(session.roles)) {

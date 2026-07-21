@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:e2e": "playwright test",
     "shot": "node scripts/shot.mjs",
     "check-otp": "node scripts/check.mjs"
   },

@@ -5,7 +5,11 @@ import { FunnelStepper } from "@/components/ui/stepper";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
-import { FUNNEL_ORDER, stageHref, STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
+import {
+  candidateStageHref,
+  FUNNEL_ORDER,
+  stageCompleted,
+} from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { PixForm } from "./PixForm";
@@ -25,12 +29,12 @@ export default async function PixPage() {
   // chave só renderia 409 depois do esforço. Vai direto pra etapa real.
   const idx = FUNNEL_ORDER.indexOf(me.status);
   if (idx >= 0 && idx < FUNNEL_ORDER.indexOf("pix")) {
-    redirect(stageHref(me.status));
+    redirect(candidateStageHref(me));
   }
 
   // Chave já validada (etapa passou) → resumo sem form. A chave em si não vem
   // no contrato (P2.1); revalidar mexeria R$0,01 no DICT à toa.
-  if (stagePassed("pix", me.status)) {
+  if (stageCompleted("pix", me)) {
     return (
       <PageShell>
         <CompactHeader kicker="V7M · Cadastro" title="Chave Pix" />
@@ -43,7 +47,7 @@ export default async function PixPage() {
               vão, toda sexta.
             </p>
           </div>
-          <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+          <Button href={candidateStageHref(me)} size="xl" className="w-full">
             Continuar
           </Button>
         </div>

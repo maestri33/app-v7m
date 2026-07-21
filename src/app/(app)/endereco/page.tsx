@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { AddressSection, CandidateMe } from "@/lib/api/types";
-import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
+import { candidateStageHref, stageCompleted } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { AddressProofSection } from "./AddressProofSection";
@@ -32,7 +32,7 @@ export default async function EnderecoPage({
   ]);
 
   // Etapa já concluída → resumo somente-leitura + CTA pro passo atual.
-  if (stagePassed("address", me.status)) {
+  if (stageCompleted("address", me)) {
     return (
       <PageShell>
         <CompactHeader kicker="V7M · Cadastro" title="Seu endereço" />
@@ -52,7 +52,7 @@ export default async function EnderecoPage({
             <ReadOnlyField className="col-span-2" label="Cidade" value={data.city ?? "—"} />
             <ReadOnlyField label="UF" value={data.state ?? "—"} />
           </div>
-          <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+          <Button href={candidateStageHref(me)} size="xl" className="w-full">
             Continuar
           </Button>
         </div>

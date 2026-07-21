@@ -43,6 +43,8 @@ export type ProfileSection = {
   // do CPFHub — read-only
   name: string | null;
   birth_date: string | null;
+  education_level?: string | null;
+  education_completed?: boolean | null;
 };
 
 /** Seção rica do documento — `GET /candidate/document` (a que o DocForm consome). */

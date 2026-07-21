@@ -43,7 +43,19 @@ export function SelfieForm() {
 
   const { data, mutate } = useSWR<SelfieSection>(
     "/api/me/selfie",
-    (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
+    async (url: string) => {
+      const response = await fetch(url, { cache: "no-store" });
+      if (response.status === 403) {
+        window.location.assign("/painel");
+        throw new Error("role-transitioned");
+      }
+      if (response.status === 401) {
+        window.location.assign("/");
+        throw new Error("session-expired");
+      }
+      if (!response.ok) throw new Error("selfie-load-failed");
+      return response.json();
+    },
     {
       refreshInterval: (latest) => {
         if (!latest?.taken_at || latest?.analysis_status !== "pending") {
