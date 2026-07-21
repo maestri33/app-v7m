@@ -88,9 +88,11 @@ export function DocForm({ initial }: Props) {
   const doc = live ?? initial;
   const lockedType = doc.doc_type ?? null;
   const nextSlot = doc.next_slot ?? null;
+  const uploadSlot =
+    nextSlot ?? (!lockedType && docType ? `${docType}_front` : null);
   const status: AnalysisStatus | null = doc.analysis_status ?? null;
   const missing = (doc.missing_fields ?? []).filter((f) => f !== "doc_type");
-  const hasSlot = nextSlot != null;
+  const hasSlot = uploadSlot != null;
   const isAnalyzing = justUploaded || (hasSlot && status === "pending");
 
   // Aprovado, sem slot pendente, sem campo faltando → auto-avança.
@@ -122,7 +124,7 @@ export function DocForm({ initial }: Props) {
   }
 
   function onUpload(rawFile: File) {
-    if (!nextSlot) return;
+    if (!uploadSlot) return;
     setError(null);
     startTransition(async () => {
       try {
@@ -136,7 +138,7 @@ export function DocForm({ initial }: Props) {
         }
         void classifyHintFor(file, lockedType ?? docType);
         const form = new FormData();
-        form.append("slot", nextSlot);
+        form.append("slot", uploadSlot);
         form.append("photo", file, file.name);
         const res = await fetch("/api/me/document/photo", { method: "POST", body: form });
         const data: {
@@ -213,7 +215,7 @@ export function DocForm({ initial }: Props) {
   }
 
   const effectiveType = lockedType ?? docType;
-  const slotLabel = nextSlot ? SLOT_LABEL[nextSlot] : null;
+  const slotLabel = uploadSlot ? SLOT_LABEL[uploadSlot] : null;
 
   return (
     <div className="space-y-6">
@@ -259,7 +261,7 @@ export function DocForm({ initial }: Props) {
       {hasSlot && !isAnalyzing && status !== "rejected" && (
         <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-[var(--surface)] p-4 space-y-3">
           <p className="text-sm font-semibold">
-            {slotLabel ?? `Envie: ${nextSlot}`}
+            {slotLabel ?? `Envie: ${uploadSlot}`}
           </p>
           <p className="text-xs text-[var(--surface-text-muted)]">
             tire uma foto ou envie um arquivo — imagem ou PDF
@@ -282,7 +284,7 @@ export function DocForm({ initial }: Props) {
       {hasSlot && status === "rejected" && (
         <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-[var(--surface)] p-4 space-y-3">
           <p className="text-sm font-semibold">
-            {slotLabel ?? `Envie: ${nextSlot}`}
+            {slotLabel ?? `Envie: ${uploadSlot}`}
           </p>
           <UploadActions
             disabled={!effectiveType || pending}

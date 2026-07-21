@@ -4,7 +4,7 @@ import { FunnelStepper } from "@/components/ui/stepper";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
-import { FUNNEL_ORDER, stageHref } from "@/lib/candidate/funnel";
+import { candidateStageHref, FUNNEL_ORDER } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { SelfieForm } from "./SelfieForm";
@@ -24,7 +24,7 @@ export default async function SelfiePage() {
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
   const idx = FUNNEL_ORDER.indexOf(me.status);
   if (idx >= 0 && idx < FUNNEL_ORDER.indexOf("education")) {
-    redirect(stageHref(me.status));
+    redirect(candidateStageHref(me));
   }
 
   return (

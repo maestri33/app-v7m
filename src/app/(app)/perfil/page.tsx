@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, ProfileSection } from "@/lib/api/types";
-import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
+import { candidateStageHref, stageCompleted } from "@/lib/candidate/funnel";
 import { maritalLabel } from "@/lib/candidate/labels";
 import { formatDateBR } from "@/lib/format";
 import { readSession } from "@/lib/auth/server";
@@ -35,7 +35,7 @@ export default async function PerfilPage() {
 
   // Etapa já concluída → resumo somente-leitura (só reabriria se o back
   // reprovasse; perfil não tem análise) + CTA pro passo atual.
-  if (stagePassed("profile", me.status)) {
+  if (stageCompleted("profile", me)) {
     return (
       <PageShell>
         <CompactHeader kicker="V7M · Cadastro" title="Seu perfil" />
@@ -55,7 +55,7 @@ export default async function PerfilPage() {
           <ReadOnlyField label="Naturalidade" value={initial.birthplace ?? "—"} />
           <ReadOnlyField label="Estado civil" value={maritalLabel(initial.marital_status)} />
           <ReadOnlyField label="Nacionalidade" value={initial.nationality ?? "—"} />
-          <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+          <Button href={candidateStageHref(me)} size="xl" className="w-full">
             Continuar
           </Button>
         </div>

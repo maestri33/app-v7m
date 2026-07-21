@@ -24,6 +24,8 @@ type CheckOut = {
   roles?: string[];
 };
 
+const COLLABORATOR_ROLES = new Set(["candidate", "training", "promoter", "coordinator"]);
+
 // Erros do cadastro/entrada roteados por `code` (envelope {detail, code, …}) —
 // nunca parseando detail. Copy pt-BR acolhedora, com o caminho de saída.
 function authErrorMessage(
@@ -50,6 +52,10 @@ function authErrorMessage(
       return "Seu link de convite expirou ou veio incompleto — peça um novo pro coordenador do seu polo.";
     case "OTP_NOT_SENT":
       return "Não conseguimos enviar o código. Confira se esse número tem WhatsApp ativo e tente de novo.";
+    case "NOT_IN_FUNNEL":
+      return "Seu número existe, mas ainda não está no programa de promotores. Entre pelo link de indicação ou fale com o suporte.";
+    case "JOIN_PROFILE_INCOMPLETE":
+      return "Seu cadastro anterior está incompleto. Fale com o suporte para confirmar seus dados e liberar o acesso de promotor.";
     default:
       return detail ?? "Não deu pra completar agora. Tente de novo em instantes.";
   }
@@ -75,6 +81,8 @@ export function CheckFlow() {
   const [resending, setResending] = useState(false);
   const [otpSent, setOtpSent] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [needsJoin, setNeedsJoin] = useState(false);
+  const [whatsappWarning, setWhatsappWarning] = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -118,6 +126,9 @@ export function CheckFlow() {
     setError(null);
     setFieldErr({});
     setOtpSent(true);
+    setNeedsJoin(false);
+    setWhatsappWarning(false);
+    setNotice(null);
   }
 
   async function onCheck(e: React.FormEvent) {
@@ -147,20 +158,16 @@ export function CheckFlow() {
       const out = data as CheckOut;
       if (out.found) {
         setExternalId(out.external_id ?? null);
+        setNeedsJoin(
+          Array.isArray(out.roles) && !out.roles.some((role) => COLLABORATOR_ROLES.has(role)),
+        );
         setResendIn(out.otp_wait ?? 60);
         setOtpSent(out.otp_sent ?? true);
         setStage("otp");
         return;
       }
-      if (out.whatsapp === true) {
-        setStage("register");
-        return;
-      }
-      if (out.whatsapp === false) {
-        setError({ detail: "Esse número não tem WhatsApp. Confira o DDD e tente outro." });
-        return;
-      }
-      setError({ detail: "Não deu pra validar o WhatsApp agora. Tente de novo em instantes." });
+      setWhatsappWarning(out.whatsapp !== true);
+      setStage("register");
     } catch {
       setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
@@ -204,8 +211,10 @@ export function CheckFlow() {
         return;
       }
       setExternalId(data.user_external_id ?? null);
-      setResendIn(data.otp_wait ?? 60);
-      setOtpSent(data.otp_sent ?? true);
+      const sent = data.otp_sent ?? true;
+      setResendIn(data.otp_wait ?? (sent ? 60 : 0));
+      setOtpSent(sent);
+      setNeedsJoin(false);
       setStage("otp");
     } catch {
       setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
@@ -253,10 +262,14 @@ export function CheckFlow() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(needsJoin ? "/api/auth/join" : "/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ external_id: externalId, otp }),
+        body: JSON.stringify({
+          external_id: externalId,
+          otp,
+          ...(needsJoin && hubRef ? { hub: hubRef } : {}),
+        }),
       });
       const data: { ok?: boolean; detail?: string; code?: string; retry_after_s?: number } =
         await res.json();
@@ -345,6 +358,12 @@ export function CheckFlow() {
               </p>
             </div>
             <div className="gold-divider" />
+            {whatsappWarning && (
+              <div className="banner" role="status">
+                Não conseguimos confirmar seu WhatsApp automaticamente. Você ainda pode criar o
+                cadastro; o código recebido confirma o número.
+              </div>
+            )}
             <div>
               <span className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">Telefone (WhatsApp)</span>
               <div className="flex items-center gap-2">
@@ -403,7 +422,9 @@ export function CheckFlow() {
         {stage === "otp" && (
           <form onSubmit={onLogin} className="space-y-4">
             <div className="text-center">
-              <h2 className="text-[21px] font-bold text-white">Confirme o código</h2>
+              <h2 className="text-[21px] font-bold text-white">
+                {needsJoin ? "Confirme para criar seu acesso" : "Confirme o código"}
+              </h2>
               <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
                 {otpSent ? (
                   <>
@@ -432,7 +453,13 @@ export function CheckFlow() {
             )}
             {notice && <p className="text-center text-[13px] text-[#f0d493]">{notice}</p>}
             <Button type="submit" size="xl" loading={loading} className="w-full">
-              {loading ? "Entrando…" : "Entrar"}
+              {loading
+                ? needsJoin
+                  ? "Criando acesso…"
+                  : "Entrando…"
+                : needsJoin
+                  ? "Confirmar e criar acesso"
+                  : "Entrar"}
             </Button>
             <div className="flex items-center justify-center gap-2">
               <button

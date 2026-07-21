@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, DocumentSection } from "@/lib/api/types";
-import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
+import { candidateStageHref, stageCompleted } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { DocForm } from "./DocForm";
@@ -33,11 +33,11 @@ export default async function DocumentoPage() {
   // `profile` — deep-link/botão voltar caía aqui, a pessoa fotografava o RG e
   // só então tomava 409. Manda direto pra etapa real.
   if (me.status === "profile" || me.status === "started") {
-    redirect(STAGE_HREF[me.status]);
+    redirect(candidateStageHref(me));
   }
 
   // Etapa já concluída → resumo somente-leitura + CTA pro passo atual.
-  if (stagePassed("documents", me.status)) {
+  if (stageCompleted("documents", me)) {
     return (
       <PageShell>
         <CompactHeader kicker="V7M · Cadastro" title="Seu documento" />
@@ -56,7 +56,7 @@ export default async function DocumentoPage() {
           {doc.issuing_agency != null && doc.issuing_agency !== "" && (
             <ReadOnlyField label="Órgão emissor" value={String(doc.issuing_agency)} />
           )}
-          <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+          <Button href={candidateStageHref(me)} size="xl" className="w-full">
             Continuar
           </Button>
         </div>
@@ -68,7 +68,7 @@ export default async function DocumentoPage() {
     doc_type: doc.doc_type,
     number: doc.number,
     issuing_agency: doc.issuing_agency ?? undefined,
-    analysis_status: doc.analysis_status ?? "pending",
+    analysis_status: doc.analysis_status,
     analysis_reason: doc.analysis_reason ?? null,
     missing_fields: doc.missing_fields ?? [],
     has_front: doc.has_front,

@@ -3,7 +3,7 @@
  * e as páginas de etapa. O wizard é auto-avançante: concluir uma etapa navega
  * direto pra próxima, nunca volta pra um hub de cards.
  */
-import type { CandidateStatus } from "@/lib/api/types";
+import type { CandidateMe, CandidateStatus } from "@/lib/api/types";
 
 /** Ordem do funil (mesma do backend). `status` nomeia a PRÓXIMA etapa a fazer. */
 export const FUNNEL_ORDER: CandidateStatus[] = [
@@ -20,11 +20,11 @@ export const FUNNEL_ORDER: CandidateStatus[] = [
 /** Página da etapa atual — pra onde o painel manda o candidato direto. */
 export const STAGE_HREF: Record<CandidateStatus, string> = {
   started: "/perfil",
-  profile: "/perfil",
-  address: "/endereco",
+  profile: "/endereco",
+  address: "/documento",
   documents: "/documento",
   pix: "/pix",
-  education: "/escolaridade",
+  education: "/selfie",
   selfie: "/selfie",
   completed: "/painel",
   approved: "/painel",
@@ -38,6 +38,12 @@ export const STAGE_HREF: Record<CandidateStatus, string> = {
  */
 export function stageHref(status: string | undefined | null): string {
   return STAGE_HREF[status as CandidateStatus] ?? "/painel";
+}
+
+/** Retomada canônica usando também os flags que o `status` sozinho não distingue. */
+export function candidateStageHref(me: CandidateMe): string {
+  if (me.status === "pix" && me.pix_validated) return "/escolaridade";
+  return stageHref(me.status);
 }
 
 /** Próximo passo depois de concluir cada etapa (navegação direta dos forms). */
@@ -54,8 +60,25 @@ export const NEXT_STAGE: Record<string, string> = {
  * A etapa `stage` já foi concluída pra quem está em `current`? Usado pra travar
  * etapas preenchidas em resumo somente-leitura (só reabre se o back reprovar).
  */
-export function stagePassed(stage: CandidateStatus, current: CandidateStatus): boolean {
-  return FUNNEL_ORDER.indexOf(current) > FUNNEL_ORDER.indexOf(stage);
+export function stageCompleted(stage: CandidateStatus, me: CandidateMe): boolean {
+  const currentIndex = FUNNEL_ORDER.indexOf(me.status);
+  switch (stage) {
+    case "profile":
+      return currentIndex >= FUNNEL_ORDER.indexOf("profile");
+    case "address":
+      return currentIndex >= FUNNEL_ORDER.indexOf("address");
+    case "documents":
+      return currentIndex >= FUNNEL_ORDER.indexOf("pix");
+    case "pix":
+      return Boolean(me.pix_validated);
+    case "education":
+      return (
+        me.profile?.education_level != null &&
+        me.profile?.education_completed != null
+      );
+    default:
+      return currentIndex > FUNNEL_ORDER.indexOf(stage);
+  }
 }
 
 /**

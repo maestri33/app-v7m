@@ -25,8 +25,9 @@ export function apiErrorMessage(
     case "UNAUTHORIZED":
     case "SESSION_EXPIRED":
       return "Sua sessão expirou. Entre de novo pra continuar.";
-    case "FORBIDDEN_ROLE":
     case "NOT_IN_FUNNEL":
+      return "Seu número existe, mas ainda não está no programa de promotores. Entre pelo link de indicação ou fale com o suporte.";
+    case "FORBIDDEN_ROLE":
     case "ROLE_NOT_HELD":
       return "Esse acesso não é pro seu perfil agora.";
 

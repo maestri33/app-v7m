@@ -5,7 +5,7 @@ import { FunnelStepper } from "@/components/ui/stepper";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
-import { STAGE_HREF, stagePassed } from "@/lib/candidate/funnel";
+import { candidateStageHref, stageCompleted } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { EscolaridadeForm } from "./EscolaridadeForm";
@@ -22,7 +22,7 @@ export default async function EscolaridadePage() {
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
 
   // Escolaridade já gravada (etapa passou) → resumo sem form.
-  if (stagePassed("education", me.status)) {
+  if (stageCompleted("education", me)) {
     return (
       <PageShell>
         <CompactHeader kicker="V7M · Cadastro" title="Escolaridade" />
@@ -35,7 +35,7 @@ export default async function EscolaridadePage() {
               cadastro.
             </p>
           </div>
-          <Button href={STAGE_HREF[me.status]} size="xl" className="w-full">
+          <Button href={candidateStageHref(me)} size="xl" className="w-full">
             Continuar
           </Button>
         </div>

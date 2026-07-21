@@ -8,4 +8,10 @@
  */
 export const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:80";
 
-export const isProd = process.env.NODE_ENV === "production" && BACKEND_URL.startsWith("https://");
+const validAppEnvs = new Set(["prod", "staging", "preview", "test"]);
+export const APP_ENV = process.env.APP_ENV ?? "prod";
+if (!validAppEnvs.has(APP_ENV)) {
+  throw new Error(`APP_ENV inválido: ${APP_ENV}`);
+}
+
+export const isProd = APP_ENV === "prod" && BACKEND_URL.startsWith("https://");
