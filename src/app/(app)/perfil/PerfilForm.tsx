@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useSyncExternalStore, useTransition } from "react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, ReadOnlyField, SelectField } from "@/components/ui/field";
@@ -19,7 +18,6 @@ type Props = {
 const subscribeHydration = () => () => {};
 
 export function PerfilForm({ initial }: Props) {
-  const router = useRouter();
   const ready = useSyncExternalStore(
     subscribeHydration,
     () => true,
@@ -54,14 +52,14 @@ export function PerfilForm({ initial }: Props) {
         if (!res.ok) {
           const redir = wrongStatusHref(data.code, data.expected_status);
           if (redir) {
-            router.push(redir);
+            window.location.assign(redir);
             return;
           }
           setError(apiErrorMessage(data.code, data.detail, data));
           return;
         }
         // Wizard auto-avançante: sucesso navega direto pro próximo passo.
-        router.push(NEXT_STAGE.profile);
+        window.location.assign(NEXT_STAGE.profile);
       } catch {
         setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       }

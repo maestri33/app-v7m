@@ -24,6 +24,8 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
   await page.getByRole("button", { name: /entrar/i }).click();
 
   await expect(page).toHaveURL(/\/perfil$/);
+  const profileSave = page.getByRole("button", { name: /Salvar e continuar/i });
+  await expect(profileSave).toBeEnabled();
   await page.getByLabel("Nome da mãe").fill("Maria E2E");
   await page.getByLabel("Nome do pai").fill("José E2E");
   await page.getByLabel(/Naturalidade/).fill("São Paulo/SP");
@@ -36,13 +38,25 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
         response.request().method() === "POST",
       { timeout: 45_000 },
     ),
-    page.getByRole("button", { name: /Salvar e continuar/i }).click(),
+    profileSave.click(),
   ]);
   expect(profileResponse.ok()).toBeTruthy();
 
   await expect(page).toHaveURL(/\/endereco$/, { timeout: 30_000 });
+  const searchCep = page.getByRole("button", { name: /Buscar CEP/i });
+  await expect(searchCep).toBeEnabled();
   await page.getByLabel("CEP").fill("01310100");
-  await page.getByRole("button", { name: /Buscar CEP/i }).click();
+  await expect(page.getByLabel("CEP")).toHaveValue("01310-100");
+  const [addressResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/me/address") &&
+        response.request().method() === "POST",
+      { timeout: 45_000 },
+    ),
+    searchCep.click(),
+  ]);
+  expect(addressResponse.ok()).toBeTruthy();
   await page.getByLabel("Número").fill("1000");
   await page.getByRole("button", { name: /Salvar e continuar/i }).click();
 
