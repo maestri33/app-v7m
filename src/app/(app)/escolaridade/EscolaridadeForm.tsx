@@ -4,7 +4,7 @@ import { CopilotKit, useCopilotAction, useCopilotReadable } from "@copilotkit/re
 import { CopilotChat } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { Bot, CheckCircle2, Pencil, Sparkles } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -158,7 +158,13 @@ function validateDraft(draft: EducationDraft) {
   return null;
 }
 
-function AssistantToolCard({ args }: { args: Partial<AssistantEducation> }) {
+function AssistantToolCard({
+  args,
+  onPrepared,
+}: {
+  args: Partial<AssistantEducation>;
+  onPrepared: (draft: EducationDraft) => void;
+}) {
   const level = args.level === "fundamental" || args.level === "medio" ? args.level : null;
   const status =
     args.education_status === "completed" ||
@@ -166,6 +172,23 @@ function AssistantToolCard({ args }: { args: Partial<AssistantEducation> }) {
     args.education_status === "stopped"
       ? args.education_status
       : null;
+
+  const normalized = useMemo(
+    () =>
+      normalizeAssistantDraft({
+        level: args.level,
+        grade: args.grade,
+        education_status: args.education_status,
+        year: args.year,
+        city: args.city,
+        school: args.school,
+      } as AssistantEducation),
+    [args.city, args.education_status, args.grade, args.level, args.school, args.year],
+  );
+
+  useEffect(() => {
+    if (normalized) onPrepared(normalized);
+  }, [normalized, onPrepared]);
 
   return (
     <div className="rounded-[var(--radius-sm)] border border-brand-gold/40 bg-brand-surface p-3 text-sm">
@@ -347,6 +370,12 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
   const [restored, setRestored] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const applyAssistantDraft = useCallback((normalized: EducationDraft) => {
+    setDraft(normalized);
+    setPrepared(true);
+    setError(null);
+  }, []);
+
   useEffect(() => {
     const restoreTimer = window.setTimeout(() => {
       try {
@@ -422,19 +451,17 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
           required: false,
         },
       ],
-      render: ({ args }) => <AssistantToolCard args={args} />,
+      render: ({ args }) => <AssistantToolCard args={args} onPrepared={applyAssistantDraft} />,
       handler: async (args: AssistantEducation) => {
         const normalized = normalizeAssistantDraft(args);
         if (!normalized) {
           return "Os dados ainda estão inválidos ou incompatíveis. Pergunte somente o campo necessário e tente novamente.";
         }
-        setDraft(normalized);
-        setPrepared(true);
-        setError(null);
+        applyAssistantDraft(normalized);
         return "Resumo preparado. Peça para a pessoa conferir e tocar em Confirmar e continuar.";
       },
     },
-    [],
+    [applyAssistantDraft],
   );
 
   function saveEducation() {
@@ -528,7 +555,7 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
 
       {mode === "assistant" ? (
         <div className="space-y-4">
-          {aiUnavailable && (
+          {aiUnavailable && !prepared && (
             <div className="banner" role="alert">
               <p className="font-semibold">O assistente não respondeu agora.</p>
               <p className="mt-1 text-sm">Suas respostas não foram perdidas. Use as opções para continuar.</p>
