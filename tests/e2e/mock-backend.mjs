@@ -9,6 +9,9 @@ function freshState() {
     transitioned: false,
     pixValidated: false,
     educationPresent: false,
+    addressProof: null,
+    classifyIsDocument: true,
+    failNextProof: false,
     address: {
       zipcode: null,
       street: null,
@@ -61,8 +64,10 @@ function candidateMe() {
       education_completed: state.educationPresent ? true : null,
     },
     address: state.address,
-    address_proof: null,
-    documents: {},
+    address_proof: state.addressProof,
+    documents: state.document.doc_type
+      ? { [state.document.doc_type]: state.document }
+      : {},
     selfie: state.selfie,
     pix_validated: state.pixValidated,
   };
@@ -87,6 +92,14 @@ function handle(request, response) {
     state.phase = "training";
     return json(response, 200, { ok: true });
   }
+  if (path === "/__classify" && request.method === "POST") {
+    state.classifyIsDocument = url.searchParams.get("document") !== "0";
+    return json(response, 200, { ok: true });
+  }
+  if (path === "/__fail-next-proof" && request.method === "POST") {
+    state.failNextProof = true;
+    return json(response, 200, { ok: true });
+  }
   if (path === "/__stage" && request.method === "POST") {
     state.status = url.searchParams.get("status") ?? state.status;
     state.pixValidated = url.searchParams.get("pix") === "1";
@@ -101,6 +114,29 @@ function handle(request, response) {
         city: "São Paulo",
         state: "SP",
         missing_fields: [],
+      };
+    }
+    if (["pix", "education", "selfie"].includes(state.status)) {
+      state.document = {
+        doc_type: "rg",
+        analysis_status: "pending",
+        analysis_reason: null,
+        missing_fields: [],
+        front_photo: "/media/front.jpg",
+        back_photo: "/media/back.jpg",
+        next_slot: null,
+        photos: {
+          rg_front: { status: "pending" },
+          rg_back: { status: "pending" },
+        },
+      };
+      state.addressProof = {
+        exists: true,
+        photo: "/media/address-proof.jpg",
+        status: "pending",
+        reason: null,
+        needs_kinship: false,
+        kinship_relation: null,
       };
     }
     return json(response, 200, { ok: true });
@@ -178,24 +214,47 @@ function handle(request, response) {
     path === "/api/v1/collaborators/candidate/documents/classify" &&
     request.method === "POST"
   ) {
-    return json(response, 200, { is_document: true, doc_type: "rg", side: "front" });
+    return json(response, 200, {
+      is_document: state.classifyIsDocument,
+      doc_type: state.classifyIsDocument ? "rg" : null,
+      side: "front",
+    });
   }
   if (
     path.startsWith("/api/v1/collaborators/candidate/documents/photo/") &&
     request.method === "POST"
   ) {
-    state.document = {
-      doc_type: "rg",
-      number: "123456789",
-      issuing_agency: "SSP/SP",
-      analysis_status: "approved",
-      analysis_reason: "Aprovado pelo adapter KYC sintético.",
-      missing_fields: [],
-      next_slot: null,
-      photos: { rg_front: { status: "approved" } },
-    };
-    state.status = "pix";
+    const slot = path.split("/").at(-1);
+    state.document.doc_type = slot.startsWith("cnh_") ? "cnh" : "rg";
+    state.document.analysis_status = "pending";
+    state.document.missing_fields = [];
+    state.document.photos[slot] = { status: "pending" };
+    if (slot.endsWith("_front")) state.document.front_photo = "/media/front.jpg";
+    if (slot.endsWith("_back")) state.document.back_photo = "/media/back.jpg";
+    if (slot.endsWith("_full")) state.document.full_photo = "/media/full.jpg";
+    state.status = "documents";
     return json(response, 200, { accepted: true, poll_after_ms: 10 });
+  }
+  if (
+    path === "/api/v1/collaborators/candidate/documents/address-proof" &&
+    request.method === "POST"
+  ) {
+    if (state.failNextProof) {
+      state.failNextProof = false;
+      return json(response, 503, {
+        detail: "Falha temporária ao armazenar o comprovante.",
+        code: "UPLOAD_TEMPORARY_FAILURE",
+      });
+    }
+    state.addressProof = {
+      exists: true,
+      photo: "/media/address-proof.jpg",
+      status: "pending",
+      reason: null,
+      needs_kinship: false,
+      kinship_relation: null,
+    };
+    return json(response, 200, candidateMe());
   }
   if (path === "/api/v1/collaborators/candidate/pix" && request.method === "POST") {
     state.pixValidated = true;

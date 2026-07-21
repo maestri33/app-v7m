@@ -7,7 +7,6 @@ import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
 import {
   candidateStageHref,
-  FUNNEL_ORDER,
   stageCompleted,
 } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
@@ -25,12 +24,8 @@ export default async function PixPage() {
 
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
 
-  // Etapa FUTURA (deep-link/aba velha): sem o documento aprovado, o submit da
-  // chave só renderia 409 depois do esforço. Vai direto pra etapa real.
-  const idx = FUNNEL_ORDER.indexOf(me.status);
-  if (idx >= 0 && idx < FUNNEL_ORDER.indexOf("pix")) {
-    redirect(candidateStageHref(me));
-  }
+  const target = candidateStageHref(me);
+  if (!me.pix_validated && target !== "/pix") redirect(target);
 
   // Chave já validada (etapa passou) → resumo sem form. A chave em si não vem
   // no contrato (P2.1); revalidar mexeria R$0,01 no DICT à toa.
@@ -38,7 +33,7 @@ export default async function PixPage() {
     return (
       <PageShell>
         <CompactHeader kicker="V7M · Cadastro" title="Chave Pix" />
-        <FunnelStepper current={me.status} />
+        <FunnelStepper current="pix" />
         <div className="auth-card space-y-5">
           <div className="banner banner-ok" role="status">
             <p className="font-display">Chave validada ✓</p>

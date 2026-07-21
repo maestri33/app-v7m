@@ -1,21 +1,11 @@
 import { redirect } from "next/navigation";
 
-import { FunnelStepper } from "@/components/ui/stepper";
-import { ReadOnlyField } from "@/components/ui/field";
-import { Button } from "@/components/ui/button";
-import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
-import type { CandidateMe, ProfileSection } from "@/lib/api/types";
-import { candidateStageHref, stageCompleted } from "@/lib/candidate/funnel";
-import { maritalLabel } from "@/lib/candidate/labels";
-import { formatDateBR } from "@/lib/format";
+import type { CandidateMe } from "@/lib/api/types";
+import { candidateStageHref } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
-import { PerfilForm } from "./PerfilForm";
-
 export const dynamic = "force-dynamic";
-
-export const metadata = { title: "Seu perfil" };
 
 export default async function PerfilPage() {
   const session = await readSession();
@@ -23,57 +13,5 @@ export default async function PerfilPage() {
   if (!session.roles.includes("candidate")) redirect("/painel");
 
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
-  const initial: ProfileSection = me.profile ?? {
-    mother_name: null,
-    father_name: null,
-    birthplace: null,
-    marital_status: null,
-    nationality: null,
-    name: session.name,
-    birth_date: null,
-  };
-
-  // Etapa já concluída → resumo somente-leitura (só reabriria se o back
-  // reprovasse; perfil não tem análise) + CTA pro passo atual.
-  if (stageCompleted("profile", me)) {
-    return (
-      <PageShell>
-        <CompactHeader kicker="V7M · Cadastro" title="Seu perfil" />
-        <FunnelStepper current={me.status} />
-        <div className="auth-card space-y-5">
-          <div className="banner banner-ok" role="status">
-            <p className="font-display">Perfil confirmado ✓</p>
-          </div>
-          <ReadOnlyField label="Nome" value={initial.name ?? "—"} />
-          <ReadOnlyField
-            label="Data de nascimento"
-            value={formatDateBR(initial.birth_date)}
-            hint="Confirmado pelo CPF, não editável."
-          />
-          <ReadOnlyField label="Nome da mãe" value={initial.mother_name ?? "—"} />
-          <ReadOnlyField label="Nome do pai" value={initial.father_name ?? "—"} />
-          <ReadOnlyField label="Naturalidade" value={initial.birthplace ?? "—"} />
-          <ReadOnlyField label="Estado civil" value={maritalLabel(initial.marital_status)} />
-          <ReadOnlyField label="Nacionalidade" value={initial.nationality ?? "—"} />
-          <Button href={candidateStageHref(me)} size="xl" className="w-full">
-            Continuar
-          </Button>
-        </div>
-      </PageShell>
-    );
-  }
-
-  return (
-    <PageShell>
-      <CompactHeader
-        kicker="V7M · Cadastro"
-        title="Seu perfil"
-        subtitle="Estado civil, nacionalidade e filiação. O resto vem da extração do seu documento (próxima etapa)."
-      />
-      <FunnelStepper current="profile" />
-      <div className="auth-card">
-        <PerfilForm initial={initial} />
-      </div>
-    </PageShell>
-  );
+  redirect(candidateStageHref(me));
 }

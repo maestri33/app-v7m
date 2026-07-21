@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import useSWR from "swr";
 
-import { Button } from "@/components/ui/button";
-import { Field, FieldError, ReadOnlyField } from "@/components/ui/field";
+import { FieldError } from "@/components/ui/field";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
-import { StatusBanner } from "@/components/ui/status-banner";
 import { UploadActions } from "@/components/ui/upload-actions";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import {
@@ -15,346 +12,142 @@ import {
   FILE_TOO_LARGE_MSG,
   MAX_UPLOAD_BYTES,
 } from "@/lib/images/compress";
-import type { AnalysisStatus, DocumentSection } from "@/lib/api/types";
+import type { DocumentSection } from "@/lib/api/types";
 
-type Props = {
-  initial: DocumentSection;
+type Props = { initial: DocumentSection };
+type DocType = "rg" | "cnh";
+
+type ClassifyResult = {
+  is_document?: boolean | null;
+  doc_type?: string | null;
 };
 
-const POLL_MS = 2500;
-
-function uploadErrorMessage(code: string | undefined, detail: string | undefined) {
-  switch (code) {
-    case "IMAGE_TYPE_INVALID":
-      return "Esse formato a gente ainda não lê — envie uma foto (JPEG, PNG, WEBP) ou um PDF.";
-    case "IMAGE_TOO_LARGE":
-      return "O arquivo ficou pesado demais. Uma foto mais leve resolve.";
-    default:
-      return detail ?? "Não conseguimos receber o arquivo agora. Tente de novo.";
-  }
-}
-
-/** Rótulo amigável por slot. */
-const SLOT_LABEL: Record<string, string> = {
-  rg_front: "Envie a FRENTE do seu RG",
-  rg_back: "Frente aprovada! Envie o VERSO",
-  cnh_full: "Envie sua CNH (frente e verso)",
-  cnh_front: "Envie a FRENTE da sua CNH",
-  cnh_back: "Frente aprovada! Envie o VERSO da CNH",
-  rg_full: "Envie o RG (frente e verso)",
-};
-
-/**
- * Fluxo slot-a-slot: o backend diz qual foto precisa (`next_slot`), o form
- * mostra 1 slot por vez. Após upload, poll até `analysis_status` sair de
- * pending. Cada foto individual tem status em `photos`.
- */
 export function DocForm({ initial }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [docType, setDocType] = useState<string>(initial.doc_type ?? "");
-  const [extras, setExtras] = useState<Record<string, string>>({});
-  const [pollMs, setPollMs] = useState(POLL_MS);
-  const [justUploaded, setJustUploaded] = useState(false);
-  // Aviso suave da classificação por IA (o promotor ACEITA os dois; a IA só orienta se divergir).
-  const [classifyHint, setClassifyHint] = useState<string | null>(null);
-  // Nº de polls seguidos em `pending` — backoff exponencial (2,5s→5s→10s… teto
-  // 30s): análise por IA leva 10–60s e revisão humana leva horas; martelar o
-  // backend a cada 2,5s pra sempre não ajuda ninguém.
-  const pendingPolls = useRef(0);
-
-  const { data: live, mutate } = useSWR<DocumentSection>(
-    "/api/me/document",
-    (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
-    {
-      // Só `pending` mantém o poll (rejected/review/approved param sozinhos);
-      // `justUploaded` fica FORA do intervalo — o mutate() pós-upload já traz
-      // o pending do backend, e mantê-lo aqui deixava o poll ligado pra sempre.
-      refreshInterval: (latest) => {
-        if (latest?.analysis_status !== "pending") {
-          pendingPolls.current = 0;
-          return 0;
-        }
-        const interval = Math.min(pollMs * 2 ** pendingPolls.current, 30_000);
-        pendingPolls.current += 1;
-        return interval;
-      },
-      onSuccess: () => setJustUploaded(false),
-      fallbackData: initial,
-    },
+  const [docType, setDocType] = useState<DocType | null>(
+    initial.doc_type === "rg" || initial.doc_type === "cnh" ? initial.doc_type : null,
   );
+  const [rgFrontSent, setRgFrontSent] = useState(
+    initial.analysis_status !== "rejected" && Boolean(initial.has_front || initial.front_photo),
+  );
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const doc = live ?? initial;
-  const lockedType = doc.doc_type ?? null;
-  const nextSlot = doc.next_slot ?? null;
-  const uploadSlot =
-    nextSlot ?? (!lockedType && docType ? `${docType}_front` : null);
-  const status: AnalysisStatus | null = doc.analysis_status ?? null;
-  const missing = (doc.missing_fields ?? []).filter((f) => f !== "doc_type");
-  const hasSlot = uploadSlot != null;
-  const isAnalyzing = justUploaded || (hasSlot && status === "pending");
+  const slot = docType === "rg" ? (rgFrontSent ? "rg_back" : "rg_front") : "cnh_full";
+  const prompt =
+    docType === "rg"
+      ? rgFrontSent
+        ? "Agora envie o VERSO do RG"
+        : "Primeiro envie a FRENTE do RG"
+      : "Envie a CNH aberta ou um PDF da CNH Digital";
 
-  // Aprovado, sem slot pendente, sem campo faltando → auto-avança.
-  useEffect(() => {
-    if (status === "approved" && !hasSlot && missing.length === 0) {
-      router.push(NEXT_STAGE.documents);
+  async function confirmDocument(file: File): Promise<boolean> {
+    const body = new FormData();
+    body.append("file", file, file.name);
+    const response = await fetch("/api/me/document/classify", { method: "POST", body });
+    if (!response.ok) return true;
+    const classification: ClassifyResult = await response.json();
+    if (classification.is_document === false) {
+      setError("Essa imagem não parece ser um documento. Confira a foto e tente novamente.");
+      return false;
     }
-  }, [status, hasSlot, missing.length, router]);
-
-  // Classifica a foto (IA→OmniRoute) ANTES de enviar e, se o tipo reconhecido divergir do escolhido,
-  // orienta suavemente (não bloqueia — o promotor aceita RG e CNH). Fail-open: erro → sem aviso.
-  async function classifyHintFor(file: File, chosen: string) {
-    setClassifyHint(null);
-    try {
-      const form = new FormData();
-      form.append("file", file, file.name);
-      const res = await fetch("/api/me/document/classify", { method: "POST", body: form });
-      const c: { is_document?: boolean | null; doc_type?: string | null } = await res.json();
-      if (c.is_document === false) {
-        setClassifyHint("Não reconhecemos um documento nessa foto — confira antes de enviar.");
-      } else if (c.doc_type && chosen && c.doc_type !== chosen) {
-        setClassifyHint(
-          `Você escolheu ${chosen.toUpperCase()}, mas a foto parece ${c.doc_type.toUpperCase()}. Confira se está certo.`,
-        );
-      }
-    } catch {
-      // fail-open: sem aviso
+    if (classification.doc_type && classification.doc_type !== docType) {
+      setError(
+        `A foto parece ser ${classification.doc_type.toUpperCase()}, mas você escolheu ${docType?.toUpperCase()}. Corrija o tipo e envie novamente.`,
+      );
+      return false;
     }
+    return true;
   }
 
   function onUpload(rawFile: File) {
-    if (!uploadSlot) return;
+    if (!docType || pending) return;
     setError(null);
+    setNotice(null);
     startTransition(async () => {
       try {
-        // Comprime ANTES de tudo (foto de câmera: 4–12MB → ~300–500KB) e a
-        // MESMA imagem comprimida vai pro classify e pro upload — antes o
-        // arquivo cru subia duas vezes.
         const file = await compressImage(rawFile);
         if (file.size > MAX_UPLOAD_BYTES) {
           setError(FILE_TOO_LARGE_MSG);
           return;
         }
-        void classifyHintFor(file, lockedType ?? docType);
-        const form = new FormData();
-        form.append("slot", uploadSlot);
-        form.append("photo", file, file.name);
-        const res = await fetch("/api/me/document/photo", { method: "POST", body: form });
-        const data: {
-          detail?: string;
-          code?: string;
-          expected_status?: string;
-          poll_after_ms?: number;
-        } = await res.json();
-        if (res.ok && typeof data.poll_after_ms === "number" && data.poll_after_ms > 0) {
-          setPollMs(data.poll_after_ms);
-        }
-        if (!res.ok) {
-          const redir = wrongStatusHref(data.code, data.expected_status);
-          if (redir) { router.push(redir); return; }
-          setError(uploadErrorMessage(data.code, data.detail));
+        if (!(await confirmDocument(file))) return;
+
+        const body = new FormData();
+        body.append("slot", slot);
+        body.append("photo", file, file.name);
+        const response = await fetch("/api/me/document/photo", { method: "POST", body });
+        const data: { detail?: string; code?: string; expected_status?: string } =
+          await response.json();
+        if (!response.ok) {
+          const redirectTo = wrongStatusHref(data.code, data.expected_status);
+          if (redirectTo) {
+            router.push(redirectTo);
+            return;
+          }
+          setError(data.detail ?? "Não conseguimos receber essa foto. Tente novamente.");
           return;
         }
-        setJustUploaded(true);
-        await mutate();
-        router.refresh();
-      } catch {
-        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
-      }
-    });
-  }
 
-  function onMissingSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/me/document", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            doc_type: lockedType ?? docType,
-            number: extras.number ?? doc.number ?? "",
-            ...extras,
-          }),
-        });
-        const data: { detail?: string; code?: string; expected_status?: string } =
-          await res.json();
-        if (!res.ok) {
-          const redir = wrongStatusHref(data.code, data.expected_status);
-          if (redir) { router.push(redir); return; }
-          setError(uploadErrorMessage(data.code, data.detail));
+        if (docType === "rg" && !rgFrontSent) {
+          setRgFrontSent(true);
+          setNotice("Frente recebida. A leitura continua em segundo plano.");
           return;
         }
         router.push(NEXT_STAGE.documents);
       } catch {
-        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
+        setError("A conexão oscilou. Tente novamente — a etapa pode ser retomada sem recomeçar.");
       }
     });
   }
 
-  // ── Aprovado: tudo somente-leitura ──────────────────────────────────────────
-  if (status === "approved" && !hasSlot && missing.length === 0) {
-    return (
-      <div className="space-y-5">
-        <StatusBanner
-          status="approved"
-          footnote="Documento lido e confirmado. Etapa concluída — não precisa reenviar."
-        />
-        <ReadOnlyField label="Tipo" value={(lockedType ?? "").toUpperCase() || "—"} />
-        {doc.number && <ReadOnlyField label="Número" value={String(doc.number)} />}
-        {doc.issuing_agency && (
-          <ReadOnlyField label="Órgão emissor" value={String(doc.issuing_agency)} />
-        )}
-        <Button href={NEXT_STAGE.documents} size="xl" className="w-full">
-          Continuar
-        </Button>
-      </div>
-    );
-  }
-
-  const effectiveType = lockedType ?? docType;
-  const slotLabel = uploadSlot ? SLOT_LABEL[uploadSlot] : null;
-
   return (
-    <div className="space-y-6">
-      {/* Tipo: RG ou CNH — trava depois do 1º upload */}
-      {!lockedType && (
-        <fieldset className="space-y-2">
-          <legend className="label">Tipo</legend>
-          <div className="grid grid-cols-2 gap-3">
-            {(["rg", "cnh"] as const).map((t) => (
-              <label
-                key={t}
-                className={`flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border px-4 py-3 transition-colors ${
-                  effectiveType === t
-                    ? "border-brand-gold bg-brand-gold-light/10"
-                    : "border-[var(--surface-border)] bg-[var(--surface)]"
-                } cursor-pointer hover:border-brand-gold-dark`}
-              >
-                <input
-                  type="radio"
-                  name="doc_type"
-                  value={t}
-                  checked={effectiveType === t}
-                  onChange={() => setDocType(t)}
-                  className="accent-gold-deep"
-                />
-                {t === "rg" ? "RG" : "CNH"}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      )}
-
-      {/* Banner de status quando analisando ou em revisão */}
-      {status && status !== "approved" && (
-        <StatusBanner
-          status={status}
-          reason={status === "rejected" ? (doc.analysis_reason ?? null) : null}
-          footnote={status === "pending" ? "IA lendo seu documento…" : null}
-        />
-      )}
-
-      {/* Upload: 1 slot por vez, some durante análise */}
-      {hasSlot && !isAnalyzing && status !== "rejected" && (
-        <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-[var(--surface)] p-4 space-y-3">
-          <p className="text-sm font-semibold">
-            {slotLabel ?? `Envie: ${uploadSlot}`}
-          </p>
-          <p className="text-xs text-[var(--surface-text-muted)]">
-            tire uma foto ou envie um arquivo — imagem ou PDF
-          </p>
-          <UploadActions
-            disabled={!effectiveType || pending}
-            pending={pending}
-            onFile={onUpload}
-          />
-          {!effectiveType && (
-            <p className="field-hint">Escolha RG ou CNH primeiro.</p>
-          )}
-          {classifyHint && (
-            <p className="text-xs font-semibold text-brand-gold-dark">{classifyHint}</p>
-          )}
-        </div>
-      )}
-
-      {/* Rejected: re-abre upload pro mesmo slot */}
-      {hasSlot && status === "rejected" && (
-        <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-[var(--surface)] p-4 space-y-3">
-          <p className="text-sm font-semibold">
-            {slotLabel ?? `Envie: ${uploadSlot}`}
-          </p>
-          <UploadActions
-            disabled={!effectiveType || pending}
-            pending={pending}
-            retry
-            onFile={onUpload}
-          />
-        </div>
-      )}
-
-      {/* Review: aguardando revisão humana */}
-      {status === "review" && !hasSlot && (
-        <div className="banner banner-warn" role="status">
-          <p className="font-display">Documento em revisão</p>
-          <p className="text-xs mt-1 opacity-70">
-            Nossa equipe está analisando. Você receberá uma notificação quando
-            estiver pronto.
-          </p>
-        </div>
-      )}
-
-      {/* Campos que a IA não leu → input manual */}
-      {!isAnalyzing && status !== "rejected" && missing.length > 0 && (
-        <form onSubmit={onMissingSubmit} className="space-y-5">
-          {/* Overlay só aqui: este submit dá router.push pro Server Component
-              (janela em branco). O upload tem o StatusBanner de análise. */}
-          {pending && <LoadingOverlay label="Salvando…" logo />}
-          <p className="text-sm text-[var(--surface-text-muted)]">
-            A IA não conseguiu ler {missing.length === 1 ? "este campo" : "estes campos"} —
-            complete pra seguir:
-          </p>
-          {missing.map((f) => (
-            <Field
-              key={f}
-              label={fieldLabel(f)}
-              value={extras[f] ?? ""}
-              onChange={(v) => setExtras((p) => ({ ...p, [f]: v }))}
-              required
-            />
+    <div className="space-y-5">
+      {pending && <LoadingOverlay label="Recebendo foto…" logo />}
+      <fieldset className="space-y-2" disabled={pending || rgFrontSent}>
+        <legend className="label">Qual documento você vai usar?</legend>
+        <div className="grid grid-cols-2 gap-3">
+          {(["rg", "cnh"] as const).map((type) => (
+            <label
+              key={type}
+              className={`flex cursor-pointer items-center justify-center rounded-[var(--radius-sm)] border px-4 py-3 ${
+                docType === type
+                  ? "border-brand-gold bg-brand-gold-light/10"
+                  : "border-[var(--surface-border)] bg-[var(--surface)]"
+              }`}
+            >
+              <input
+                className="accent-gold-deep mr-2"
+                type="radio"
+                name="doc_type"
+                value={type}
+                checked={docType === type}
+                onChange={() => {
+                  setDocType(type);
+                  setError(null);
+                }}
+              />
+              {type.toUpperCase()}
+            </label>
           ))}
-          <Button type="submit" size="xl" loading={pending} className="w-full">
-            {pending ? "Salvando…" : "Confirmar e continuar"}
-          </Button>
-        </form>
-      )}
+        </div>
+      </fieldset>
 
+      <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-[var(--surface)] p-4 space-y-3">
+        <p className="font-semibold">{docType ? prompt : "Escolha RG ou CNH para continuar"}</p>
+        <p className="text-xs text-[var(--surface-text-muted)]">
+          A foto só precisa mostrar o documento inteiro e legível. A conferência detalhada não prende você nesta tela.
+        </p>
+        <UploadActions
+          disabled={!docType || pending}
+          pending={pending}
+          onFile={onUpload}
+        />
+      </div>
+
+      {notice && <div className="banner banner-ok" role="status">{notice}</div>}
       <FieldError>{error}</FieldError>
     </div>
-  );
-}
-
-// O card do comprovante de residência morava aqui rotulado "opcional" — mas o
-// back o EXIGE pra sair de `profile`. Virou sub-passo obrigatório do endereço:
-// src/app/(app)/endereco/AddressProofSection.tsx (junto com o KinshipChat).
-
-// Rótulos pt-BR dos campos que o backend pode marcar como faltando (regra do
-// CLAUDE.md: texto voltado a humano em pt-BR). Fallback humaniza a chave crua
-// para qualquer campo novo que o backend venha a exigir.
-const FIELD_LABELS: Record<string, string> = {
-  number: "Número",
-  issuing_agency: "Órgão emissor (SSP, etc.)",
-  issue_date: "Data de emissão",
-  category: "Categoria (CNH)",
-  national_register: "Registro nacional (CNH)",
-  date_of_birth: "Data de nascimento",
-  expires_on: "Validade",
-};
-
-function fieldLabel(f: string) {
-  return (
-    FIELD_LABELS[f] ?? f.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   );
 }

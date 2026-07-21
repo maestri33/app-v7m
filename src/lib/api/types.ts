@@ -45,6 +45,11 @@ export type ProfileSection = {
   birth_date: string | null;
   education_level?: string | null;
   education_completed?: boolean | null;
+  education_grade?: number | null;
+  education_status?: "completed" | "attending" | "stopped" | null;
+  education_year?: number | null;
+  education_city?: string | null;
+  education_school?: string | null;
 };
 
 /** Seção rica do documento — `GET /candidate/document` (a que o DocForm consome). */
@@ -63,6 +68,9 @@ export type DocumentSection = {
   has_front?: boolean;
   has_back?: boolean;
   has_full?: boolean;
+  front_photo?: string | null;
+  back_photo?: string | null;
+  full_photo?: string | null;
   /** Slot-a-slot (RG): qual foto o backend pede a seguir (rg_front/rg_back/cnh_full…). */
   next_slot?: string | null;
   /** Status por slot de foto já enviado. */
@@ -75,6 +83,9 @@ export type DocumentSlot = {
   validation_status?: AnalysisStatus | string | null;
   number?: string | null;
   issuing_agency?: string | null;
+  front_photo?: string | null;
+  back_photo?: string | null;
+  full_photo?: string | null;
   [k: string]: unknown;
 };
 
@@ -119,6 +130,17 @@ export type CandidateMe = {
   selfie?: SelfieSection | null;
   /** Pix validado sim/não — a CHAVE não vem no contrato (P2.1). */
   pix_validated?: boolean;
+  blocks?: ValidationBlock[];
+};
+
+export type ValidationBlock = {
+  external_id: string;
+  source_type: string;
+  title: string;
+  description: string;
+  action_label: string;
+  action_route: string;
+  created_at: string;
 };
 
 /** `PromoterMeOut` — SEM `pix_key` no contrato (P2.1). */
@@ -127,6 +149,8 @@ export type PromoterMe = {
   hub_external_id: string;
   status: "active" | "suspended";
   ref_url: string;
+  pre_matriculado?: boolean;
+  blocks?: ValidationBlock[];
 };
 
 /**

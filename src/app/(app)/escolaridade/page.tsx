@@ -20,9 +20,12 @@ export default async function EscolaridadePage() {
   if (!session.roles.includes("candidate")) redirect("/painel");
 
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
+  const educationComplete = stageCompleted("education", me);
+  const target = candidateStageHref(me);
+  if (!educationComplete && target !== "/escolaridade") redirect(target);
 
   // Escolaridade já gravada (etapa passou) → resumo sem form.
-  if (stageCompleted("education", me)) {
+  if (educationComplete) {
     return (
       <PageShell>
         <CompactHeader kicker="V7M · Cadastro" title="Escolaridade" />
@@ -48,7 +51,7 @@ export default async function EscolaridadePage() {
       <CompactHeader
         kicker="V7M · Cadastro"
         title="Escolaridade"
-        subtitle="Última pergunta antes da selfie: até onde você estudou? Não precisa ter concluído — é só pra gente te orientar direito."
+        subtitle="Informe a última série, se concluiu ou parou no meio e em que ano. Cidade e escola são opcionais."
       />
       <FunnelStepper current="education" />
       <div className="auth-card">
