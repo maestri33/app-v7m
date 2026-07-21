@@ -12,9 +12,9 @@
     "check-otp": "node scripts/check.mjs"
   },
   "dependencies": {
-    "@copilotkit/react-core": "^1.62.3",
-    "@copilotkit/react-ui": "^1.62.3",
-    "@copilotkit/runtime": "^1.62.3",
+    "@copilotkit/react-core": "1.63.1",
+    "@copilotkit/react-ui": "1.63.1",
+    "@copilotkit/runtime": "1.63.1",
     "lucide-react": "^1.21.0",
     "motion": "^12.42.2",
     "next": "16.2.9",

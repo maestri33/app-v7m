@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const mockBackend = "http://127.0.0.1:8765";
+const mockBackend = process.env.MOCK_BACKEND_URL ?? "http://127.0.0.1:8765";
 
 test("retoma cada estado na próxima etapa correta", async ({ page, request }) => {
   await request.post(`${mockBackend}/__reset`);
