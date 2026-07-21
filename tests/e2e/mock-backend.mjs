@@ -11,6 +11,8 @@ function freshState() {
     educationPresent: false,
     addressProof: null,
     classifyIsDocument: true,
+    classifyCompleteness: "front",
+    classifyIsLegible: true,
     failNextClassify: false,
     failNextProof: false,
     address: {
@@ -95,6 +97,8 @@ function handle(request, response) {
   }
   if (path === "/__classify" && request.method === "POST") {
     state.classifyIsDocument = url.searchParams.get("document") !== "0";
+    state.classifyCompleteness = url.searchParams.get("completeness") ?? "front";
+    state.classifyIsLegible = url.searchParams.get("legible") !== "0";
     return json(response, 200, { ok: true });
   }
   if (path === "/__fail-next-classify" && request.method === "POST") {
@@ -229,7 +233,11 @@ function handle(request, response) {
     return json(response, 200, {
       is_document: state.classifyIsDocument,
       doc_type: state.classifyIsDocument ? "rg" : null,
-      side: "front",
+      completeness: state.classifyCompleteness,
+      is_legible: state.classifyIsLegible,
+      reason: state.classifyIsLegible
+        ? "Documento legível."
+        : "A imagem está desfocada e não dá para ler o documento.",
     });
   }
   if (

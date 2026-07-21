@@ -37,9 +37,21 @@ test("erros de documento e comprovante permitem corrigir sem recomeçar", async 
   await expect(page.getByText(/Essa imagem não parece ser um documento/i)).toBeVisible();
   await expect(page).toHaveURL(/\/documento$/);
 
-  await request.post(`${mockBackend}/__classify?document=1`);
+  await request.post(`${mockBackend}/__classify?document=1&completeness=front&legible=0`);
+  await documentInput.setInputFiles(fixture);
+  await expect(page.getByText(/imagem está desfocada/i)).toBeVisible();
+  await expect(page).toHaveURL(/\/documento$/);
+
+  await request.post(`${mockBackend}/__classify?document=1&completeness=front&legible=1`);
   await documentInput.setInputFiles(fixture);
   await expect(page.getByText(/VERSO do RG/i)).toBeVisible();
+
+  await request.post(`${mockBackend}/__classify?document=1&completeness=front&legible=0`);
+  await documentInput.setInputFiles(fixture);
+  await expect(page.getByText(/parece ser a FRENTE do RG/i)).toBeVisible();
+  await expect(page).toHaveURL(/\/documento$/);
+
+  await request.post(`${mockBackend}/__classify?document=1&completeness=back&legible=1`);
   await documentInput.setInputFiles(fixture);
   await expect(page).toHaveURL(/\/endereco$/);
 

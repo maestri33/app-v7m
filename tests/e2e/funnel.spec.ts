@@ -28,6 +28,7 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
   const documentInput = page.locator('input[type="file"][accept="image/*,application/pdf"]');
   await documentInput.setInputFiles(fixture);
   await expect(page.getByText(/VERSO do RG/i)).toBeVisible();
+  await request.post(`${mockBackend}/__classify?document=1&completeness=back&legible=1`);
   await documentInput.setInputFiles(fixture);
 
   await expect(page).toHaveURL(/\/endereco$/, { timeout: 15_000 });
