@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-const mockBackend = "http://127.0.0.1:8765";
+const mockBackend = process.env.MOCK_BACKEND_URL ?? "http://127.0.0.1:8765";
 const fixture = {
   name: "identity.png",
   mimeType: "image/png",
@@ -39,6 +39,7 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
   await page.getByRole("button", { name: /Validar chave/i }).click();
 
   await expect(page).toHaveURL(/\/escolaridade$/);
+  await page.getByRole("button", { name: "Responder por opções" }).click();
   await page.getByText("Ensino médio", { exact: true }).click();
   await page.getByText("3º médio", { exact: true }).click();
   await page.getByText("Concluí essa série/ano", { exact: true }).click();

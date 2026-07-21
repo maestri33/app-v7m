@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-const mockBackend = "http://127.0.0.1:8765";
+const mockBackend = process.env.MOCK_BACKEND_URL ?? "http://127.0.0.1:8765";
 const fixture = {
   name: "identity.png",
   mimeType: "image/png",
