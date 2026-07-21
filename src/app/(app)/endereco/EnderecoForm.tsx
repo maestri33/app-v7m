@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,16 @@ type Props = {
   initial: AddressSection;
 };
 
+const subscribeHydration = () => () => {};
+
 export function EnderecoForm({ initial }: Props) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const ready = useSyncExternalStore(
+    subscribeHydration,
+    () => true,
+    () => false,
+  );
+  const [pending, setPending] = useState(false);
   const [cep, setCep] = useState(initial.zipcode ?? "");
   const [number, setNumber] = useState(initial.number ?? "");
   const [complement, setComplement] = useState(initial.complement ?? "");
@@ -30,7 +37,7 @@ export function EnderecoForm({ initial }: Props) {
     initial.zipcode ? "rest" : "cep",
   );
 
-  function onCep(e: React.FormEvent) {
+  async function onCep(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     // Valida os 8 dígitos no cliente antes de bater no ViaCEP.
@@ -39,8 +46,8 @@ export function EnderecoForm({ initial }: Props) {
       setError(cepError);
       return;
     }
-    startTransition(async () => {
-      try {
+    setPending(true);
+    try {
         const res = await fetch("/api/me/address", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -70,17 +77,18 @@ export function EnderecoForm({ initial }: Props) {
           setState(a.state ?? "");
         }
         setStage("rest");
-      } catch {
-        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
-      }
-    });
+    } catch {
+      setError("A conexão oscilou. Tente de novo — nada foi perdido.");
+    } finally {
+      setPending(false);
+    }
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    startTransition(async () => {
-      try {
+    setPending(true);
+    try {
         const res = await fetch("/api/me/address", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -117,15 +125,19 @@ export function EnderecoForm({ initial }: Props) {
         } else {
           router.refresh();
         }
-      } catch {
-        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
-      }
-    });
+    } catch {
+      setError("A conexão oscilou. Tente de novo — nada foi perdido.");
+    } finally {
+      setPending(false);
+    }
   }
 
   if (stage === "cep") {
     return (
       <form onSubmit={onCep} className="space-y-5">
+        {(!ready || pending) && (
+          <LoadingOverlay label={ready ? "Buscando CEP…" : "Preparando formulário…"} logo />
+        )}
         <Field
           label="CEP"
           value={cep}
@@ -135,8 +147,14 @@ export function EnderecoForm({ initial }: Props) {
           required
         />
         <FieldError>{error}</FieldError>
-        <Button type="submit" size="xl" loading={pending} className="w-full">
-          {pending ? "Buscando…" : "Buscar CEP"}
+        <Button
+          type="submit"
+          size="xl"
+          loading={pending}
+          disabled={!ready}
+          className="w-full"
+        >
+          {!ready ? "Preparando…" : pending ? "Buscando…" : "Buscar CEP"}
         </Button>
       </form>
     );
@@ -144,7 +162,9 @@ export function EnderecoForm({ initial }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      {pending && <LoadingOverlay label="Salvando endereço…" logo />}
+      {(!ready || pending) && (
+        <LoadingOverlay label={ready ? "Salvando endereço…" : "Preparando formulário…"} logo />
+      )}
       <div className="grid grid-cols-3 gap-3">
         <ReadOnlyField className="col-span-2" label="CEP" value={cep} />
         <Field label="Número" value={number} onChange={setNumber} required inputMode="numeric" />
@@ -157,8 +177,14 @@ export function EnderecoForm({ initial }: Props) {
         <ReadOnlyField className="col-span-1" label="UF" value={state} />
       </div>
       <FieldError>{error}</FieldError>
-      <Button type="submit" size="xl" loading={pending} className="w-full">
-        {pending ? "Salvando…" : "Salvar e continuar"}
+      <Button
+        type="submit"
+        size="xl"
+        loading={pending}
+        disabled={!ready}
+        className="w-full"
+      >
+        {!ready ? "Preparando…" : pending ? "Salvando…" : "Salvar e continuar"}
       </Button>
     </form>
   );
