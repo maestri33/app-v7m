@@ -20,6 +20,9 @@ type DocType = "rg" | "cnh";
 type ClassifyResult = {
   is_document?: boolean | null;
   doc_type?: string | null;
+  completeness?: "front" | "back" | "full" | null;
+  is_legible?: boolean | null;
+  reason?: string | null;
 };
 
 export function DocForm({ initial }: Props) {
@@ -42,30 +45,61 @@ export function DocForm({ initial }: Props) {
         : "Primeiro envie a FRENTE do RG"
       : "Envie a CNH aberta ou um PDF da CNH Digital";
 
-  async function confirmDocument(file: File): Promise<boolean> {
+  async function confirmDocument(file: File): Promise<ClassifyResult | null> {
     const body = new FormData();
     body.append("file", file, file.name);
     const response = await fetch("/api/me/document/classify", { method: "POST", body });
     if (!response.ok) {
       setError("Não conseguimos confirmar o documento agora. Tente enviar novamente.");
-      return false;
+      return null;
     }
     const classification: ClassifyResult = await response.json();
     if (classification.is_document === false) {
       setError("Essa imagem não parece ser um documento. Confira a foto e tente novamente.");
-      return false;
+      return null;
     }
     if (classification.is_document !== true) {
       setError("Não foi possível confirmar se o arquivo é um documento. Tente outra foto.");
-      return false;
+      return null;
     }
     if (classification.doc_type && classification.doc_type !== docType) {
       setError(
         `A foto parece ser ${classification.doc_type.toUpperCase()}, mas você escolheu ${docType?.toUpperCase()}. Corrija o tipo e envie novamente.`,
       );
-      return false;
+      return null;
     }
-    return true;
+    if (classification.is_legible !== true) {
+      setError(
+        classification.reason ??
+          "O documento não está legível o suficiente. Tire outra foto com boa luz e sem cortes.",
+      );
+      return null;
+    }
+    if (docType === "rg") {
+      const expectedSide = rgFrontSent ? "back" : "front";
+      const detectedSide = classification.completeness;
+      if (detectedSide !== expectedSide && detectedSide !== "full") {
+        const expectedObject = expectedSide === "front" ? "a FRENTE" : "o VERSO";
+        const expectedRequest = expectedSide === "front" ? "da FRENTE" : "do VERSO";
+        const detectedObject =
+          detectedSide === "front"
+            ? "a FRENTE"
+            : detectedSide === "back"
+              ? "o VERSO"
+              : null;
+        setError(
+          detectedObject
+            ? `Essa foto parece ser ${detectedObject} do RG. Agora precisamos ${expectedRequest}.`
+            : `Não conseguimos identificar o lado do RG. Envie ${expectedObject} inteiro e legível.`,
+        );
+        return null;
+      }
+    }
+    if (docType === "cnh" && classification.completeness !== "full") {
+      setError("Envie a CNH aberta, mostrando o documento inteiro, ou o PDF da CNH Digital.");
+      return null;
+    }
+    return classification;
   }
 
   function onUpload(rawFile: File) {
@@ -79,10 +113,13 @@ export function DocForm({ initial }: Props) {
           setError(FILE_TOO_LARGE_MSG);
           return;
         }
-        if (!(await confirmDocument(file))) return;
+        const classification = await confirmDocument(file);
+        if (!classification) return;
+        const uploadSlot =
+          docType === "rg" && classification.completeness === "full" ? "rg_full" : slot;
 
         const body = new FormData();
-        body.append("slot", slot);
+        body.append("slot", uploadSlot);
         body.append("photo", file, file.name);
         const response = await fetch("/api/me/document/photo", { method: "POST", body });
         const data: { detail?: string; code?: string; expected_status?: string } =
@@ -97,7 +134,7 @@ export function DocForm({ initial }: Props) {
           return;
         }
 
-        if (docType === "rg" && !rgFrontSent) {
+        if (uploadSlot === "rg_front") {
           setRgFrontSent(true);
           setNotice("Frente recebida. A leitura continua em segundo plano.");
           return;
