@@ -25,14 +25,17 @@ export default async function PainelPage() {
   if (isOnboarding(session.roles)) {
     const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
     if (me.status === "completed") {
+      const recoveryRoute = candidateStageHref(me);
+      if (recoveryRoute !== "/painel") redirect(recoveryRoute);
       return (
-        <PanelCard>
-          <PanelTitle>Cadastro completo!</PanelTitle>
-          <PanelSub>Aguardando aprovação do polo.</PanelSub>
-          <PanelBody>
-            Recebemos seu perfil, documento, Pix e selfie. O coordenador do polo
-            confere e libera — quando aprovar, o treinamento aparece aqui.
-          </PanelBody>
+          <PanelCard>
+            <PanelTitle>Cadastro completo!</PanelTitle>
+            <PanelSub>As conferências continuam em segundo plano.</PanelSub>
+            <PanelBody>
+              Recebemos documento, comprovante, Pix, escolaridade e selfie. Você não
+              precisa ficar esperando numa tela: se alguma foto precisar de ajuste,
+              abriremos exatamente aquela etapa; caso contrário, o treinamento aparece aqui.
+            </PanelBody>
         </PanelCard>
       );
     }
@@ -75,11 +78,43 @@ export default async function PainelPage() {
     const goal = summary.week_goal;
     const paid = summary.week_paid_leads;
     const remaining = Math.max(0, goal - paid);
+    const scholarshipPaid = summary.lifetime.total_students;
+    const scholarshipEnrollRemaining = Math.max(0, 3 - scholarshipPaid);
+    const scholarshipExamRemaining = Math.max(0, 10 - scholarshipPaid);
     const heroEmoji =
       paid >= goal ? "🏆" : paid >= Math.ceil(goal * 0.6) ? "⚡" : paid >= 1 ? "🔥" : "🌱";
 
     return (
       <div className="space-y-4">
+        {me.pre_matriculado && (
+          <section className="auth-card space-y-3 border-brand-gold-dark/50" aria-label="Sua bolsa de estudos">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-gold-ink">
+                Sua bolsa de estudos
+              </p>
+              <h2 className="font-display text-lg text-[var(--surface-text)]">
+                {scholarshipEnrollRemaining > 0
+                  ? `Faltam ${scholarshipEnrollRemaining} matrículas pagas para efetivar sua matrícula`
+                  : "Sua matrícula como bolsista foi conquistada"}
+              </h2>
+            </div>
+            <p className="text-sm text-[var(--surface-text-muted)]">
+              Você já tem {scholarshipPaid} de 3 indicações pagas para entrar como aluno.
+              A prova final é liberada ao chegar a 10, junto com os documentos do curso.
+            </p>
+            <div className="h-2 overflow-hidden rounded-full bg-brand-border" aria-hidden>
+              <div
+                className="h-full rounded-full bg-brand-gold"
+                style={{ width: `${Math.min(100, (scholarshipPaid / 10) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-brand-muted">
+              {scholarshipExamRemaining > 0
+                ? `Faltam ${scholarshipExamRemaining} indicações pagas para o requisito da prova final.`
+                : "Requisito de 10 indicações pagas atingido."}
+            </p>
+          </section>
+        )}
         {/* Greeting */}
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-display text-xl text-[var(--surface-text)] truncate">

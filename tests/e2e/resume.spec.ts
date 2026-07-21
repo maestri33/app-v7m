@@ -9,10 +9,10 @@ test("retoma cada estado na próxima etapa correta", async ({ page, request }) =
   await page.getByRole("button", { name: /continuar/i }).click();
   await page.getByLabel(/Código de 6 dígitos/i).fill("000000");
   await page.getByRole("button", { name: /entrar/i }).click();
-  await expect(page).toHaveURL(/\/perfil$/);
+  await expect(page).toHaveURL(/\/documento$/);
 
   const cases = [
-    { query: "status=profile", expected: /\/endereco$/ },
+    { query: "status=profile", expected: /\/documento$/ },
     { query: "status=address", expected: /\/documento$/ },
     { query: "status=documents", expected: /\/documento$/ },
     { query: "status=pix", expected: /\/pix$/ },

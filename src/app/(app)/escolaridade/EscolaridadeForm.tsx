@@ -4,122 +4,215 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { FieldError } from "@/components/ui/field";
+import { Field, FieldError } from "@/components/ui/field";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import { apiErrorMessage } from "@/lib/api/error-messages";
 
-/**
- * Escolaridade — ÚLTIMA pergunta antes da selfie (a selfie aprovada
- * auto-promove, então o nível precisa estar gravado antes — plan do back).
- * Só nível + concluiu: sem médio completo o promotor nasce `pre_matriculado`
- * e o funil de aluno resolve depois; aqui nada bloqueia.
- */
-const LEVELS = [
-  {
-    value: "fundamental",
-    label: "Ensino fundamental",
-    hint: "Estudei até o fundamental (1º ao 9º ano)",
-  },
-  {
-    value: "medio",
-    label: "Ensino médio",
-    hint: "Cheguei ao ensino médio (ou fui além)",
-  },
-] as const;
+type Level = "fundamental" | "medio";
+type EducationStatus = "completed" | "attending" | "stopped";
 
-type Level = (typeof LEVELS)[number]["value"];
+const STATUS_OPTIONS: Array<{
+  value: EducationStatus;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: "completed",
+    label: "Concluí essa série/ano",
+    hint: "Terminei e fui aprovado nessa etapa.",
+  },
+  {
+    value: "attending",
+    label: "Ainda estou cursando",
+    hint: "Estou matriculado e estudando agora.",
+  },
+  {
+    value: "stopped",
+    label: "Parei antes de terminar",
+    hint: "Comecei a série/ano, mas interrompi no meio.",
+  },
+];
 
 export function EscolaridadeForm() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [level, setLevel] = useState<Level | null>(null);
-  const [completed, setCompleted] = useState(false);
+  const [grade, setGrade] = useState<number | null>(null);
+  const [educationStatus, setEducationStatus] = useState<EducationStatus | null>(null);
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [city, setCity] = useState("");
+  const [school, setSchool] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!level || pending) return;
+  const grades = level === "fundamental" ? Array.from({ length: 9 }, (_, i) => i + 1) : [1, 2, 3];
+
+  function chooseLevel(next: Level) {
+    setLevel(next);
+    setGrade(null);
+    setEducationStatus(null);
+    setError(null);
+  }
+
+  function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!level || !grade || !educationStatus || pending) return;
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch("/api/me/education", {
+        const response = await fetch("/api/me/education", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ level, completed }),
+          body: JSON.stringify({
+            level,
+            grade,
+            education_status: educationStatus,
+            completed:
+              educationStatus === "completed" &&
+              ((level === "fundamental" && grade === 9) || (level === "medio" && grade === 3)),
+            year: Number(year),
+            city: city.trim() || null,
+            school: school.trim() || null,
+          }),
         });
         const data: { detail?: string; code?: string; expected_status?: string } =
-          await res.json();
-        if (!res.ok) {
-          const redir = wrongStatusHref(data.code, data.expected_status);
-          if (redir) {
-            router.push(redir);
+          await response.json();
+        if (!response.ok) {
+          const redirectTo = wrongStatusHref(data.code, data.expected_status);
+          if (redirectTo) {
+            router.push(redirectTo);
             return;
           }
           setError(apiErrorMessage(data.code, data.detail, data));
           return;
         }
-        // Wizard auto-avançante: escolaridade gravada → selfie (último passo).
         router.push(NEXT_STAGE.education);
       } catch {
-        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
+        setError("A conexão oscilou. Tente novamente — nada foi perdido.");
       }
     });
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
-      {pending && <LoadingOverlay label="Salvando…" logo />}
+    <form onSubmit={onSubmit} className="space-y-6">
+      {pending && <LoadingOverlay label="Salvando escolaridade…" logo />}
+
       <fieldset className="space-y-3">
-        <legend className="label">Até onde você estudou?</legend>
-        <div className="space-y-3">
-          {LEVELS.map((l) => (
+        <legend className="label">Em qual nível foi sua última série?</legend>
+        <div className="grid grid-cols-2 gap-3">
+          {(["fundamental", "medio"] as const).map((value) => (
             <label
-              key={l.value}
-              className={`flex items-start gap-3 rounded-[var(--radius-sm)] border px-4 py-3 transition-colors ${
-                level === l.value
+              key={value}
+              className={`cursor-pointer rounded-[var(--radius-sm)] border px-4 py-3 text-center ${
+                level === value
                   ? "border-brand-gold bg-brand-gold-light/10"
                   : "border-brand-border bg-brand-surface"
-              } cursor-pointer hover:border-brand-gold-dark`}
+              }`}
             >
               <input
+                className="sr-only"
                 type="radio"
                 name="education_level"
-                value={l.value}
-                checked={level === l.value}
-                onChange={() => setLevel(l.value)}
-                className="accent-gold-deep mt-1"
+                checked={level === value}
+                onChange={() => chooseLevel(value)}
               />
-              <span>
-                <span className="block font-medium">{l.label}</span>
-                <span className="block text-sm text-brand-muted">{l.hint}</span>
-              </span>
+              {value === "fundamental" ? "Fundamental" : "Ensino médio"}
             </label>
           ))}
         </div>
       </fieldset>
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={completed}
-          onChange={(e) => setCompleted(e.target.checked)}
-          className="accent-gold-deep mt-1"
-        />
-        <span className="text-sm">Já concluí esse nível</span>
-      </label>
+
+      {level && (
+        <fieldset className="space-y-3">
+          <legend className="label">Qual foi a última série/ano?</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {grades.map((value) => (
+              <label
+                key={value}
+                className={`cursor-pointer rounded-[var(--radius-sm)] border px-3 py-2 text-center ${
+                  grade === value
+                    ? "border-brand-gold bg-brand-gold-light/10"
+                    : "border-brand-border bg-brand-surface"
+                }`}
+              >
+                <input
+                  className="sr-only"
+                  type="radio"
+                  name="education_grade"
+                  checked={grade === value}
+                  onChange={() => setGrade(value)}
+                />
+                {value}º {level === "fundamental" ? "ano" : "médio"}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      {grade && (
+        <fieldset className="space-y-3">
+          <legend className="label">O que aconteceu nessa série/ano?</legend>
+          <div className="space-y-2">
+            {STATUS_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className={`flex cursor-pointer items-start gap-3 rounded-[var(--radius-sm)] border px-4 py-3 ${
+                  educationStatus === option.value
+                    ? "border-brand-gold bg-brand-gold-light/10"
+                    : "border-brand-border bg-brand-surface"
+                }`}
+              >
+                <input
+                  className="accent-gold-deep mt-1"
+                  type="radio"
+                  name="education_status"
+                  checked={educationStatus === option.value}
+                  onChange={() => setEducationStatus(option.value)}
+                />
+                <span>
+                  <span className="block font-medium">{option.label}</span>
+                  <span className="block text-sm text-brand-muted">{option.hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      {educationStatus && (
+        <div className="space-y-4">
+          <Field
+            label="Em que ano foi isso?"
+            type="number"
+            value={year}
+            onChange={setYear}
+            required
+          />
+          <Field
+            label="Cidade onde estudou (opcional)"
+            value={city}
+            onChange={setCity}
+          />
+          <Field
+            label="Nome da escola (opcional)"
+            value={school}
+            onChange={setSchool}
+          />
+        </div>
+      )}
+
       <FieldError>{error}</FieldError>
       <Button
         type="submit"
         size="xl"
         loading={pending}
-        disabled={!level}
+        disabled={!level || !grade || !educationStatus || !year}
         className="w-full"
       >
-        {pending ? "Salvando…" : "Salvar e continuar"}
+        {pending ? "Salvando…" : "Confirmar e continuar"}
       </Button>
       <p className="field-hint">
-        Não precisa ter concluído pra ser promotor — quem não fechou o ensino
-        médio pode inclusive estudar com a gente.
+        Cidade e escola ajudam, mas não bloqueiam. Quem ainda não concluiu o ensino médio pode entrar no programa e conquistar a bolsa pelas indicações pagas.
       </p>
     </form>
   );

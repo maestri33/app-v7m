@@ -19,10 +19,10 @@ export const FUNNEL_ORDER: CandidateStatus[] = [
 
 /** Página da etapa atual — pra onde o painel manda o candidato direto. */
 export const STAGE_HREF: Record<CandidateStatus, string> = {
-  started: "/perfil",
-  profile: "/endereco",
+  started: "/documento",
+  profile: "/documento",
   address: "/documento",
-  documents: "/documento",
+  documents: "/pix",
   pix: "/pix",
   education: "/selfie",
   selfie: "/selfie",
@@ -42,15 +42,56 @@ export function stageHref(status: string | undefined | null): string {
 
 /** Retomada canônica usando também os flags que o `status` sozinho não distingue. */
 export function candidateStageHref(me: CandidateMe): string {
-  if (me.status === "pix" && me.pix_validated) return "/escolaridade";
+  if (me.address_proof?.status === "rejected" || me.address_proof?.needs_kinship) {
+    return "/endereco";
+  }
+  const recovery = me.blocks?.find((block) =>
+    ["rg", "cnh", "address_proof", "selfie"].includes(block.source_type),
+  );
+  if (recovery?.source_type === "address_proof") return "/endereco";
+  if (recovery?.source_type === "rg" || recovery?.source_type === "cnh") {
+    return "/documento";
+  }
+  if (recovery?.source_type === "selfie") return "/selfie";
+  if (["started", "profile", "address", "documents", "pix"].includes(me.status)) {
+    if (!hasCapturedIdentityDocument(me)) return "/documento";
+    if (!me.address_proof?.photo) return "/endereco";
+    if (!me.pix_validated) return "/pix";
+    return "/escolaridade";
+  }
   return stageHref(me.status);
+}
+
+export function hasCapturedIdentityDocument(me: CandidateMe): boolean {
+  const rg = me.documents?.rg;
+  const cnh = me.documents?.cnh;
+  const rgComplete = Boolean(rg?.full_photo || (rg?.front_photo && rg?.back_photo));
+  const cnhComplete = Boolean(cnh?.full_photo || cnh?.front_photo || cnh?.back_photo);
+  return rgComplete || cnhComplete;
+}
+
+export function documentSectionCaptured(doc: {
+  doc_type?: string | null;
+  has_front?: boolean;
+  has_back?: boolean;
+  has_full?: boolean;
+  front_photo?: string | null;
+  back_photo?: string | null;
+  full_photo?: string | null;
+}): boolean {
+  const hasFront = Boolean(doc.has_front || doc.front_photo);
+  const hasBack = Boolean(doc.has_back || doc.back_photo);
+  const hasFull = Boolean(doc.has_full || doc.full_photo);
+  if (doc.doc_type === "rg") return hasFull || (hasFront && hasBack);
+  if (doc.doc_type === "cnh") return hasFull || hasFront || hasBack;
+  return false;
 }
 
 /** Próximo passo depois de concluir cada etapa (navegação direta dos forms). */
 export const NEXT_STAGE: Record<string, string> = {
-  profile: "/endereco",
-  address: "/documento",
-  documents: "/pix",
+  profile: "/documento",
+  address: "/pix",
+  documents: "/endereco",
   pix: "/escolaridade",
   education: "/selfie",
   selfie: "/painel",

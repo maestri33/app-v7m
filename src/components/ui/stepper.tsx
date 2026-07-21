@@ -2,9 +2,8 @@ import type { CandidateStatus } from "@/lib/api/types";
 
 /** Etapas do funil do candidato, na ordem do backend. */
 const FUNNEL_STEPS = [
-  { key: "profile", label: "Perfil" },
-  { key: "address", label: "Endereço" },
   { key: "documents", label: "Documento" },
+  { key: "address", label: "Comprovante" },
   { key: "pix", label: "Pix" },
   { key: "education", label: "Escolaridade" },
   { key: "selfie", label: "Selfie" },
@@ -28,10 +27,10 @@ function CheckIcon() {
 
 /**
  * Indicador de progresso do funil (recomendação ui-ux-pro-max para o padrão
- * "Funnel"). `current` é a etapa atual; `started` é tratado como `profile`.
+ * "Funnel"). `current` é a etapa visual, independente do status legado do backend.
  */
 export function FunnelStepper({ current }: { current: StepKey | CandidateStatus }) {
-  const normalized = current === "started" ? "profile" : current;
+  const normalized = current === "started" || current === "profile" ? "documents" : current;
   // `completed` = funil inteiro concluído → tudo marcado como feito.
   const idx =
     normalized === "completed"
