@@ -245,7 +245,7 @@ function handle(request, response) {
         kind: "text",
         question: "Como você explicaria a proposta para uma pessoa interessada?",
         text_content: "Explique o curso sem prometer aprovação ou emprego.",
-        submission_status: null,
+        submission_status: state.phase === "promoter" ? "approved" : null,
       },
     ]);
   }
