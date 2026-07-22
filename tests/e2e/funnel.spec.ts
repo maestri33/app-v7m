@@ -43,6 +43,7 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
   await page.getByText("Ensino médio", { exact: true }).click();
   await page.getByText("3º médio", { exact: true }).click();
   await page.getByText("Concluí essa série/ano", { exact: true }).click();
+  await page.getByLabel("Em que ano concluiu essa série?").fill("2026");
   await page.getByRole("button", { name: /Confirmar e continuar/i }).click();
 
   await expect(page).toHaveURL(/\/selfie$/);

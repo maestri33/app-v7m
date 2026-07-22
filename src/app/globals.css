@@ -1040,39 +1040,3 @@ strong {
   from { background-position: 0% 0%; }
   to { background-position: 100% 100%; }
 }
-
-/* Assistente de escolaridade — CopilotKit encaixado na hierarquia do app. */
-.education-copilot {
-  --copilot-kit-primary-color: #d9b15a;
-  --copilot-kit-contrast-color: #0b0b0c;
-  --copilot-kit-background-color: #111113;
-  --copilot-kit-input-background-color: #1d1d20;
-  --copilot-kit-secondary-color: #1d1d20;
-  --copilot-kit-secondary-contrast-color: #e7e4dd;
-  --copilot-kit-separator-color: rgb(231 228 221 / 0.16);
-  --copilot-kit-muted-color: #9a9893;
-  min-height: 390px;
-  background: #111113;
-}
-
-.education-copilot .copilotKitChat {
-  min-height: 390px;
-  max-height: 520px;
-  font-family: var(--font-geist-sans), sans-serif;
-}
-
-.education-copilot .copilotKitHeader {
-  display: none;
-}
-
-.education-copilot .copilotKitMessages {
-  min-height: 280px;
-}
-
-.education-copilot .copilotKitMessage.copilotKitUserMessage {
-  border-radius: 12px 12px 3px 12px;
-}
-
-.education-copilot .copilotKitInput {
-  border-radius: 10px;
-}
