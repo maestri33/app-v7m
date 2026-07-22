@@ -66,6 +66,7 @@ function normalizeOptional(value: unknown) {
 
 function extractMessageHints(message: string) {
   const text = normalizedText(message);
+  const legacyEighthSeries = /\b8\s*(?:a|ª)?\s*serie\b|\boitava serie\b/.test(text);
   const numericGrade = text.match(/\b([1-9])\s*(?:º|°|o)?\s*(?:ano|serie|medio)\b/);
   const wordGrades: Array<[RegExp, number]> = [
     [/\bprimeir[oa]\b/, 1],
@@ -79,10 +80,12 @@ function extractMessageHints(message: string) {
     [/\bnon[oa]\b/, 9],
   ];
   const wordGrade = wordGrades.find(([pattern]) => pattern.test(text))?.[1] ?? null;
-  const grade = numericGrade ? Number(numericGrade[1]) : wordGrade;
-  const level = /ensino medio|\bmedio\b/.test(text)
+  const parsedGrade = legacyEighthSeries ? 9 : numericGrade ? Number(numericGrade[1]) : wordGrade;
+  const level = /ensino medio|\bmedio\b|colegial|segundo grau/.test(text)
     ? "medio"
-    : /fundamental/.test(text) || Boolean(grade && grade >= 4)
+    : /fundamental|primario|ginasio|primeiro grau/.test(text) ||
+        legacyEighthSeries ||
+        Boolean(parsedGrade && parsedGrade >= 4)
       ? "fundamental"
       : null;
   const educationStatus = /parei|aband|interromp|nao conclui/.test(text)
@@ -90,8 +93,15 @@ function extractMessageHints(message: string) {
     : /curs|matric|estudando/.test(text)
       ? "attending"
       : /conclu|terminei|aprov/.test(text)
-        ? "completed"
-        : null;
+      ? "completed"
+      : null;
+  const grade =
+    parsedGrade ??
+    (educationStatus === "completed" && level === "fundamental"
+      ? 9
+      : educationStatus === "completed" && level === "medio"
+        ? 3
+        : null);
   const explicitYear = text.match(/\b(19\d{2}|20\d{2})\b/);
   const year = explicitYear
     ? Number(explicitYear[1])
@@ -195,7 +205,7 @@ export async function POST(req: Request) {
         messages: [
           {
             role: "system",
-            content: `Você extrai escolaridade em português do Brasil. Retorne somente JSON, sem markdown, com: reply, level, grade, education_status, year, city, school. Valores canônicos: level=fundamental|medio|null; education_status=completed|attending|stopped|null. Fundamental aceita 1-9; médio aceita 1-3; ano entre 1950 e ${CURRENT_YEAR + 1}. Não confunda concluir uma série com concluir todo o nível. Cidade e escola são opcionais e devem ser string vazia quando a pessoa não souber. Preserve dados anteriores não corrigidos. Se faltar dado obrigatório, reply deve fazer uma única pergunta curta. Se estiver completo, reply deve pedir conferência do resumo. Nunca invente dados.`,
+            content: `Você extrai escolaridade em português do Brasil. Retorne somente JSON, sem markdown, com: reply, level, grade, education_status, year, city, school. Valores canônicos: level=fundamental|medio|null; education_status=completed|attending|stopped|null. Fundamental aceita 1-9; médio aceita 1-3; ano entre 1950 e ${CURRENT_YEAR + 1}. Reconheça primário, ginásio e primeiro grau como Fundamental; colegial e segundo grau como Médio; antiga 8ª série equivale ao atual 9º ano. Não confunda concluir uma série com concluir todo o nível. Cidade e escola são opcionais e devem ser string vazia quando a pessoa não souber. Preserve dados anteriores não corrigidos. Se faltar dado obrigatório, reply deve fazer uma única pergunta curta. Se estiver completo, reply deve pedir conferência do resumo. Nunca invente dados.`,
           },
           {
             role: "user",

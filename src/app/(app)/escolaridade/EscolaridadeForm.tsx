@@ -48,7 +48,8 @@ const STORAGE_KEY = "v7m-education-draft";
 const INITIAL_MESSAGES: EducationMessage[] = [
   {
     role: "assistant",
-    content: "Qual foi a última série ou ano que você estudou? Pode responder do seu jeito.",
+    content:
+      "Qual foi a última série ou ano que você frequentou? Diga também se concluiu ou parou no meio.",
   },
 ];
 
@@ -175,6 +176,11 @@ function EducationFields({
                   onChange={() => onChange({ ...draft, grade: value, educationStatus: null })}
                 />
                 {value}º {draft.level === "fundamental" ? "ano" : "médio"}
+                {draft.level === "fundamental" && value === 9 ? (
+                  <span className="mt-1 block text-xs font-normal text-[var(--surface-text-muted)]">
+                    antiga 8ª série
+                  </span>
+                ) : null}
               </label>
             ))}
           </div>
@@ -546,6 +552,9 @@ function EducationAssistant() {
                 </button>
               </div>
             </form>
+            <p className="px-4 pb-4 text-xs leading-relaxed text-[var(--surface-text-muted)]">
+              Sua resposta é processada pelo assistente apenas para organizar estes dados. Você confere tudo antes de salvar.
+            </p>
           </div>
           {prepared && <EducationReview draft={draft} onEdit={() => setMode("manual")} />}
         </div>

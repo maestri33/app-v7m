@@ -31,6 +31,21 @@ test("conversa prepara resumo sem controles genéricos do CopilotKit", async ({ 
   await expect(page.getByText("Powered by CopilotKit")).toHaveCount(0);
 });
 
+test("entende nomenclatura escolar antiga sem reduzir a série", async ({ page, request }) => {
+  await openEducation(page, request);
+
+  await page
+    .getByLabel("Resposta sobre sua escolaridade")
+    .fill("Concluí a antiga 8ª série em 2004.");
+  await page.getByRole("button", { name: "Enviar resposta" }).click();
+
+  await expect(page.getByText("Ensino Fundamental", { exact: true })).toBeVisible();
+  await expect(page.getByText("9º ano", { exact: true })).toBeVisible();
+  await expect(page.getByText("Concluí essa série/ano", { exact: true })).toBeVisible();
+  await expect(page.getByText("2004", { exact: true })).toBeVisible();
+  await expect(page.getByText("8º ano", { exact: true })).toHaveCount(0);
+});
+
 test("continua a conversa usando rascunho estruturado e histórico curto", async ({ page, request }) => {
   const requests: Array<{
     draft?: { level?: string; grade?: number; educationStatus?: string; year?: string };
