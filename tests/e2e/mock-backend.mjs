@@ -52,6 +52,23 @@ function json(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
+function openAICompletion(response, content) {
+  return json(response, 200, {
+    id: "chatcmpl-education-e2e",
+    object: "chat.completion",
+    created: Math.floor(Date.now() / 1000),
+    model: "e2e-education",
+    choices: [
+      {
+        index: 0,
+        message: { role: "assistant", content: JSON.stringify(content) },
+        finish_reason: "stop",
+      },
+    ],
+    usage: { prompt_tokens: 50, completion_tokens: 20, total_tokens: 70 },
+  });
+}
+
 function candidateMe() {
   return {
     status: state.status,
@@ -87,6 +104,18 @@ function handle(request, response) {
   const path = url.pathname;
 
   if (path === "/health") return json(response, 200, { ok: true });
+  if (path === "/v1/chat/completions" && request.method === "POST") {
+    request.resume();
+    return openAICompletion(response, {
+      reply: "Resposta deliberadamente inconsistente para testar a normalização.",
+      level: null,
+      grade: 9,
+      education_status: null,
+      year: null,
+      city: "Curitiba",
+      school: "",
+    });
+  }
   if (path === "/__reset" && request.method === "POST") {
     state = freshState();
     return json(response, 200, { ok: true });

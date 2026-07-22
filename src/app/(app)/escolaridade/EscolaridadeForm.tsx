@@ -1,10 +1,7 @@
 "use client";
 
-import { CopilotKit, useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
-import { CopilotChat } from "@copilotkit/react-ui";
-import "@copilotkit/react-ui/styles.css";
-import { Bot, CheckCircle2, Pencil, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { ArrowUp, Bot, CheckCircle2, LoaderCircle, Pencil, Sparkles } from "lucide-react";
+import { type FormEvent, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -26,17 +23,35 @@ type EducationDraft = {
   school: string;
 };
 
-type AssistantEducation = {
-  level: string;
-  grade: number;
-  education_status: string;
-  year: number;
-  city?: string;
-  school?: string;
+type EducationMessage = {
+  role: "assistant" | "user";
+  content: string;
+};
+
+type AssistantResponse = {
+  reply?: string;
+  ready?: boolean;
+  detail?: string;
+  code?: string;
+  draft?: {
+    level: Level | null;
+    grade: number | null;
+    education_status: EducationStatus | null;
+    year: number | null;
+    city: string;
+    school: string;
+  };
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
 const STORAGE_KEY = "v7m-education-draft";
+const INITIAL_MESSAGES: EducationMessage[] = [
+  {
+    role: "assistant",
+    content:
+      "Qual foi a última série ou ano que você frequentou? Diga também se concluiu ou parou no meio.",
+  },
+];
 
 const STATUS_OPTIONS: Array<{
   value: EducationStatus;
@@ -60,31 +75,12 @@ const STATUS_OPTIONS: Array<{
   },
 ];
 
-const ASSISTANT_INSTRUCTIONS = `Você conduz somente a etapa de escolaridade do cadastro de um promotor V7M.
-Fale em português do Brasil, com frases curtas, acolhedoras e sem burocracia.
-
-Descubra, nesta ordem:
-1. A última série ou ano que a pessoa estudou, distinguindo Ensino Fundamental de Ensino Médio.
-2. Se ela concluiu essa série, ainda está cursando ou parou antes de terminar.
-3. Em que ano isso aconteceu. O ano deve ficar entre 1950 e ${CURRENT_YEAR + 1}.
-4. Cidade onde estudou e nome da escola. Esses dois dados são opcionais: se não souber ou não quiser informar, siga sem bloquear.
-
-Regras importantes:
-- Fundamental aceita do 1º ao 9º ano; Ensino Médio aceita do 1º ao 3º ano.
-- Não confunda concluir uma série com concluir todo o nível. Exemplo: concluir o 1º médio não significa ensino médio completo.
-- Se a resposta estiver ambígua, faça uma única pergunta objetiva para esclarecer.
-- Nunca invente cidade, escola, série ou ano.
-- Não fale sobre bolsa, matrícula ou prova antes de terminar esta coleta.
-- Quando todos os dados obrigatórios estiverem claros, chame a ferramenta "prepararEscolaridade".
-- A ferramenta apenas prepara um resumo. Diga que a pessoa precisa conferir e tocar em "Confirmar e continuar"; nunca afirme que os dados já foram salvos.
-- Se a pessoa corrigir uma resposta, chame a ferramenta novamente com o conjunto completo atualizado.`;
-
 function initialDraft(): EducationDraft {
   return {
     level: null,
     grade: null,
     educationStatus: null,
-    year: String(CURRENT_YEAR),
+    year: "",
     city: "",
     school: "",
   };
@@ -100,52 +96,6 @@ function statusLabel(status: EducationStatus | null) {
   return STATUS_OPTIONS.find((option) => option.value === status)?.label ?? "Não informado";
 }
 
-function cleanOptional(value?: string) {
-  const clean = (value ?? "").trim();
-  if (/^(não sei|nao sei|não lembro|nao lembro|prefiro não informar|prefiro nao informar)$/i.test(clean)) {
-    return "";
-  }
-  return clean;
-}
-
-function normalizeAssistantDraft(args: AssistantEducation): EducationDraft | null {
-  const level = args.level === "fundamental" || args.level === "medio" ? args.level : null;
-  const educationStatus =
-    args.education_status === "completed" ||
-    args.education_status === "attending" ||
-    args.education_status === "stopped"
-      ? args.education_status
-      : null;
-  const grade = Number(args.grade);
-  const year = Number(args.year);
-  const validGrade =
-    level === "fundamental"
-      ? Number.isInteger(grade) && grade >= 1 && grade <= 9
-      : level === "medio"
-        ? Number.isInteger(grade) && grade >= 1 && grade <= 3
-        : false;
-
-  if (
-    !level ||
-    !educationStatus ||
-    !validGrade ||
-    !Number.isInteger(year) ||
-    year < 1950 ||
-    year > CURRENT_YEAR + 1
-  ) {
-    return null;
-  }
-
-  return {
-    level,
-    grade,
-    educationStatus,
-    year: String(year),
-    city: cleanOptional(args.city),
-    school: cleanOptional(args.school),
-  };
-}
-
 function validateDraft(draft: EducationDraft) {
   if (!draft.level) return "Informe se a última série foi no Fundamental ou no Ensino Médio.";
   if (!draft.grade) return "Informe a última série ou ano estudado.";
@@ -158,48 +108,6 @@ function validateDraft(draft: EducationDraft) {
   return null;
 }
 
-function AssistantToolCard({
-  args,
-  onPrepared,
-}: {
-  args: Partial<AssistantEducation>;
-  onPrepared: (draft: EducationDraft) => void;
-}) {
-  const level = args.level === "fundamental" || args.level === "medio" ? args.level : null;
-  const status =
-    args.education_status === "completed" ||
-    args.education_status === "attending" ||
-    args.education_status === "stopped"
-      ? args.education_status
-      : null;
-
-  const normalized = useMemo(
-    () =>
-      normalizeAssistantDraft({
-        level: args.level,
-        grade: args.grade,
-        education_status: args.education_status,
-        year: args.year,
-        city: args.city,
-        school: args.school,
-      } as AssistantEducation),
-    [args.city, args.education_status, args.grade, args.level, args.school, args.year],
-  );
-
-  useEffect(() => {
-    if (normalized) onPrepared(normalized);
-  }, [normalized, onPrepared]);
-
-  return (
-    <div className="rounded-[var(--radius-sm)] border border-brand-gold/40 bg-brand-surface p-3 text-sm">
-      <p className="font-semibold text-brand-text">Resumo preparado</p>
-      <p className="mt-1 text-brand-muted">
-        {levelLabel(level)} · {args.grade ? `${args.grade}º ano` : "série pendente"} · {statusLabel(status)}
-      </p>
-    </div>
-  );
-}
-
 function EducationFields({
   draft,
   onChange,
@@ -209,6 +117,12 @@ function EducationFields({
 }) {
   const grades =
     draft.level === "fundamental" ? Array.from({ length: 9 }, (_, index) => index + 1) : [1, 2, 3];
+  const yearLabel =
+    draft.educationStatus === "completed"
+      ? "Em que ano concluiu essa série?"
+      : draft.educationStatus === "attending"
+        ? "Em que ano começou a cursar essa série?"
+        : "Em que ano parou de estudar?";
 
   function chooseLevel(level: Level) {
     onChange({ ...draft, level, grade: null, educationStatus: null });
@@ -222,10 +136,10 @@ function EducationFields({
           {(["fundamental", "medio"] as const).map((value) => (
             <label
               key={value}
-              className={`cursor-pointer rounded-[var(--radius-sm)] border px-4 py-3 text-center ${
+              className={`cursor-pointer rounded-[var(--radius-sm)] border px-4 py-3 text-center transition-colors duration-200 hover:border-brand-gold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-gold ${
                 draft.level === value
                   ? "border-brand-gold bg-brand-gold-light/10"
-                  : "border-brand-border bg-brand-surface"
+                  : "border-[var(--surface-border)] bg-[var(--surface)]"
               }`}
             >
               <input
@@ -248,10 +162,10 @@ function EducationFields({
             {grades.map((value) => (
               <label
                 key={value}
-                className={`cursor-pointer rounded-[var(--radius-sm)] border px-3 py-2 text-center ${
+                className={`cursor-pointer rounded-[var(--radius-sm)] border px-3 py-2 text-center transition-colors duration-200 hover:border-brand-gold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-gold ${
                   draft.grade === value
                     ? "border-brand-gold bg-brand-gold-light/10"
-                    : "border-brand-border bg-brand-surface"
+                    : "border-[var(--surface-border)] bg-[var(--surface)]"
                 }`}
               >
                 <input
@@ -262,6 +176,11 @@ function EducationFields({
                   onChange={() => onChange({ ...draft, grade: value, educationStatus: null })}
                 />
                 {value}º {draft.level === "fundamental" ? "ano" : "médio"}
+                {draft.level === "fundamental" && value === 9 ? (
+                  <span className="mt-1 block text-xs font-normal text-[var(--surface-text-muted)]">
+                    antiga 8ª série
+                  </span>
+                ) : null}
               </label>
             ))}
           </div>
@@ -275,10 +194,10 @@ function EducationFields({
             {STATUS_OPTIONS.map((option) => (
               <label
                 key={option.value}
-                className={`flex cursor-pointer items-start gap-3 rounded-[var(--radius-sm)] border px-4 py-3 ${
+                className={`flex cursor-pointer items-start gap-3 rounded-[var(--radius-sm)] border px-4 py-3 transition-colors duration-200 hover:border-brand-gold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-gold ${
                   draft.educationStatus === option.value
                     ? "border-brand-gold bg-brand-gold-light/10"
-                    : "border-brand-border bg-brand-surface"
+                    : "border-[var(--surface-border)] bg-[var(--surface)]"
                 }`}
               >
                 <input
@@ -290,7 +209,7 @@ function EducationFields({
                 />
                 <span>
                   <span className="block font-medium">{option.label}</span>
-                  <span className="block text-sm text-brand-muted">{option.hint}</span>
+                  <span className="block text-sm text-[var(--surface-text-muted)]">{option.hint}</span>
                 </span>
               </label>
             ))}
@@ -301,7 +220,7 @@ function EducationFields({
       {draft.educationStatus && (
         <div className="space-y-4">
           <Field
-            label="Em que ano foi isso?"
+            label={yearLabel}
             type="number"
             min={1950}
             max={CURRENT_YEAR + 1}
@@ -309,6 +228,7 @@ function EducationFields({
             onChange={(year) => onChange({ ...draft, year })}
             required
           />
+          <p className="field-hint">Se não lembrar exatamente, informe o ano aproximado.</p>
           <Field
             label="Cidade onde estudou (opcional)"
             value={draft.city}
@@ -327,32 +247,32 @@ function EducationFields({
 
 function EducationReview({ draft, onEdit }: { draft: EducationDraft; onEdit: () => void }) {
   return (
-    <div className="space-y-4 rounded-[var(--radius)] border border-brand-gold/40 bg-brand-surface p-4" role="status">
+    <div className="space-y-4 rounded-[var(--radius)] border border-brand-gold/40 bg-[var(--surface)] p-4" role="status">
       <div className="flex items-start gap-3">
         <CheckCircle2 aria-hidden className="mt-0.5 size-5 shrink-0 text-brand-gold" />
         <div>
           <p className="font-display text-lg">Confira o que entendemos</p>
-          <p className="text-sm text-brand-muted">Nada será salvo antes da sua confirmação.</p>
+          <p className="text-sm text-[var(--surface-text-muted)]">Nada será salvo antes da sua confirmação.</p>
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-        <dt className="text-brand-muted">Nível</dt>
+        <dt className="text-[var(--surface-text-muted)]">Nível</dt>
         <dd className="text-right font-medium">{levelLabel(draft.level)}</dd>
-        <dt className="text-brand-muted">Última série</dt>
+        <dt className="text-[var(--surface-text-muted)]">Última série</dt>
         <dd className="text-right font-medium">{draft.grade}º ano</dd>
-        <dt className="text-brand-muted">Situação</dt>
+        <dt className="text-[var(--surface-text-muted)]">Situação</dt>
         <dd className="text-right font-medium">{statusLabel(draft.educationStatus)}</dd>
-        <dt className="text-brand-muted">Ano</dt>
+        <dt className="text-[var(--surface-text-muted)]">Ano</dt>
         <dd className="text-right font-medium">{draft.year}</dd>
-        <dt className="text-brand-muted">Cidade</dt>
+        <dt className="text-[var(--surface-text-muted)]">Cidade</dt>
         <dd className="text-right font-medium">{draft.city || "Não informada"}</dd>
-        <dt className="text-brand-muted">Escola</dt>
+        <dt className="text-[var(--surface-text-muted)]">Escola</dt>
         <dd className="text-right font-medium">{draft.school || "Não informada"}</dd>
       </dl>
       <button
         type="button"
         onClick={onEdit}
-        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-brand-border px-3 text-sm font-semibold text-brand-text"
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-[var(--surface-border)] px-3 text-sm font-semibold text-[var(--surface-text)]"
       >
         <Pencil aria-hidden className="size-4" />
         Corrigir pelas opções
@@ -361,7 +281,7 @@ function EducationReview({ draft, onEdit }: { draft: EducationDraft; onEdit: () 
   );
 }
 
-function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
+function EducationAssistant() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<Mode>("assistant");
@@ -369,21 +289,40 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
   const [prepared, setPrepared] = useState(false);
   const [restored, setRestored] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const applyAssistantDraft = useCallback((normalized: EducationDraft) => {
-    setDraft(normalized);
-    setPrepared(true);
-    setError(null);
-  }, []);
+  const [messages, setMessages] = useState<EducationMessage[]>(INITIAL_MESSAGES);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [assistantUnavailable, setAssistantUnavailable] = useState(false);
 
   useEffect(() => {
     const restoreTimer = window.setTimeout(() => {
       try {
         const stored = window.sessionStorage.getItem(STORAGE_KEY);
         if (stored) {
-          const parsed = JSON.parse(stored) as { draft?: EducationDraft; prepared?: boolean };
-          if (parsed.draft) setDraft(parsed.draft);
-          if (parsed.prepared) setPrepared(true);
+          const parsed = JSON.parse(stored) as {
+            draft?: EducationDraft;
+            prepared?: boolean;
+            messages?: EducationMessage[];
+          };
+          if (parsed.draft) {
+            const restoredDraft = { ...initialDraft(), ...parsed.draft };
+            if (!restoredDraft.level && !restoredDraft.grade && !restoredDraft.educationStatus) {
+              restoredDraft.year = "";
+            }
+            setDraft(restoredDraft);
+            setPrepared(Boolean(parsed.prepared) && validateDraft(restoredDraft) === null);
+          }
+          if (Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+            setMessages(
+              parsed.messages
+                .filter(
+                  (message) =>
+                    (message.role === "assistant" || message.role === "user") &&
+                    typeof message.content === "string",
+                )
+                .slice(-8),
+            );
+          }
         }
       } catch {
         window.sessionStorage.removeItem(STORAGE_KEY);
@@ -396,73 +335,65 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
 
   useEffect(() => {
     if (!restored) return;
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ draft, prepared }));
-  }, [draft, prepared, restored]);
+    window.sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ draft, prepared, messages: messages.slice(-8) }),
+    );
+  }, [draft, messages, prepared, restored]);
 
-  useCopilotReadable(
-    {
-      description:
-        "Rascunho atual da escolaridade. Campos vazios ainda precisam ser perguntados. Cidade e escola são opcionais.",
-      value: draft,
-    },
-    [draft],
-  );
+  async function sendAssistantMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const message = input.trim();
+    if (!message || thinking) return;
 
-  useCopilotAction(
-    {
-      name: "prepararEscolaridade",
-      description:
-        "Prepara o resumo completo da escolaridade depois de coletar e esclarecer todos os campos obrigatórios.",
-      parameters: [
+    const history = messages.slice(-4);
+    setMessages((current) => [...current, { role: "user", content: message }]);
+    setInput("");
+    setThinking(true);
+    setPrepared(false);
+    setAssistantUnavailable(false);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/me/education/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, draft, history }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      const data = (await response.json()) as AssistantResponse;
+      if (response.status === 401) {
+        router.push("/");
+        return;
+      }
+      if (!response.ok || !data.draft || !data.reply) {
+        throw new Error(data.detail || "ASSISTANT_UNAVAILABLE");
+      }
+
+      const nextDraft: EducationDraft = {
+        level: data.draft.level,
+        grade: data.draft.grade,
+        educationStatus: data.draft.education_status,
+        year: data.draft.year ? String(data.draft.year) : "",
+        city: data.draft.city || "",
+        school: data.draft.school || "",
+      };
+      setDraft(nextDraft);
+      setPrepared(Boolean(data.ready) && validateDraft(nextDraft) === null);
+      setMessages((current) => [...current, { role: "assistant", content: data.reply as string }]);
+    } catch {
+      setAssistantUnavailable(true);
+      setMessages((current) => [
+        ...current,
         {
-          name: "level",
-          type: "string",
-          description: "Nível canônico: fundamental ou medio.",
-          required: true,
+          role: "assistant",
+          content: "Não consegui entender agora. Tente novamente ou continue pelas opções.",
         },
-        {
-          name: "grade",
-          type: "number",
-          description: "Último ano/série: 1 a 9 no fundamental; 1 a 3 no ensino médio.",
-          required: true,
-        },
-        {
-          name: "education_status",
-          type: "string",
-          description: "Situação canônica: completed, attending ou stopped.",
-          required: true,
-        },
-        {
-          name: "year",
-          type: "number",
-          description: `Ano em que concluiu, cursa ou parou. Entre 1950 e ${CURRENT_YEAR + 1}.`,
-          required: true,
-        },
-        {
-          name: "city",
-          type: "string",
-          description: "Cidade onde estudou. Use string vazia quando não informada.",
-          required: false,
-        },
-        {
-          name: "school",
-          type: "string",
-          description: "Nome da escola. Use string vazia quando não informado.",
-          required: false,
-        },
-      ],
-      render: ({ args }) => <AssistantToolCard args={args} onPrepared={applyAssistantDraft} />,
-      handler: async (args: AssistantEducation) => {
-        const normalized = normalizeAssistantDraft(args);
-        if (!normalized) {
-          return "Os dados ainda estão inválidos ou incompatíveis. Pergunte somente o campo necessário e tente novamente.";
-        }
-        applyAssistantDraft(normalized);
-        return "Resumo preparado. Peça para a pessoa conferir e tocar em Confirmar e continuar.";
-      },
-    },
-    [applyAssistantDraft],
-  );
+      ]);
+    } finally {
+      setThinking(false);
+    }
+  }
 
   function saveEducation() {
     const validationError = validateDraft(draft);
@@ -513,7 +444,7 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
     <div className="space-y-5">
       {pending && <LoadingOverlay label="Salvando escolaridade…" logo />}
 
-      <div className="flex items-center gap-3 rounded-[var(--radius-sm)] border border-brand-border bg-brand-surface px-4 py-3">
+      <div className="flex items-center gap-3 rounded-[var(--radius-sm)] border border-[var(--surface-border)] bg-[var(--surface)] px-4 py-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full border border-brand-gold/50 text-brand-gold">
           <Bot aria-hidden className="size-5" />
         </span>
@@ -522,7 +453,7 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
             Assistente de escolaridade
             <Sparkles aria-hidden className="size-4 text-brand-gold" />
           </p>
-          <p className="text-sm text-brand-muted">Responda do seu jeito. Você confere tudo antes de salvar.</p>
+          <p className="text-sm text-[var(--surface-text-muted)]">Responda do seu jeito. Você confere tudo antes de salvar.</p>
         </div>
       </div>
 
@@ -531,10 +462,10 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
           type="button"
           onClick={() => setMode("assistant")}
           aria-pressed={mode === "assistant"}
-          className={`min-h-11 rounded-[var(--radius-sm)] border px-3 text-sm font-semibold ${
+          className={`min-h-11 cursor-pointer rounded-[var(--radius-sm)] border px-3 text-sm font-semibold transition-colors duration-200 hover:border-brand-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold ${
             mode === "assistant"
-              ? "border-brand-gold bg-brand-gold-light/10 text-brand-text"
-              : "border-brand-border text-brand-muted"
+              ? "border-brand-gold bg-brand-gold-light/10 text-[var(--surface-text)]"
+              : "border-[var(--surface-border)] text-[var(--surface-text-muted)]"
           }`}
         >
           Conversar
@@ -543,10 +474,10 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
           type="button"
           onClick={() => setMode("manual")}
           aria-pressed={mode === "manual"}
-          className={`min-h-11 rounded-[var(--radius-sm)] border px-3 text-sm font-semibold ${
+          className={`min-h-11 cursor-pointer rounded-[var(--radius-sm)] border px-3 text-sm font-semibold transition-colors duration-200 hover:border-brand-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold ${
             mode === "manual"
-              ? "border-brand-gold bg-brand-gold-light/10 text-brand-text"
-              : "border-brand-border text-brand-muted"
+              ? "border-brand-gold bg-brand-gold-light/10 text-[var(--surface-text)]"
+              : "border-[var(--surface-border)] text-[var(--surface-text-muted)]"
           }`}
         >
           Responder por opções
@@ -555,30 +486,75 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
 
       {mode === "assistant" ? (
         <div className="space-y-4">
-          {aiUnavailable && !prepared && (
+          {assistantUnavailable && !prepared && (
             <div className="banner" role="alert">
               <p className="font-semibold">O assistente não respondeu agora.</p>
               <p className="mt-1 text-sm">Suas respostas não foram perdidas. Use as opções para continuar.</p>
               <button
                 type="button"
                 onClick={() => setMode("manual")}
-                className="mt-3 min-h-11 rounded-[var(--radius-sm)] border border-current px-4 text-sm font-semibold"
+                className="mt-3 min-h-11 cursor-pointer rounded-[var(--radius-sm)] border border-current px-4 text-sm font-semibold transition-colors duration-200 hover:bg-current/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
               >
                 Continuar pelas opções
               </button>
             </div>
           )}
-          <div className="education-copilot overflow-hidden rounded-[var(--radius)] border border-brand-border">
-            <CopilotChat
-              className="education-copilot-chat"
-              instructions={ASSISTANT_INSTRUCTIONS}
-              labels={{
-                title: "Escolaridade",
-                initial:
-                  "Oi! Pode falar do seu jeito: qual foi a última série ou ano que você estudou?",
-                placeholder: "Ex.: parei no 8º ano…",
-              }}
-            />
+          <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--surface-border)] bg-[var(--surface)]">
+            <div className="max-h-80 min-h-48 space-y-3 overflow-y-auto p-4" role="log" aria-live="polite">
+              {messages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  className={`max-w-[88%] rounded-[var(--radius-sm)] px-3 py-2 text-sm leading-relaxed ${
+                    message.role === "user"
+                      ? "ml-auto bg-brand-gold text-brand-ink"
+                      : "border border-[var(--surface-border)] bg-[var(--surface-alt)] text-[var(--surface-text)]"
+                  }`}
+                >
+                  {message.content}
+                </div>
+              ))}
+              {thinking && (
+                <div className="flex max-w-[88%] items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--surface-border)] bg-[var(--surface-alt)] px-3 py-2 text-sm text-[var(--surface-text-muted)]">
+                  <LoaderCircle aria-hidden className="size-4 animate-spin" />
+                  Entendendo sua resposta…
+                </div>
+              )}
+            </div>
+            <form onSubmit={sendAssistantMessage} className="border-t border-[var(--surface-border)] p-3">
+              <label htmlFor="education-message" className="sr-only">
+                Resposta sobre sua escolaridade
+              </label>
+              <div className="flex items-end gap-2 rounded-[var(--radius-sm)] border border-[var(--surface-border)] bg-[var(--surface-alt)] p-2 focus-within:border-brand-gold">
+                <textarea
+                  id="education-message"
+                  rows={2}
+                  maxLength={500}
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      event.currentTarget.form?.requestSubmit();
+                    }
+                  }}
+                  disabled={thinking}
+                  placeholder="Ex.: parei no 8º ano em 2022"
+                  className="min-h-12 flex-1 resize-none bg-transparent px-2 py-1 text-base text-[var(--surface-text)] outline-none placeholder:text-[var(--surface-text-muted)]"
+                />
+                <button
+                  type="submit"
+                  disabled={thinking || !input.trim()}
+                  className="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] bg-brand-gold px-4 text-sm font-semibold text-brand-ink transition-colors duration-200 hover:bg-brand-gold-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Enviar resposta"
+                >
+                  <ArrowUp aria-hidden className="size-4" />
+                  Enviar
+                </button>
+              </div>
+            </form>
+            <p className="px-4 pb-4 text-xs leading-relaxed text-[var(--surface-text-muted)]">
+              Sua resposta é processada pelo assistente apenas para organizar estes dados. Você confere tudo antes de salvar.
+            </p>
           </div>
           {prepared && <EducationReview draft={draft} onEdit={() => setMode("manual")} />}
         </div>
@@ -598,7 +574,7 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
         type="button"
         size="xl"
         loading={pending}
-        disabled={validateDraft(draft) !== null}
+        disabled={thinking || pending}
         onClick={saveEducation}
         className="w-full"
       >
@@ -612,16 +588,5 @@ function EducationAssistant({ aiUnavailable }: { aiUnavailable: boolean }) {
 }
 
 export function EscolaridadeForm() {
-  const [aiUnavailable, setAiUnavailable] = useState(false);
-
-  return (
-    <CopilotKit
-      runtimeUrl="/api/copilotkit"
-      enableInspector={false}
-      showDevConsole={false}
-      onError={() => setAiUnavailable(true)}
-    >
-      <EducationAssistant aiUnavailable={aiUnavailable} />
-    </CopilotKit>
-  );
+  return <EducationAssistant />;
 }
