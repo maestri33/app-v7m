@@ -3,12 +3,18 @@ import OpenAI from "openai";
 
 import { readSession } from "@/lib/auth/server";
 
-type Level = "fundamental" | "medio";
+type Level = "fundamental" | "medio" | "superior";
+type EducationStage = "fundamental" | "medio" | "superior";
+type Qualification = "graduacao" | "pos_graduacao" | "mestrado" | "doutorado";
 type EducationStatus = "completed" | "attending" | "stopped";
 
 type DraftInput = {
+  stage?: EducationStage | null;
   level?: Level | null;
   grade?: number | null;
+  lastCompletedGrade?: number | null;
+  qualification?: Qualification | null;
+  lastCompletedQualification?: Qualification | "none" | null;
   educationStatus?: EducationStatus | null;
   year?: string;
   city?: string;
@@ -40,8 +46,32 @@ function normalizedText(value: unknown) {
 
 function normalizeLevel(value: unknown): Level | null {
   const text = normalizedText(value);
+  if (/superior|faculdade|graduacao|pos|mestrado|doutorado/.test(text)) return "superior";
   if (text.includes("fundamental")) return "fundamental";
   if (text.includes("medio")) return "medio";
+  return null;
+}
+
+function normalizeQualification(value: unknown): Qualification | null {
+  const text = normalizedText(value);
+  if (/doutorado|doutor/.test(text)) return "doutorado";
+  if (/mestrado|mestre/.test(text)) return "mestrado";
+  if (/pos/.test(text)) return "pos_graduacao";
+  if (/graduacao|faculdade|superior/.test(text)) return "graduacao";
+  return null;
+}
+
+function normalizeCompletedQualification(value: unknown): Qualification | "none" | null {
+  const text = normalizedText(value);
+  if (/nenhum|nenhuma|none/.test(text)) return "none";
+  return normalizeQualification(value);
+}
+
+function normalizeStage(value: unknown): EducationStage | null {
+  const text = normalizedText(value);
+  if (/superior|faculdade|graduacao|pos|mestrado|doutorado/.test(text)) return "superior";
+  if (/medio|colegial|segundo grau/.test(text)) return "medio";
+  if (/fundamental|primario|ginasio|primeiro grau/.test(text)) return "fundamental";
   return null;
 }
 
@@ -66,6 +96,8 @@ function normalizeOptional(value: unknown) {
 
 function extractMessageHints(message: string) {
   const text = normalizedText(message);
+  const superior = /ensino superior|faculdade|graduacao|pos-graduacao|mestrado|doutorado/.test(text);
+  const qualification = superior ? normalizeQualification(text) : null;
   const legacyEighthSeries = /\b8\s*(?:a|ª)?\s*serie\b|\boitava serie\b/.test(text);
   const numericGrade = text.match(/\b([1-9])\s*(?:º|°|o)?\s*(?:ano|serie|medio)\b/);
   const wordGrades: Array<[RegExp, number]> = [
@@ -81,7 +113,9 @@ function extractMessageHints(message: string) {
   ];
   const wordGrade = wordGrades.find(([pattern]) => pattern.test(text))?.[1] ?? null;
   const parsedGrade = legacyEighthSeries ? 9 : numericGrade ? Number(numericGrade[1]) : wordGrade;
-  const level = /ensino medio|\bmedio\b|colegial|segundo grau/.test(text)
+  const level = superior
+    ? "superior"
+    : /ensino medio|\bmedio\b|colegial|segundo grau/.test(text)
     ? "medio"
     : /fundamental|primario|ginasio|primeiro grau/.test(text) ||
         legacyEighthSeries ||
@@ -95,8 +129,9 @@ function extractMessageHints(message: string) {
       : /conclu|terminei|aprov/.test(text)
       ? "completed"
       : null;
-  const grade =
-    parsedGrade ??
+  const grade = superior
+    ? null
+    : parsedGrade ??
     (educationStatus === "completed" && level === "fundamental"
       ? 9
       : educationStatus === "completed" && level === "medio"
@@ -111,14 +146,47 @@ function extractMessageHints(message: string) {
         ? CURRENT_YEAR - 1
         : null;
 
-  return { level, grade, educationStatus, year } as const;
+  const superiorStatus = superior ? educationStatus : null;
+  const lastCompletedQualification =
+    superior && superiorStatus === "completed"
+      ? qualification
+      : superior && qualification === "graduacao" && superiorStatus
+        ? "none"
+        : /conclu[^.]{0,24}graduacao|terminei[^.]{0,24}faculdade/.test(text)
+          ? "graduacao"
+          : null;
+  return {
+    stage: superior ? "superior" : level,
+    level,
+    grade,
+    educationStatus,
+    lastCompletedGrade: null,
+    qualification,
+    lastCompletedQualification,
+    year,
+  } as const;
 }
 
 function normalizePreviousDraft(value: unknown) {
   const draft = value && typeof value === "object" ? (value as DraftInput) : {};
   return {
-    level: draft.level === "fundamental" || draft.level === "medio" ? draft.level : null,
+    stage:
+      draft.stage === "fundamental" || draft.stage === "medio" || draft.stage === "superior"
+        ? draft.stage
+        : draft.level === "fundamental" || draft.level === "medio"
+          ? draft.level
+          : null,
+    level:
+      draft.level === "fundamental" || draft.level === "medio" || draft.level === "superior"
+        ? draft.level
+        : null,
     grade: normalizeNumber(draft.grade),
+    last_completed_grade: normalizeNumber(draft.lastCompletedGrade),
+    qualification: normalizeQualification(draft.qualification),
+    last_completed_qualification:
+      draft.lastCompletedQualification === "none"
+        ? "none"
+        : normalizeQualification(draft.lastCompletedQualification),
     education_status:
       draft.educationStatus === "completed" ||
       draft.educationStatus === "attending" ||
@@ -137,14 +205,32 @@ function validGrade(level: Level | null, grade: number | null) {
 }
 
 function fallbackReply(draft: {
+  stage: EducationStage | null;
   level: Level | null;
   grade: number | null;
+  last_completed_grade: number | null;
+  qualification: Qualification | null;
+  last_completed_qualification: Qualification | "none" | null;
   education_status: EducationStatus | null;
   year: number | null;
 }) {
-  if (!draft.level) return "Essa série foi no Ensino Fundamental ou no Ensino Médio?";
+  if (!draft.stage || !draft.level) return "Essa série foi no Ensino Fundamental, Médio ou Superior?";
+  if (draft.level === "superior") {
+    if (!draft.education_status) return "Você concluiu essa formação, ainda está cursando ou parou antes de terminar?";
+    if (!draft.qualification) return "Foi graduação, pós-graduação, mestrado ou doutorado?";
+    if (draft.last_completed_qualification === null) {
+      return "Antes disso, qual formação superior você realmente concluiu? Se nenhuma, diga nenhuma.";
+    }
+    if (!draft.year) return "Em que ano isso aconteceu?";
+    return "Entendi. Confira o resumo abaixo antes de continuar.";
+  }
   if (!validGrade(draft.level, draft.grade)) return "Qual foi exatamente a última série ou ano?";
+  const grade = draft.grade as number;
   if (!draft.education_status) return "Você concluiu essa série, ainda está cursando ou parou antes de terminar?";
+  if (draft.last_completed_grade === null) {
+    if (grade === 1) return "Antes dessa série, você concluiu algum ano dessa etapa? Se nenhum, diga nenhum.";
+    return `Antes disso, você chegou a concluir o ${grade - 1}º ano?`;
+  }
   if (!draft.year) return "Em que ano isso aconteceu?";
   return "Entendi. Confira o resumo abaixo antes de continuar.";
 }
@@ -205,7 +291,7 @@ export async function POST(req: Request) {
         messages: [
           {
             role: "system",
-            content: `Você extrai escolaridade em português do Brasil. Retorne somente JSON, sem markdown, com: reply, level, grade, education_status, year, city, school. Valores canônicos: level=fundamental|medio|null; education_status=completed|attending|stopped|null. Fundamental aceita 1-9; médio aceita 1-3; ano entre 1950 e ${CURRENT_YEAR + 1}. Reconheça primário, ginásio e primeiro grau como Fundamental; colegial e segundo grau como Médio; antiga 8ª série equivale ao atual 9º ano. Não confunda concluir uma série com concluir todo o nível. Cidade e escola são opcionais e devem ser string vazia quando a pessoa não souber. Preserve dados anteriores não corrigidos. Se faltar dado obrigatório, reply deve fazer uma única pergunta curta. Se estiver completo, reply deve pedir conferência do resumo. Nunca invente dados.`,
+            content: `Você extrai escolaridade em português do Brasil. Retorne somente JSON, sem markdown, com: reply, stage, level, grade, last_completed_grade, qualification, last_completed_qualification, education_status, year, city, school. Valores canônicos: stage e level=fundamental|medio|superior|null; education_status=completed|attending|stopped|null; qualification e last_completed_qualification=graduacao|pos_graduacao|mestrado|doutorado|none|null. grade é a última série frequentada; last_completed_grade é a última série realmente concluída no mesmo nível e pode ser 0 quando nenhuma foi concluída. No Superior, grade deve ser null; qualification é a formação frequentada e last_completed_qualification é a última formação concluída, usando none quando nenhuma foi concluída. Fundamental aceita 1-9; médio aceita 1-3; ano entre 1950 e ${CURRENT_YEAR + 1}. Quem frequentou Ensino Superior necessariamente tem level=superior e comprova o Médio, mesmo sem concluir a graduação. Reconheça primário, ginásio e primeiro grau como Fundamental; colegial e segundo grau como Médio; antiga 8ª série equivale ao atual 9º ano. Nunca presuma que alguém que parou concluiu a etapa anterior: pergunte. Cidade e escola são opcionais e devem ser string vazia quando a pessoa não souber. Preserve dados anteriores não corrigidos. Se faltar dado obrigatório, reply deve fazer uma única pergunta curta. Se estiver completo, reply deve pedir conferência do resumo. Nunca invente dados.`,
           },
           {
             role: "user",
@@ -219,22 +305,101 @@ export async function POST(req: Request) {
     const candidate = extractJson(completion.choices[0]?.message?.content ?? "");
     const hints = extractMessageHints(message);
     const has = (key: string) => Object.prototype.hasOwnProperty.call(candidate, key);
+    const stage = hints.stage ?? previous.stage ?? (has("stage") ? normalizeStage(candidate.stage) : null);
     const level = hints.level ?? previous.level ?? (has("level") ? normalizeLevel(candidate.level) : null);
-    const grade = hints.grade ?? previous.grade ?? (has("grade") ? normalizeNumber(candidate.grade) : null);
-    const educationStatus =
-      hints.educationStatus ??
-      previous.education_status ??
-      (has("education_status") ? normalizeStatus(candidate.education_status) : null);
+    const answeringLastCompleted = Boolean(
+      previous.level !== "superior" &&
+      previous.grade &&
+        previous.education_status &&
+        previous.education_status !== "completed" &&
+        previous.last_completed_grade === null,
+    );
+    const answeringLastCompletedQualification = Boolean(
+      previous.level === "superior" &&
+        previous.qualification &&
+        previous.education_status &&
+        previous.education_status !== "completed" &&
+        previous.last_completed_qualification === null,
+    );
+    const grade = answeringLastCompleted
+      ? previous.grade
+      : hints.grade ?? previous.grade ?? (has("grade") ? normalizeNumber(candidate.grade) : null);
+    const educationStatus = answeringLastCompleted || answeringLastCompletedQualification
+      ? previous.education_status
+      : hints.educationStatus ??
+        previous.education_status ??
+        (has("education_status") ? normalizeStatus(candidate.education_status) : null);
+    let lastCompletedGrade =
+      hints.lastCompletedGrade ??
+      previous.last_completed_grade ??
+      (has("last_completed_grade") ? normalizeNumber(candidate.last_completed_grade) : null);
+    if (educationStatus === "completed" && grade) lastCompletedGrade = grade;
+    if (answeringLastCompleted && previous.grade) {
+      if (/\b(nenhum|nenhuma)\b/.test(normalizedText(message))) lastCompletedGrade = 0;
+      else if (/^(sim|conclui|terminei|completei)/.test(normalizedText(message))) {
+        lastCompletedGrade = previous.grade - 1;
+      } else if (hints.grade !== null && hints.grade < previous.grade) {
+        lastCompletedGrade = hints.grade;
+      }
+    }
+    const qualification = answeringLastCompletedQualification
+      ? previous.qualification
+      : hints.qualification ??
+        previous.qualification ??
+        (has("qualification") ? normalizeQualification(candidate.qualification) : null);
+    let lastCompletedQualification: Qualification | "none" | null =
+      (hints.lastCompletedQualification as Qualification | "none" | null) ??
+      (previous.last_completed_qualification as Qualification | "none" | null) ??
+      (has("last_completed_qualification")
+        ? normalizeCompletedQualification(candidate.last_completed_qualification)
+        : null);
+    if (educationStatus === "completed" && qualification) {
+      lastCompletedQualification = qualification;
+    }
+    if (answeringLastCompletedQualification && previous.qualification) {
+      const previousIndex = ["graduacao", "pos_graduacao", "mestrado", "doutorado"].indexOf(
+        previous.qualification,
+      );
+      if (/\b(nenhum|nenhuma)\b/.test(normalizedText(message))) {
+        lastCompletedQualification = "none";
+      } else if (/^(sim|conclui|terminei|completei)/.test(normalizedText(message))) {
+        lastCompletedQualification =
+          previousIndex > 0
+            ? (["graduacao", "pos_graduacao", "mestrado", "doutorado"][
+                previousIndex - 1
+              ] as Qualification)
+            : "none";
+      } else if (hints.qualification) {
+        const hintedIndex = ["graduacao", "pos_graduacao", "mestrado", "doutorado"].indexOf(
+          hints.qualification,
+        );
+        if (hintedIndex < previousIndex) lastCompletedQualification = hints.qualification;
+      }
+    }
     const year = hints.year ?? previous.year ?? (has("year") ? normalizeNumber(candidate.year) : null);
     const city = has("city") ? normalizeOptional(candidate.city) : previous.city;
     const school = has("school") ? normalizeOptional(candidate.school) : previous.school;
     const ready =
-      Boolean(level && educationStatus) &&
-      validGrade(level, grade) &&
+      Boolean(stage && level && educationStatus) &&
+      (level === "superior"
+        ? Boolean(
+            qualification &&
+              lastCompletedQualification !== null &&
+              (educationStatus !== "completed" || lastCompletedQualification === qualification),
+          )
+        : validGrade(level, grade) &&
+          lastCompletedGrade !== null &&
+          (educationStatus === "completed"
+            ? lastCompletedGrade === grade
+            : lastCompletedGrade < (grade ?? 0))) &&
       Boolean(year && year >= 1950 && year <= CURRENT_YEAR + 1);
     const draft = {
+      stage,
       level,
       grade,
+      last_completed_grade: lastCompletedGrade,
+      qualification,
+      last_completed_qualification: lastCompletedQualification,
       education_status: educationStatus,
       year,
       city,

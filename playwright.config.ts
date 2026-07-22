@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
+const mockBackendPort = process.env.MOCK_BACKEND_PORT ?? "8765";
+const mockBackendURL = process.env.MOCK_BACKEND_URL ?? `http://127.0.0.1:${mockBackendPort}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -20,8 +22,9 @@ export default defineConfig({
     : [
         {
           command: "node tests/e2e/mock-backend.mjs",
-          url: "http://127.0.0.1:8765/health",
+          url: `${mockBackendURL}/health`,
           reuseExistingServer: false,
+          env: { ...process.env, MOCK_BACKEND_PORT: mockBackendPort },
         },
         {
           command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
@@ -30,8 +33,8 @@ export default defineConfig({
           env: {
             ...process.env,
             APP_ENV: "test",
-            BACKEND_URL: "http://127.0.0.1:8765",
-            OMNIROUTE_BASE_URL: "http://127.0.0.1:8765",
+            BACKEND_URL: mockBackendURL,
+            OMNIROUTE_BASE_URL: mockBackendURL,
             OMNIROUTE_API_KEY: "e2e-key",
             OMNIROUTE_EDUCATION_MODEL: "e2e-education",
           },

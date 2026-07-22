@@ -27,7 +27,7 @@ function applyTheme(t: Theme) {
 /** Toggle de tema: sol/lua, 3 ciclos (light→dark→system), localStorage. */
 export function ThemeToggle() {
   // ponytail: lê localStorage no initializer, sem effect — evita cascading render
-  const [theme, setTheme] = useState<Theme>(readStoredTheme);
+  const [, setTheme] = useState<Theme>(readStoredTheme);
 
   const cycle = () => {
     setTheme((prev) => {
@@ -39,7 +39,6 @@ export function ThemeToggle() {
     });
   };
 
-  const resolved = theme === "system" ? resolveSystem() : theme;
   return (
     <button
       onClick={cycle}
@@ -47,14 +46,11 @@ export function ThemeToggle() {
         text-surface-text-muted hover:text-surface-text
         hover:bg-[var(--surface-border)] transition-colors duration-200
         min-w-[44px] min-h-[44px]"
-      aria-label={`Tema: ${theme} (${resolved === "dark" ? "escuro" : "claro"}) — clique para alternar`}
-      title={`Tema: ${theme}`}
+      aria-label="Alternar tema"
+      title="Alternar tema"
     >
-      {resolved === "dark" ? (
-        <Moon aria-hidden className="w-5 h-5" />
-      ) : (
-        <Sun aria-hidden className="w-5 h-5" />
-      )}
+      <span className="theme-icon theme-icon-moon"><Moon aria-hidden className="w-5 h-5" /></span>
+      <span className="theme-icon theme-icon-sun"><Sun aria-hidden className="w-5 h-5" /></span>
     </button>
   );
 }

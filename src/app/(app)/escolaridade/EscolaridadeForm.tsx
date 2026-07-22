@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Bot, CheckCircle2, LoaderCircle, Pencil, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowUp, Bot, CheckCircle2, LoaderCircle, Pencil, Sparkles } from "lucide-react";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -10,13 +10,19 @@ import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { apiErrorMessage } from "@/lib/api/error-messages";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 
-type Level = "fundamental" | "medio";
+type Level = "fundamental" | "medio" | "superior";
+type EducationStage = "fundamental" | "medio" | "superior";
+type Qualification = "graduacao" | "pos_graduacao" | "mestrado" | "doutorado";
 type EducationStatus = "completed" | "attending" | "stopped";
 type Mode = "assistant" | "manual";
 
 type EducationDraft = {
+  stage: EducationStage | null;
   level: Level | null;
   grade: number | null;
+  lastCompletedGrade: number | null;
+  qualification: Qualification | null;
+  lastCompletedQualification: Qualification | "none" | null;
   educationStatus: EducationStatus | null;
   year: string;
   city: string;
@@ -35,7 +41,11 @@ type AssistantResponse = {
   code?: string;
   draft?: {
     level: Level | null;
+    stage?: EducationStage | null;
     grade: number | null;
+    last_completed_grade?: number | null;
+    qualification?: Qualification | null;
+    last_completed_qualification?: Qualification | "none" | null;
     education_status: EducationStatus | null;
     year: number | null;
     city: string;
@@ -77,8 +87,12 @@ const STATUS_OPTIONS: Array<{
 
 function initialDraft(): EducationDraft {
   return {
+    stage: null,
     level: null,
     grade: null,
+    lastCompletedGrade: null,
+    qualification: null,
+    lastCompletedQualification: null,
     educationStatus: null,
     year: "",
     city: "",
@@ -86,10 +100,30 @@ function initialDraft(): EducationDraft {
   };
 }
 
-function levelLabel(level: Level | null) {
-  if (level === "fundamental") return "Ensino Fundamental";
-  if (level === "medio") return "Ensino Médio";
+function stageLabel(stage: EducationStage | null) {
+  if (stage === "fundamental") return "Ensino Fundamental";
+  if (stage === "medio") return "Ensino Médio";
+  if (stage === "superior") return "Ensino Superior";
   return "Não informado";
+}
+
+function gradeLabel(level: Level | null, grade: number | null) {
+  if (grade === null) return "Não informado";
+  if (grade === 0) return "Nenhum ano concluído nessa etapa";
+  if (level === "medio") return `${grade}º ano do Ensino Médio`;
+  return grade === 9 ? "9º ano / antiga 8ª série" : `${grade}º ano`;
+}
+
+const QUALIFICATIONS: Array<{ value: Qualification; label: string }> = [
+  { value: "graduacao", label: "Graduação" },
+  { value: "pos_graduacao", label: "Pós-graduação" },
+  { value: "mestrado", label: "Mestrado" },
+  { value: "doutorado", label: "Doutorado" },
+];
+
+function qualificationLabel(qualification: Qualification | "none" | null) {
+  if (qualification === "none") return "Nenhuma formação superior concluída";
+  return QUALIFICATIONS.find((option) => option.value === qualification)?.label ?? "Não informado";
 }
 
 function statusLabel(status: EducationStatus | null) {
@@ -97,15 +131,92 @@ function statusLabel(status: EducationStatus | null) {
 }
 
 function validateDraft(draft: EducationDraft) {
-  if (!draft.level) return "Informe se a última série foi no Fundamental ou no Ensino Médio.";
+  if (!draft.stage) return "Escolha a etapa mais recente que você frequentou.";
+  if (!draft.level) return "Informe a etapa de ensino.";
+  if (draft.level === "superior") {
+    if (!draft.qualification) return "Informe qual formação superior você frequentou.";
+    if (!draft.educationStatus) return "Informe se concluiu, está cursando ou parou no meio.";
+    if (draft.lastCompletedQualification === null) {
+      return "Informe qual formação superior você realmente concluiu.";
+    }
+    if (
+      draft.educationStatus === "completed" &&
+      draft.lastCompletedQualification !== draft.qualification
+    ) {
+      return "Revise a última formação concluída.";
+    }
+  } else {
   if (!draft.grade) return "Informe a última série ou ano estudado.";
   if (!draft.educationStatus) return "Informe se concluiu, está cursando ou parou no meio.";
+  if (draft.lastCompletedGrade === null) {
+    return "Informe qual foi o último ano que você realmente concluiu.";
+  }
+  if (draft.educationStatus === "completed" && draft.lastCompletedGrade !== draft.grade) {
+    return "Revise a última série concluída.";
+  }
+  if (draft.educationStatus !== "completed" && draft.lastCompletedGrade >= draft.grade) {
+    return "O último ano concluído precisa ser anterior ao ano frequentado.";
+  }
+  }
 
   const year = Number(draft.year);
   if (!Number.isInteger(year) || year < 1950 || year > CURRENT_YEAR + 1) {
     return `Informe um ano entre 1950 e ${CURRENT_YEAR + 1}.`;
   }
   return null;
+}
+
+function StageScene({ stage }: { stage: EducationStage }) {
+  return (
+    <svg viewBox="0 0 320 190" className="h-full w-full" aria-hidden>
+      <rect width="320" height="190" fill="#171714" />
+      <circle cx="266" cy="38" r="52" fill="#ffdf00" opacity=".08" />
+      {stage === "fundamental" ? (
+        <>
+          <rect x="24" y="34" width="116" height="82" rx="4" fill="#203c31" />
+          <path d="M38 52h84M38 68h58M38 84h72" stroke="#84b6a0" strokeWidth="5" opacity=".65" />
+          <circle cx="204" cy="65" r="26" fill="#9b6546" />
+          <path d="M178 64c2-30 15-41 31-39 20 2 27 19 22 41-17-2-28-11-35-23-3 10-9 17-18 21Z" fill="#242429" />
+          <path d="M162 176c4-59 18-83 45-83 29 0 47 27 51 83Z" fill="#147d50" />
+          <rect x="228" y="107" width="55" height="67" rx="13" fill="#012169" />
+        </>
+      ) : stage === "medio" ? (
+        <>
+          <rect x="28" y="122" width="264" height="14" rx="4" fill="#795538" />
+          <rect x="47" y="76" width="90" height="46" rx="3" fill="#efe8d8" transform="rotate(-5 47 76)" />
+          <path d="M60 91h60M58 102h48" stroke="#8a6526" strokeWidth="4" />
+          <circle cx="205" cy="62" r="27" fill="#9b6546" />
+          <path d="M177 63c3-31 16-42 34-39 18 3 24 21 20 41-18-3-29-12-36-24-3 10-9 17-18 22Z" fill="#242429" />
+          <path d="M161 176c4-57 19-81 47-81 29 0 47 28 50 81Z" fill="#012169" />
+          <rect x="246" y="52" width="38" height="70" rx="4" fill="#009c3b" />
+        </>
+      ) : (
+        <>
+          <circle cx="145" cy="62" r="29" fill="#9b6546" />
+          <path d="M115 63c2-32 16-45 35-42 22 3 29 22 24 44-19-2-32-13-39-26-3 11-10 19-20 24Z" fill="#242429" />
+          <path d="M91 178c5-61 21-87 56-87 33 0 54 29 57 87Z" fill="#009c3b" />
+          <path d="m218 62 54 20-54 20-54-20Z" fill="#012169" />
+          <path d="M184 91v28c21 17 49 17 69 0V91" fill="none" stroke="#ffdf00" strokeWidth="5" />
+          <rect x="216" y="126" width="70" height="45" rx="3" fill="#f5f4f1" transform="rotate(-4 216 126)" />
+          <path d="M232 143h38M232 153h30" stroke="#8a6526" strokeWidth="3" />
+        </>
+      )}
+      <path d="M18 178h284" stroke="#3a3a42" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function FlowBack({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] px-2 text-sm font-semibold text-[var(--surface-text-muted)] hover:text-[var(--surface-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold"
+    >
+      <ArrowLeft aria-hidden className="size-4" />
+      Voltar
+    </button>
+  );
 }
 
 function EducationFields({
@@ -115,131 +226,316 @@ function EducationFields({
   draft: EducationDraft;
   onChange: (next: EducationDraft) => void;
 }) {
-  const grades =
-    draft.level === "fundamental" ? Array.from({ length: 9 }, (_, index) => index + 1) : [1, 2, 3];
+  type GuidedStep =
+    | "stage"
+    | "status"
+    | "grade"
+    | "previous"
+    | "earlier"
+    | "qualification"
+    | "previous-qualification"
+    | "earlier-qualification"
+    | "details";
+  const restoredStep: GuidedStep = draft.year
+    ? "details"
+    : draft.level === "superior" && draft.lastCompletedQualification !== null
+      ? "details"
+      : draft.level === "superior" && draft.qualification
+        ? "previous-qualification"
+        : draft.level === "superior" && draft.educationStatus
+          ? "qualification"
+    : draft.lastCompletedGrade !== null
+      ? "details"
+      : draft.grade && draft.educationStatus !== "completed"
+        ? "previous"
+        : draft.educationStatus
+          ? "grade"
+          : draft.stage
+            ? "status"
+            : "stage";
+  const [step, setStep] = useState<GuidedStep>(restoredStep);
+  const grades = draft.level === "fundamental" ? Array.from({ length: 9 }, (_, index) => index + 1) : [1, 2, 3];
   const yearLabel =
-    draft.educationStatus === "completed"
-      ? "Em que ano concluiu essa série?"
-      : draft.educationStatus === "attending"
-        ? "Em que ano começou a cursar essa série?"
-        : "Em que ano parou de estudar?";
+    draft.educationStatus === "attending"
+      ? draft.level === "superior"
+        ? "Em que ano começou essa formação?"
+        : "Em que ano começou essa série?"
+      : "Em que ano isso aconteceu?";
 
-  function chooseLevel(level: Level) {
-    onChange({ ...draft, level, grade: null, educationStatus: null });
+  function chooseStage(stage: EducationStage) {
+    onChange({
+      ...draft,
+      stage,
+      level: stage,
+      grade: null,
+      lastCompletedGrade: null,
+      qualification: null,
+      lastCompletedQualification: null,
+      educationStatus: null,
+      year: "",
+    });
+    setStep("status");
+  }
+
+  function chooseStageStatus(status: "completed" | "attending" | "stopped") {
+    if (draft.level === "superior") {
+      onChange({
+        ...draft,
+        grade: null,
+        lastCompletedGrade: null,
+        qualification: null,
+        lastCompletedQualification: null,
+        educationStatus: status,
+      });
+      setStep("qualification");
+      return;
+    }
+    if (status === "completed") {
+      const finalGrade = draft.level === "fundamental" ? 9 : 3;
+      onChange({ ...draft, grade: finalGrade, lastCompletedGrade: finalGrade, educationStatus: status });
+      setStep("details");
+      return;
+    }
+    onChange({ ...draft, grade: null, lastCompletedGrade: null, educationStatus: status });
+    setStep("grade");
+  }
+
+  function chooseGrade(grade: number) {
+    onChange({ ...draft, grade, lastCompletedGrade: grade === 1 ? 0 : null });
+    setStep(grade === 1 ? "details" : "previous");
+  }
+
+  function stepBackFromDetails() {
+    if (draft.level === "superior") setStep("qualification");
+    else if (draft.educationStatus === "completed") setStep("status");
+    else setStep("previous");
+  }
+
+  function chooseQualification(qualification: Qualification) {
+    if (draft.educationStatus === "completed") {
+      onChange({ ...draft, qualification, lastCompletedQualification: qualification });
+      setStep("details");
+      return;
+    }
+    const index = QUALIFICATIONS.findIndex((option) => option.value === qualification);
+    onChange({
+      ...draft,
+      qualification,
+      lastCompletedQualification: index === 0 ? "none" : null,
+    });
+    setStep(index === 0 ? "details" : "previous-qualification");
   }
 
   return (
-    <div className="space-y-6">
-      <fieldset className="space-y-3">
-        <legend className="label">Em qual nível foi sua última série?</legend>
-        <div className="grid grid-cols-2 gap-3">
-          {(["fundamental", "medio"] as const).map((value) => (
-            <label
-              key={value}
-              className={`cursor-pointer rounded-[var(--radius-sm)] border px-4 py-3 text-center transition-colors duration-200 hover:border-brand-gold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-gold ${
-                draft.level === value
-                  ? "border-brand-gold bg-brand-gold-light/10"
-                  : "border-[var(--surface-border)] bg-[var(--surface)]"
-              }`}
-            >
-              <input
-                className="sr-only"
-                type="radio"
-                name="education_level"
-                checked={draft.level === value}
-                onChange={() => chooseLevel(value)}
-              />
-              {value === "fundamental" ? "Fundamental" : "Ensino médio"}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+    <div className="space-y-5" aria-live="polite">
+      {step === "stage" && (
+        <section aria-labelledby="education-stage-title" className="space-y-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Sua trajetória</p>
+            <h2 id="education-stage-title" className="mt-1 font-display text-2xl">Até que etapa você estudou?</h2>
+            <p className="mt-1 text-sm text-[var(--surface-text-muted)]">Escolha a etapa mais recente que você frequentou.</p>
+          </div>
+          <div className="education-stage-carousel -mx-1 grid snap-x snap-mandatory auto-cols-[82%] grid-flow-col gap-3 overflow-x-auto px-1 pb-3 sm:auto-cols-[46%] lg:grid-flow-row lg:grid-cols-3 lg:overflow-visible">
+            {(["fundamental", "medio", "superior"] as const).map((stage) => (
+              <button
+                key={stage}
+                type="button"
+                onClick={() => chooseStage(stage)}
+                className="group snap-start overflow-hidden rounded-[var(--radius)] border border-[var(--surface-border)] bg-[#171714] text-left shadow-sm transition-transform duration-200 hover:-translate-y-1 hover:border-brand-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold"
+              >
+                <span className="block aspect-[16/9] overflow-hidden"><StageScene stage={stage} /></span>
+                <span className="block border-t border-white/10 px-4 py-4 font-display text-lg text-white">{stageLabel(stage)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {draft.level && (
-        <fieldset className="space-y-3">
-          <legend className="label">Qual foi a última série/ano?</legend>
+      {step === "status" && draft.stage && (
+        <section className="space-y-4" aria-labelledby="education-status-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Sobre essa etapa</p>
+            <h2 id="education-status-title" className="mt-1 font-display text-2xl">Você concluiu o {stageLabel(draft.stage)}?</h2>
+          </div>
+          <div className="space-y-3">
+            <button type="button" onClick={() => chooseStageStatus("completed")} className="choice-card w-full text-left">
+              <strong className="block">Sim, concluí essa etapa</strong>
+              <span className="mt-1 block text-sm text-[var(--surface-text-muted)]">Terminou o último ano dessa etapa.</span>
+            </button>
+            <button type="button" onClick={() => chooseStageStatus("attending")} className="choice-card w-full text-left">
+              <strong className="block">Ainda estou estudando</strong>
+              <span className="mt-1 block text-sm text-[var(--surface-text-muted)]">Está matriculado e cursando agora.</span>
+            </button>
+            <button type="button" onClick={() => chooseStageStatus("stopped")} className="choice-card w-full text-left">
+              <strong className="block">Não, parei durante essa etapa</strong>
+              <span className="mt-1 block text-sm text-[var(--surface-text-muted)]">Começou, mas não terminou a etapa.</span>
+            </button>
+          </div>
+          <FlowBack onClick={() => setStep("stage")} />
+        </section>
+      )}
+
+      {step === "grade" && draft.level && (
+        <section className="space-y-4" aria-labelledby="education-grade-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Último ano frequentado</p>
+            <h2 id="education-grade-title" className="mt-1 font-display text-2xl">
+              {draft.educationStatus === "attending" ? "Qual ano você está cursando?" : "Em qual ano você parou?"}
+            </h2>
+          </div>
           <div className="grid grid-cols-3 gap-2">
-            {grades.map((value) => (
-              <label
-                key={value}
-                className={`cursor-pointer rounded-[var(--radius-sm)] border px-3 py-2 text-center transition-colors duration-200 hover:border-brand-gold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-gold ${
-                  draft.grade === value
-                    ? "border-brand-gold bg-brand-gold-light/10"
-                    : "border-[var(--surface-border)] bg-[var(--surface)]"
-                }`}
-              >
-                <input
-                  className="sr-only"
-                  type="radio"
-                  name="education_grade"
-                  checked={draft.grade === value}
-                  onChange={() => onChange({ ...draft, grade: value, educationStatus: null })}
-                />
-                {value}º {draft.level === "fundamental" ? "ano" : "médio"}
-                {draft.level === "fundamental" && value === 9 ? (
-                  <span className="mt-1 block text-xs font-normal text-[var(--surface-text-muted)]">
-                    antiga 8ª série
-                  </span>
-                ) : null}
-              </label>
+            {grades.map((grade) => (
+              <button key={grade} type="button" onClick={() => chooseGrade(grade)} className="choice-card min-h-16 text-center font-semibold">
+                {gradeLabel(draft.level, grade)}
+              </button>
             ))}
           </div>
-        </fieldset>
+          <FlowBack onClick={() => setStep("status")} />
+        </section>
       )}
 
-      {draft.grade && (
-        <fieldset className="space-y-3">
-          <legend className="label">O que aconteceu nessa série/ano?</legend>
-          <div className="space-y-2">
-            {STATUS_OPTIONS.map((option) => (
-              <label
+      {step === "previous" && draft.grade && draft.level && (
+        <section className="space-y-4" aria-labelledby="education-previous-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Só mais uma confirmação</p>
+            <h2 id="education-previous-title" className="mt-1 font-display text-2xl">
+              Antes disso, você chegou a concluir o {gradeLabel(draft.level, draft.grade - 1)}?
+            </h2>
+          </div>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => { onChange({ ...draft, lastCompletedGrade: draft.grade! - 1 }); setStep("details"); }}
+              className="choice-card w-full text-left"
+            >
+              <strong>Sim, concluí</strong>
+            </button>
+            <button type="button" onClick={() => setStep("earlier")} className="choice-card w-full text-left">
+              <strong>Ainda não tinha concluído</strong>
+            </button>
+          </div>
+          <FlowBack onClick={() => setStep("grade")} />
+        </section>
+      )}
+
+      {step === "earlier" && draft.grade && draft.level && (
+        <section className="space-y-4" aria-labelledby="education-earlier-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Último ano realmente concluído</p>
+            <h2 id="education-earlier-title" className="mt-1 font-display text-2xl">Qual destes você chegou a concluir?</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {Array.from({ length: Math.max(0, draft.grade - 1) }, (_, index) => index).reverse().map((grade) => (
+              <button
+                key={grade}
+                type="button"
+                onClick={() => { onChange({ ...draft, lastCompletedGrade: grade }); setStep("details"); }}
+                className="choice-card min-h-16 text-center font-semibold"
+              >
+                {gradeLabel(draft.level, grade)}
+              </button>
+            ))}
+          </div>
+          <FlowBack onClick={() => setStep("previous")} />
+        </section>
+      )}
+
+      {step === "qualification" && draft.level === "superior" && (
+        <section className="space-y-4" aria-labelledby="education-qualification-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Formação superior</p>
+            <h2 id="education-qualification-title" className="mt-1 font-display text-2xl">
+              {draft.educationStatus === "completed"
+                ? "Qual foi a formação mais alta que você concluiu?"
+                : draft.educationStatus === "attending"
+                  ? "Qual formação você está cursando?"
+                  : "Em qual formação você parou?"}
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {QUALIFICATIONS.map((option) => (
+              <button key={option.value} type="button" onClick={() => chooseQualification(option.value)} className="choice-card min-h-16 text-center font-semibold">
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <FlowBack onClick={() => setStep("status")} />
+        </section>
+      )}
+
+      {step === "previous-qualification" && draft.qualification && (
+        <section className="space-y-4" aria-labelledby="education-previous-qualification-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Só mais uma confirmação</p>
+            <h2 id="education-previous-qualification-title" className="mt-1 font-display text-2xl">
+              Antes disso, você concluiu {qualificationLabel(QUALIFICATIONS[QUALIFICATIONS.findIndex((option) => option.value === draft.qualification) - 1]?.value ?? "none")}?
+            </h2>
+          </div>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => {
+                const index = QUALIFICATIONS.findIndex((option) => option.value === draft.qualification);
+                onChange({ ...draft, lastCompletedQualification: QUALIFICATIONS[index - 1].value });
+                setStep("details");
+              }}
+              className="choice-card w-full text-left"
+            >
+              <strong>Sim, concluí</strong>
+            </button>
+            <button type="button" onClick={() => setStep("earlier-qualification")} className="choice-card w-full text-left">
+              <strong>Ainda não tinha concluído</strong>
+            </button>
+          </div>
+          <FlowBack onClick={() => setStep("qualification")} />
+        </section>
+      )}
+
+      {step === "earlier-qualification" && draft.qualification && (
+        <section className="space-y-4" aria-labelledby="education-earlier-qualification-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Última formação concluída</p>
+            <h2 id="education-earlier-qualification-title" className="mt-1 font-display text-2xl">Qual destas você realmente concluiu?</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              ...QUALIFICATIONS.slice(
+                0,
+                Math.max(0, QUALIFICATIONS.findIndex((option) => option.value === draft.qualification) - 1),
+              ),
+              { value: "none" as const, label: "Nenhuma formação superior" },
+            ].reverse().map((option) => (
+              <button
                 key={option.value}
-                className={`flex cursor-pointer items-start gap-3 rounded-[var(--radius-sm)] border px-4 py-3 transition-colors duration-200 hover:border-brand-gold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-gold ${
-                  draft.educationStatus === option.value
-                    ? "border-brand-gold bg-brand-gold-light/10"
-                    : "border-[var(--surface-border)] bg-[var(--surface)]"
-                }`}
+                type="button"
+                onClick={() => { onChange({ ...draft, lastCompletedQualification: option.value }); setStep("details"); }}
+                className="choice-card min-h-16 text-center font-semibold"
               >
-                <input
-                  className="accent-gold-deep mt-1"
-                  type="radio"
-                  name="education_status"
-                  checked={draft.educationStatus === option.value}
-                  onChange={() => onChange({ ...draft, educationStatus: option.value })}
-                />
-                <span>
-                  <span className="block font-medium">{option.label}</span>
-                  <span className="block text-sm text-[var(--surface-text-muted)]">{option.hint}</span>
-                </span>
-              </label>
+                {option.label}
+              </button>
             ))}
           </div>
-        </fieldset>
+          <FlowBack onClick={() => setStep("previous-qualification")} />
+        </section>
       )}
 
-      {draft.educationStatus && (
-        <div className="space-y-4">
-          <Field
-            label={yearLabel}
-            type="number"
-            min={1950}
-            max={CURRENT_YEAR + 1}
-            value={draft.year}
-            onChange={(year) => onChange({ ...draft, year })}
-            required
-          />
+      {step === "details" && (
+        <section className="space-y-4" aria-labelledby="education-details-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Últimos detalhes</p>
+            <h2 id="education-details-title" className="mt-1 font-display text-2xl">Quando e onde você estudou?</h2>
+            <p className="mt-1 text-sm text-[var(--surface-text-muted)]">
+              Confirmado: {draft.level === "superior"
+                ? qualificationLabel(draft.lastCompletedQualification)
+                : gradeLabel(draft.level, draft.lastCompletedGrade)}.
+            </p>
+          </div>
+          <Field label={yearLabel} type="number" min={1950} max={CURRENT_YEAR + 1} value={draft.year} onChange={(year) => onChange({ ...draft, year })} required />
           <p className="field-hint">Se não lembrar exatamente, informe o ano aproximado.</p>
-          <Field
-            label="Cidade onde estudou (opcional)"
-            value={draft.city}
-            onChange={(city) => onChange({ ...draft, city })}
-          />
-          <Field
-            label="Nome da escola (opcional)"
-            value={draft.school}
-            onChange={(school) => onChange({ ...draft, school })}
-          />
-        </div>
+          <Field label="Cidade onde estudou (opcional)" value={draft.city} onChange={(city) => onChange({ ...draft, city })} />
+          <Field label="Nome da escola (opcional)" value={draft.school} onChange={(school) => onChange({ ...draft, school })} />
+          <FlowBack onClick={stepBackFromDetails} />
+        </section>
       )}
     </div>
   );
@@ -256,12 +552,26 @@ function EducationReview({ draft, onEdit }: { draft: EducationDraft; onEdit: () 
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-        <dt className="text-[var(--surface-text-muted)]">Nível</dt>
-        <dd className="text-right font-medium">{levelLabel(draft.level)}</dd>
-        <dt className="text-[var(--surface-text-muted)]">Última série</dt>
-        <dd className="text-right font-medium">{draft.grade}º ano</dd>
+        <dt className="text-[var(--surface-text-muted)]">Etapa</dt>
+        <dd className="text-right font-medium">{stageLabel(draft.stage)}</dd>
+        <dt className="text-[var(--surface-text-muted)]">
+          {draft.level === "superior" ? "Formação frequentada" : "Último ano frequentado"}
+        </dt>
+        <dd className="text-right font-medium">
+          {draft.level === "superior" ? qualificationLabel(draft.qualification) : gradeLabel(draft.level, draft.grade)}
+        </dd>
+        <dt className="text-[var(--surface-text-muted)]">
+          {draft.level === "superior" ? "Formação concluída" : "Último ano concluído"}
+        </dt>
+        <dd className="text-right font-medium">
+          {draft.level === "superior"
+            ? qualificationLabel(draft.lastCompletedQualification)
+            : gradeLabel(draft.level, draft.lastCompletedGrade)}
+        </dd>
         <dt className="text-[var(--surface-text-muted)]">Situação</dt>
-        <dd className="text-right font-medium">{statusLabel(draft.educationStatus)}</dd>
+        <dd className="text-right font-medium">
+          {statusLabel(draft.educationStatus)}
+        </dd>
         <dt className="text-[var(--surface-text-muted)]">Ano</dt>
         <dd className="text-right font-medium">{draft.year}</dd>
         <dt className="text-[var(--surface-text-muted)]">Cidade</dt>
@@ -306,6 +616,21 @@ function EducationAssistant() {
           };
           if (parsed.draft) {
             const restoredDraft = { ...initialDraft(), ...parsed.draft };
+            if (!restoredDraft.stage && restoredDraft.level) restoredDraft.stage = restoredDraft.level;
+            if (
+              restoredDraft.lastCompletedGrade === null &&
+              restoredDraft.educationStatus === "completed"
+            ) {
+              restoredDraft.lastCompletedGrade = restoredDraft.grade;
+            }
+            if (
+              restoredDraft.level === "superior" &&
+              restoredDraft.qualification === "graduacao" &&
+              restoredDraft.educationStatus !== "completed" &&
+              restoredDraft.lastCompletedQualification === null
+            ) {
+              restoredDraft.lastCompletedQualification = "none";
+            }
             if (!restoredDraft.level && !restoredDraft.grade && !restoredDraft.educationStatus) {
               restoredDraft.year = "";
             }
@@ -371,8 +696,12 @@ function EducationAssistant() {
       }
 
       const nextDraft: EducationDraft = {
+        stage: data.draft.stage ?? data.draft.level,
         level: data.draft.level,
         grade: data.draft.grade,
+        lastCompletedGrade: data.draft.last_completed_grade ?? null,
+        qualification: data.draft.qualification ?? null,
+        lastCompletedQualification: data.draft.last_completed_qualification ?? null,
         educationStatus: data.draft.education_status,
         year: data.draft.year ? String(data.draft.year) : "",
         city: data.draft.city || "",
@@ -411,10 +740,15 @@ function EducationAssistant() {
           body: JSON.stringify({
             level: draft.level,
             grade: draft.grade,
+            last_completed_grade: draft.lastCompletedGrade,
+            qualification: draft.qualification,
+            last_completed_qualification:
+              draft.lastCompletedQualification === "none" ? null : draft.lastCompletedQualification,
             education_status: draft.educationStatus,
             completed:
               draft.educationStatus === "completed" &&
-              ((draft.level === "fundamental" && draft.grade === 9) ||
+              (draft.level === "superior" ||
+                (draft.level === "fundamental" && draft.grade === 9) ||
                 (draft.level === "medio" && draft.grade === 3)),
             year: Number(draft.year),
             city: draft.city.trim() || null,
@@ -439,6 +773,16 @@ function EducationAssistant() {
       }
     });
   }
+
+  const canAttemptSave =
+    mode === "assistant"
+      ? prepared
+      : Boolean(
+          draft.educationStatus &&
+            (draft.level === "superior"
+              ? draft.qualification && draft.lastCompletedQualification !== null
+              : draft.grade && draft.lastCompletedGrade !== null),
+        );
 
   return (
     <div className="space-y-5">
@@ -574,7 +918,7 @@ function EducationAssistant() {
         type="button"
         size="xl"
         loading={pending}
-        disabled={thinking || pending}
+        disabled={thinking || pending || !canAttemptSave}
         onClick={saveEducation}
         className="w-full"
       >

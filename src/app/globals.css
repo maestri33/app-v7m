@@ -1036,6 +1036,61 @@ strong {
     radial-gradient(circle at 85% 0%, rgb(217 177 90 / 0.16), transparent 55%),
     rgb(11 11 12 / 0.45);
 }
+
+.choice-card {
+  min-height: 3.25rem;
+  cursor: pointer;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--surface-text);
+  padding: 0.8rem 1rem;
+  transition:
+    border-color 0.16s var(--ease-out),
+    background 0.16s var(--ease-out),
+    transform 0.16s var(--ease-out);
+}
+.choice-card:hover {
+  border-color: var(--gold);
+  background: var(--surface-alt);
+  transform: translateY(-1px);
+}
+.choice-card:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.education-stage-carousel {
+  scrollbar-width: none;
+}
+.education-stage-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.theme-icon {
+  display: inline-flex;
+}
+.theme-icon-moon {
+  display: none;
+}
+html[data-theme="dark"] .theme-icon-moon {
+  display: inline-flex;
+}
+html[data-theme="dark"] .theme-icon-sun {
+  display: none;
+}
+
+.education-card {
+  background: #111113;
+  border: 1px solid rgb(231 228 221 / 0.14);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px -32px rgb(0 0 0 / 0.8);
+  padding: clamp(1rem, 0.8rem + 1.5vw, 1.5rem);
+}
+
+main > div > div:has(.education-card) {
+  max-width: 42rem;
+}
 @keyframes app-pan {
   from { background-position: 0% 0%; }
   to { background-position: 100% 100%; }

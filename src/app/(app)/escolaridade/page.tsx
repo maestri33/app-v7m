@@ -30,7 +30,7 @@ export default async function EscolaridadePage() {
       <PageShell>
         <CompactHeader kicker="V7M · Cadastro" title="Escolaridade" />
         <FunnelStepper current={me.status} />
-        <div className="auth-card space-y-5">
+        <div className="education-card space-y-5">
           <div className="banner banner-ok" role="status">
             <p className="font-display">Escolaridade registrada ✓</p>
             <p className="text-sm mt-1 opacity-90">
@@ -54,7 +54,7 @@ export default async function EscolaridadePage() {
         subtitle="Informe a última série, se concluiu ou parou no meio e em que ano. Cidade e escola são opcionais."
       />
       <FunnelStepper current="education" />
-      <div className="auth-card">
+      <div className="education-card">
         <EscolaridadeForm />
       </div>
     </PageShell>
