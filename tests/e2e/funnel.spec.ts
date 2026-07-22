@@ -40,10 +40,9 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
 
   await expect(page).toHaveURL(/\/escolaridade$/);
   await page.getByRole("button", { name: "Responder por opções" }).click();
-  await page.getByText("Ensino médio", { exact: true }).click();
-  await page.getByText("3º médio", { exact: true }).click();
-  await page.getByText("Concluí essa série/ano", { exact: true }).click();
-  await page.getByLabel("Em que ano concluiu essa série?").fill("2026");
+  await page.getByRole("button", { name: "Ensino Médio" }).click();
+  await page.getByRole("button", { name: "Sim, concluí essa etapa" }).click();
+  await page.getByLabel("Em que ano isso aconteceu?").fill("2026");
   await page.getByRole("button", { name: /Confirmar e continuar/i }).click();
 
   await expect(page).toHaveURL(/\/selfie$/);
