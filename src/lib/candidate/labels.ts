@@ -19,10 +19,10 @@ export function maritalLabel(value: string | null | undefined): string {
  */
 export function roleLabels(roles: string[]): string[] {
   const labels: string[] = [];
-  if (roles.includes("promoter")) labels.push("Promotor");
+  if (roles.includes("promoter")) labels.push("Promotor(a)");
   if (roles.includes("training")) labels.push("Treinamento obrigatório");
   if (roles.includes("candidate") && !roles.includes("promoter")) {
-    labels.push("Cadastro em andamento");
+    labels.push("Candidato(a)");
   }
   return labels;
 }

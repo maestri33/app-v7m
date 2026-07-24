@@ -10,7 +10,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { djangoFetch } from "@/lib/api/client";
-import { ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/auth/cookies";
 import { isTrainingLocked } from "@/lib/auth/roles";
 
 // `WhoamiOut` real = {external_id, roles, name} — phone/cpf NÃO vêm (P2.1).
@@ -27,9 +26,8 @@ export type Session = {
 /** Lê o cookie; se houver, consulta o whoami do Django (devolve TODAS as roles). */
 export async function readSession(): Promise<Session | null> {
   const cookieStore = await cookies();
-  const access = cookieStore.get(ACCESS_COOKIE)?.value;
-  const refresh = cookieStore.get(REFRESH_COOKIE)?.value;
-  if (!access && !refresh) return null;
+  const access = cookieStore.get("v7m_access")?.value;
+  if (!access) return null;
 
   try {
     return await djangoFetch<Session>("/api/v1/collaborators/whoami");

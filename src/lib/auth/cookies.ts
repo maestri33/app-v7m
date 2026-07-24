@@ -13,8 +13,8 @@ import { isProd } from "../api/config";
 export const ACCESS_COOKIE = "v7m_access";
 export const REFRESH_COOKIE = "v7m_refresh";
 
+const MAX_AGE_ACCESS = 60 * 15; // 15 min (espelha o JWT do Django)
 const MAX_AGE_REFRESH = 60 * 60 * 24 * 14; // 14 dias
-const MAX_AGE_ACCESS = MAX_AGE_REFRESH; // o JWT expira em 15 min; o cookie precisa sobreviver para disparar refresh
 
 function commonOpts(maxAge: number) {
   return {
