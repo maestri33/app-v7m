@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { PageShell } from "@/components/layout/page-shell";
+import { FunnelStepper } from "@/components/ui/stepper";
+import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
 import { candidateStageHref } from "@/lib/candidate/funnel";
@@ -21,8 +22,16 @@ export default async function EnderecoPage() {
   if (target !== "/endereco") redirect(target);
 
   return (
-    <PageShell width="narrow">
-      <AddressProofSection initial={me.address_proof ?? null} />
+    <PageShell>
+      <CompactHeader
+        kicker="V7M · Cadastro"
+        title="Comprovante de residência"
+        subtitle="Envie a conta ou comprovante. O endereço sai do documento — sem digitar CEP, rua ou número."
+      />
+      <FunnelStepper current="address" />
+      <div className="auth-card">
+        <AddressProofSection initial={me.address_proof ?? null} />
+      </div>
     </PageShell>
   );
 }

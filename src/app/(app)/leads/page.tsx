@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { MessageCircle, UsersRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { readUnlockedSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Indicações" };
+export const metadata = { title: "Leads" };
 
 /**
  * 3 estados por lead: aguardando pagamento; pago nesta semana (comissão cai no
@@ -40,43 +39,37 @@ export default async function LeadsPage() {
   return (
     <PageShell width="default">
       <CompactHeader
-        kicker="Indicações"
-        title="Suas indicações"
-        subtitle="Acompanhe as pessoas indicadas e o status de cada matrícula."
+        kicker="V7M · Promotor"
+        title="Seus leads"
+        subtitle="Aguardando pagamento, pago (cai na próxima sexta) ou já recebido — em fechamentos anteriores."
       />
 
       {leads.length === 0 ? (
-        <div className="empty-state">
-          <span className="grid size-12 place-items-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green-strong)]">
-            <UsersRound aria-hidden className="size-6" />
-          </span>
-          <div>
-            <h2 className="text-lg font-extrabold">Comece pela primeira indicação</h2>
-            <p className="mt-1 text-sm text-[var(--surface-text-muted)]">
-            Você ainda não fez indicações. Compartilhe seu link ou use
-            Matricular para enviar um convite.
-            </p>
-          </div>
-          <Button href="/painel">Ver meu link</Button>
+        <div className="auth-card space-y-4">
+          <p className="text-[var(--surface-text-muted)]">
+            Seus primeiros leads vão aparecer aqui. Compartilhe seu link de
+            captação — cada matrícula paga é R$100 no seu Pix.
+          </p>
+          <Button href="/painel">Pegar meu link de captação</Button>
         </div>
       ) : (
-        <ul className="grid gap-3 md:grid-cols-2">
+        <ul className="space-y-3">
           {leads.map((l) => {
             const state = leadState(l, weekStart);
             return (
               <li key={l.external_id}>
-                <div className="surface-card h-full">
+                <div className="auth-card">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <span
                         aria-hidden
-                        className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--brand-blue-soft)] font-extrabold text-[var(--brand-blue)]"
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-gold/15 font-display text-brand-gold-ink"
                       >
                         {(l.name || "?").trim().charAt(0).toUpperCase()}
                       </span>
                       <div className="min-w-0">
-                        <h2 className="text-base font-extrabold leading-snug">
-                          {l.name || "Indicação sem nome"}
+                        <h2 className="font-display text-base leading-snug">
+                          {l.name || "Lead sem nome"}
                         </h2>
                         <p className="text-xs text-[var(--surface-text-muted)] mt-0.5">
                           {new Date(l.created_at).toLocaleString("pt-BR", {
@@ -87,11 +80,11 @@ export default async function LeadsPage() {
                       </div>
                     </div>
                     {state === "paid_settled" ? (
-                      <Badge tone="ok">Comissão recebida</Badge>
+                      <Badge tone="ok">Recebido ✓</Badge>
                     ) : state === "paid_pending" ? (
-                      <Badge tone="gold">Matrícula paga</Badge>
+                      <Badge tone="gold">Pago · cai sexta</Badge>
                     ) : (
-                      <Badge tone="warn">Aguardando pagamento</Badge>
+                      <Badge tone="warn">Aguardando</Badge>
                     )}
                   </div>
                   {state === "waiting" && l.phone && (
@@ -99,11 +92,10 @@ export default async function LeadsPage() {
                       href={`https://wa.me/${l.phone.replace(/\D/g, "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label={`Chamar ${l.name || "a pessoa"} no WhatsApp`}
-                      className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-alt)] px-4 py-2 text-sm font-bold text-[var(--brand-green-strong)] transition-colors hover:border-[var(--brand-green)]"
+                      aria-label={`Chamar ${l.name || "o lead"} no WhatsApp`}
+                      className="mt-3 inline-flex min-h-11 items-center rounded-full border border-[var(--surface-border)] bg-[var(--bg)] px-4 py-2 text-sm font-semibold hover:border-brand-gold transition-colors"
                     >
-                      <MessageCircle aria-hidden className="size-4" />
-                      Chamar no WhatsApp
+                      Chamar no WhatsApp ↗
                     </a>
                   )}
                 </div>

@@ -6,10 +6,24 @@ const FUNNEL_STEPS = [
   { key: "address", label: "Comprovante" },
   { key: "pix", label: "Pix" },
   { key: "education", label: "Escolaridade" },
-  { key: "selfie", label: "Foto" },
+  { key: "selfie", label: "Selfie" },
 ] as const;
 
 type StepKey = (typeof FUNNEL_STEPS)[number]["key"];
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" aria-hidden>
+      <path
+        d="M3.5 8.5l3 3 6-7"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 /**
  * Indicador de progresso do funil (recomendação ui-ux-pro-max para o padrão
@@ -22,31 +36,22 @@ export function FunnelStepper({ current }: { current: StepKey | CandidateStatus 
     normalized === "completed"
       ? FUNNEL_STEPS.length
       : FUNNEL_STEPS.findIndex((s) => s.key === normalized);
-  const currentIndex = Math.min(Math.max(idx, 0), FUNNEL_STEPS.length - 1);
-  const currentLabel = normalized === "completed" ? "Concluído" : FUNNEL_STEPS[currentIndex].label;
-
   return (
-    <nav className="funnel-progress" aria-label="Progresso do cadastro">
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-extrabold uppercase tracking-[0.12em] text-[var(--surface-text-muted)]">Cadastro</span>
-        <span className="font-bold text-[var(--surface-text)]">
-          {normalized === "completed" ? "Concluído" : `Etapa ${currentIndex + 1} de ${FUNNEL_STEPS.length} · ${currentLabel}`}
-        </span>
-      </div>
-      <div className="mt-2 grid grid-cols-5 gap-1.5" aria-hidden>
-        {FUNNEL_STEPS.map((step, index) => (
+    <nav className="stepper" aria-label="Progresso do cadastro">
+      {FUNNEL_STEPS.map((s, i) => {
+        const state = idx < 0 ? "todo" : i < idx ? "done" : i === idx ? "current" : "todo";
+        return (
           <span
-            key={step.key}
-            className="h-1.5 rounded-full"
-            style={{
-              background:
-                index <= idx || normalized === "completed"
-                  ? "var(--brand-green)"
-                  : "var(--surface-border)",
-            }}
-          />
-        ))}
-      </div>
+            key={s.key}
+            className="step"
+            data-state={state}
+            aria-current={state === "current" ? "step" : undefined}
+          >
+            <span className="step-dot">{state === "done" ? <CheckIcon /> : i + 1}</span>
+            {s.label}
+          </span>
+        );
+      })}
     </nav>
   );
 }

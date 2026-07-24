@@ -3,23 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { animate } from "motion";
-import { BadgeCheck, CircleDollarSign, GraduationCap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { OtpInput } from "@/components/ui/otp-input";
 import { AuthOverlay } from "@/components/auth/AuthShell";
 import {
-  PromoterEmailStep,
-  type EmailVerificationResult,
-} from "@/components/auth/PromoterEmailStep";
-import {
-  CpfIdentityFlow,
-  type VerifyCpfResult,
-} from "@/components/auth/cpf-identity/CpfIdentityFlow";
-import {
   maskPhone,
   maskCpf,
   validatePhone,
+  validateCpf,
+  validateEmail,
 } from "@/lib/auth/masks";
 
 type CheckOut = {
@@ -68,8 +61,8 @@ function authErrorMessage(
   }
 }
 
-// check → (login | CPF → e-mail/register) → otp. Um fluxo só, a partir do telefone.
-type Stage = "check" | "register" | "email" | "otp";
+// check → (login | cadastro inline) → otp. Um fluxo só, a partir do telefone.
+type Stage = "check" | "register" | "otp";
 
 export function CheckFlow() {
   const router = useRouter();
@@ -90,12 +83,6 @@ export function CheckFlow() {
   const [notice, setNotice] = useState<string | null>(null);
   const [needsJoin, setNeedsJoin] = useState(false);
   const [whatsappWarning, setWhatsappWarning] = useState(false);
-  const registrationResultRef = useRef<{
-    external_id?: string;
-    user_external_id?: string;
-    otp_sent?: boolean;
-    otp_wait?: number;
-  } | null>(null);
 
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -142,7 +129,6 @@ export function CheckFlow() {
     setNeedsJoin(false);
     setWhatsappWarning(false);
     setNotice(null);
-    registrationResultRef.current = null;
   }
 
   async function onCheck(e: React.FormEvent) {
@@ -189,22 +175,15 @@ export function CheckFlow() {
     }
   }
 
-  async function verifyCpfForRegistration(
-    _cpfDigits: string,
-    signal: AbortSignal,
-  ): Promise<VerifyCpfResult> {
-    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-
-    // Nesta etapa conferimos apenas o formato e os dígitos verificadores,
-    // já validados pelo CpfIdentityFlow. A existência é confirmada no cadastro,
-    // sem usar /auth/check — esse endpoint pode disparar OTP para contas existentes.
-    return { status: "matched", name: "CPF conferido" };
-  }
-
-  async function verifyRegistrationEmail(
-    candidateEmail: string,
-    signal: AbortSignal,
-  ): Promise<EmailVerificationResult> {
+  async function onRegister(e: React.FormEvent) {
+    e.preventDefault();
+    const cErr = validateCpf(cpf);
+    const eErr = validateEmail(email);
+    setFieldErr({ cpf: cErr, email: eErr });
+    if (cErr || eErr) {
+      shake(panelRef.current);
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -214,10 +193,9 @@ export function CheckFlow() {
         body: JSON.stringify({
           phone: phone.replace(/\D/g, ""),
           cpf: cpf.replace(/\D/g, ""),
-          email: candidateEmail.trim().toLowerCase(),
+          email: email.trim().toLowerCase(),
           ...(hubRef ? { hub: hubRef } : {}),
         }),
-        signal,
       });
       const data: {
         external_id?: string;
@@ -229,51 +207,20 @@ export function CheckFlow() {
         retry_after_s?: number;
       } = await res.json();
       if (!res.ok) {
-        const message = authErrorMessage(data.code, data.detail, data);
-
-        if (data.code === "EMAIL_EXISTS") {
-          return { status: "taken", message };
-        }
-
-        if (data.code === "CPF_INVALID" || data.code === "CPF_NOT_FOUND" || data.code === "CPF_EXISTS") {
-          setFieldErr({ cpf: message });
-          window.requestAnimationFrame(() => setStage("register"));
-          return {
-            status: "blocked",
-            title: "Revise seu CPF",
-            message,
-            actionLabel: "Voltar ao CPF",
-          };
-        }
-
-        return {
-          status: "blocked",
-          title: "Não foi possível criar o cadastro",
-          message,
-          actionLabel: "Revisar dados",
-        };
+        setError({ detail: authErrorMessage(data.code, data.detail, data), code: data.code });
+        return;
       }
-
-      registrationResultRef.current = data;
-      setEmail(candidateEmail.trim().toLowerCase());
-      return { status: "available" };
-    } catch (err) {
-      if (signal.aborted) throw err;
-      throw err;
+      setExternalId(data.user_external_id ?? null);
+      const sent = data.otp_sent ?? true;
+      setResendIn(data.otp_wait ?? (sent ? 60 : 0));
+      setOtpSent(sent);
+      setNeedsJoin(false);
+      setStage("otp");
+    } catch {
+      setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
       setLoading(false);
     }
-  }
-
-  function completeRegistrationEmail() {
-    const data = registrationResultRef.current;
-    if (!data) return;
-    setExternalId(data.user_external_id ?? data.external_id ?? null);
-    const sent = data.otp_sent ?? true;
-    setResendIn(data.otp_wait ?? (sent ? 60 : 0));
-    setOtpSent(sent);
-    setNeedsJoin(false);
-    setStage("otp");
   }
 
   async function resendOtp() {
@@ -342,173 +289,207 @@ export function CheckFlow() {
     }
   }
 
-  const stageNumber = stage === "check" ? 1 : stage === "register" ? 2 : stage === "email" ? 3 : 4;
-
   return (
-    <div className="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,1fr)_30rem] lg:gap-16">
+    <>
       {navigating && <AuthOverlay />}
 
-      <section className="hidden max-w-xl text-white lg:block" aria-label="Sobre o programa">
-        <p className="mb-4 text-xs font-extrabold uppercase tracking-[0.16em] text-[#ffdf00]">
-          Programa de promotores V7M
+      {/* Bloco de marca */}
+      <div className="text-center mb-5">
+        <p className="text-[11.5px] font-bold uppercase tracking-[0.16em] text-[#f0d493]">
+          Sua renda extra começa aqui
         </p>
-        <h1 className="max-w-lg text-[clamp(2.8rem,5vw,4.7rem)] font-extrabold leading-[0.98] tracking-[-0.055em]">
-          Transforme conversas em oportunidades.
+        <h1 className="mt-2 font-display text-[clamp(24px,6vw,28px)] font-extrabold tracking-[-0.01em] text-white">
+          Promotor V7M
         </h1>
-        <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/75">
-          Indique pessoas, acompanhe cada matrícula e receba suas comissões via Pix em um painel simples.
-        </p>
-        <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-          {[
-            [GraduationCap, "Ajude pessoas a voltar a estudar"],
-            [CircleDollarSign, "Receba por matrícula confirmada"],
-            [BadgeCheck, "Cadastro seguro e 100% online"],
-          ].map(([Icon, label]) => {
-            const BenefitIcon = Icon as typeof GraduationCap;
-            return (
-              <div key={label as string} className="flex items-center gap-3 text-sm font-semibold text-white/90">
-                <span className="grid size-10 place-items-center rounded-xl bg-white/10">
-                  <BenefitIcon aria-hidden className="size-5 text-[#ffdf00]" />
-                </span>
-                <span>{label as string}</span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <div className="mx-auto w-full max-w-[30rem]">
-        <div className="mb-4 flex items-end justify-between gap-4 text-white">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#ffdf00]">Promotor V7M</p>
-            <h2 className="mt-1 text-2xl font-extrabold tracking-tight">Entrar ou criar cadastro</h2>
-          </div>
-          <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white/75">
-            Etapa {stageNumber} de 4
-          </span>
-        </div>
-
-        <div className="auth-card" ref={panelRef}>
-          {stage === "check" && (
-            <form onSubmit={onCheck} className="space-y-5">
-              <div>
-                <h3 className="text-2xl font-extrabold tracking-tight text-[#102a3a]">Qual é o seu WhatsApp?</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#53656f]">
-                  Usamos o número para confirmar seu acesso e criar o cadastro quando necessário.
-                </p>
-              </div>
-              <div>
-                <label htmlFor="auth-phone" className="label">Telefone com DDD</label>
-                <div className="relative">
-                  <span className="phone-prefix">+55</span>
-                  <input
-                    id="auth-phone"
-                    value={phone}
-                    onChange={(e) => {
-                      const masked = maskPhone(e.target.value);
-                      setPhone(masked);
-                      if (fieldErr.phone) setFieldErr({ phone: validatePhone(masked) });
-                    }}
-                    onBlur={() => setFieldErr({ phone: validatePhone(phone) })}
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    placeholder="(11) 98765-4321"
-                    aria-invalid={!!fieldErr.phone}
-                    autoFocus
-                    className="input input-dark pl-16 text-center text-[16.5px] tabular-nums tracking-[0.03em]"
-                  />
-                </div>
-                {fieldErr.phone && <p role="alert" className="field-error">{fieldErr.phone}</p>}
-              </div>
-              {error && <p role="alert" className="field-error rounded-xl bg-red-50 p-3">{error.detail}</p>}
-              <Button type="submit" size="xl" loading={loading} className="w-full">
-                {loading ? "Verificando…" : "Continuar"}
-              </Button>
-            </form>
-          )}
-
-          {stage === "register" && (
-            <div className="-m-6 grid place-items-center gap-4 sm:-m-7">
-              {whatsappWarning && (
-                <div className="mx-6 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 sm:mx-7" role="status">
-                  Não conseguimos confirmar o WhatsApp automaticamente. Você ainda pode criar o cadastro; o código recebido confirmará o número.
-                </div>
-              )}
-              <CpfIdentityFlow
-                initialCpf={cpf}
-                verifyCpf={verifyCpfForRegistration}
-                onBack={restart}
-                onContinue={({ cpf: cpfDigits }) => {
-                  setCpf(maskCpf(cpfDigits));
-                  setError(null);
-                  setFieldErr({});
-                  setStage("email");
-                }}
-                successMessage="Seu CPF passou pela pré-checagem. A confirmação final acontece no cadastro."
-                successBadge="CPF pronto"
-                continueLabel="Continuar para e-mail"
-              />
-            </div>
-          )}
-
-          {stage === "email" && (
-            <div className="-m-6 grid place-items-center sm:-m-7">
-              <PromoterEmailStep
-                autoFocus
-                initialEmail={email}
-                verifyEmail={verifyRegistrationEmail}
-                onComplete={completeRegistrationEmail}
-                successDurationMs={1200}
-              />
-            </div>
-          )}
-
-          {stage === "otp" && (
-            <form onSubmit={onLogin} className="space-y-5">
-              <div>
-                <h3 className="text-2xl font-extrabold tracking-tight text-[#102a3a]">
-                  {needsJoin ? "Confirme para criar seu acesso" : "Digite o código"}
-                </h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#53656f]">
-                  {otpSent ? <>Enviamos um código de 6 dígitos para <strong className="text-[#102a3a]">{phone || "seu WhatsApp"}</strong>.</> : "Não conseguimos enviar um código agora. Se você já tem um código válido, digite abaixo."}
-                </p>
-              </div>
-              <OtpInput
-                value={otp}
-                onChange={(value) => {
-                  setOtp(value);
-                  if (fieldErr.otp) setFieldErr({ otp: null });
-                }}
-                error={!!fieldErr.otp}
-                autoFocus
-              />
-              {(fieldErr.otp || error) && <p role="alert" className="field-error text-center">{error?.detail ?? "O código tem 6 dígitos."}</p>}
-              {notice && <p className="text-center text-sm font-semibold text-[#007f31]">{notice}</p>}
-              <Button type="submit" size="xl" loading={loading} className="w-full">
-                {loading ? (needsJoin ? "Criando acesso…" : "Entrando…") : needsJoin ? "Confirmar e criar acesso" : "Entrar"}
-              </Button>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={resendOtp}
-                  disabled={resendIn > 0 || resending}
-                  className="min-h-11 rounded-xl border border-[#d4e1db] px-4 text-sm font-bold text-[#007f31] transition-colors hover:bg-[#edf3f0] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {resending ? "Reenviando…" : resendIn > 0 ? `Reenviar em ${resendIn}s` : "Reenviar código"}
-                </button>
-                <button type="button" onClick={restart} className="min-h-11 px-3 text-sm font-semibold text-[#53656f] hover:text-[#102a3a]">Outro número</button>
-              </div>
-            </form>
-          )}
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-medium text-white/70">
-          <span>Comissão por matrícula</span>
-          <span>Pagamento via Pix</span>
-          <span>100% online</span>
-        </div>
+        <p className="mt-1 text-[13.5px] text-[#b4b4bb]">Entrar ou criar cadastro</p>
       </div>
-    </div>
+
+      <div className="auth-card" ref={panelRef}>
+        {stage === "check" && (
+          <form onSubmit={onCheck} className="space-y-4">
+            <div className="text-center">
+              <h2 className="text-[21px] font-bold text-white">Passa seu WhatsApp pra mim?</h2>
+              <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
+                Pode ficar sossegado — é só pra confirmar seu acesso. Sem cadastro? A gente cria na hora.
+              </p>
+            </div>
+            <div className="gold-divider" />
+            <div className="mx-auto max-w-[17.5rem]">
+              <label htmlFor="auth-phone" className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">
+                Telefone (WhatsApp)
+              </label>
+              <div className="relative">
+                <span className="phone-prefix">+55</span>
+                <input
+                  id="auth-phone"
+                  value={phone}
+                  onChange={(e) => {
+                    const masked = maskPhone(e.target.value);
+                    setPhone(masked);
+                    if (fieldErr.phone) setFieldErr({ phone: validatePhone(masked) });
+                  }}
+                  onBlur={() => setFieldErr({ phone: validatePhone(phone) })}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="(11) 98765-4321"
+                  aria-invalid={!!fieldErr.phone}
+                  autoFocus
+                  className="input input-dark text-center text-[16.5px] tabular-nums tracking-[0.03em] pl-16"
+                />
+              </div>
+              {fieldErr.phone && (
+                <p role="alert" className="mt-2 text-[13px] text-[#f0a3a3]">{fieldErr.phone}</p>
+              )}
+            </div>
+            {error && <p role="alert" className="text-center text-[13px] text-[#f0a3a3]">{error.detail}</p>}
+            <Button type="submit" size="xl" loading={loading} className="w-full">
+              {loading ? "Verificando…" : "Continuar"}
+            </Button>
+          </form>
+        )}
+
+        {stage === "register" && (
+          <form onSubmit={onRegister} className="space-y-4">
+            <div className="text-center">
+              <h2 className="text-[21px] font-bold text-white">Criar cadastro</h2>
+              <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
+                Este número ainda não possui cadastro. Confirme seus dados para continuar.
+              </p>
+            </div>
+            <div className="gold-divider" />
+            {whatsappWarning && (
+              <div className="banner" role="status">
+                Não conseguimos confirmar seu WhatsApp automaticamente. Você ainda pode criar o
+                cadastro; o código recebido confirma o número.
+              </div>
+            )}
+            <div>
+              <span className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">Telefone (WhatsApp)</span>
+              <div className="flex items-center gap-2">
+                <div className="input input-dark flex-1 text-white/70">{phone}</div>
+                <button type="button" onClick={restart} className="min-h-[44px] px-3 text-[13px] font-semibold text-[#f0d493]">
+                  Alterar
+                </button>
+              </div>
+              <p className="mt-2 text-[12.5px] text-[#b4b4bb]">O código de confirmação será enviado para este número.</p>
+            </div>
+            <div>
+              <label htmlFor="auth-cpf" className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">CPF</label>
+              <input
+                id="auth-cpf"
+                value={cpf}
+                onChange={(e) => {
+                  const masked = maskCpf(e.target.value);
+                  setCpf(masked);
+                  if (fieldErr.cpf) setFieldErr({ ...fieldErr, cpf: validateCpf(masked) });
+                }}
+                onBlur={() => setFieldErr({ ...fieldErr, cpf: validateCpf(cpf) })}
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                aria-invalid={!!fieldErr.cpf}
+                autoFocus
+                className="input input-dark tabular-nums"
+              />
+              {fieldErr.cpf && <p role="alert" className="mt-2 text-[13px] text-[#f0a3a3]">{fieldErr.cpf}</p>}
+            </div>
+            <div>
+              <label htmlFor="auth-email" className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">E-mail</label>
+              <input
+                id="auth-email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErr.email) setFieldErr({ ...fieldErr, email: validateEmail(e.target.value) });
+                }}
+                onBlur={() => setFieldErr({ ...fieldErr, email: validateEmail(email) })}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="voce@email.com"
+                aria-invalid={!!fieldErr.email}
+                className="input input-dark"
+              />
+              {fieldErr.email && <p role="alert" className="mt-2 text-[13px] text-[#f0a3a3]">{fieldErr.email}</p>}
+            </div>
+            {error && <p role="alert" className="text-center text-[13px] text-[#f0a3a3]">{error.detail}</p>}
+            <Button type="submit" size="xl" loading={loading} className="w-full">
+              {loading ? "Criando…" : "Criar cadastro"}
+            </Button>
+          </form>
+        )}
+
+        {stage === "otp" && (
+          <form onSubmit={onLogin} className="space-y-4">
+            <div className="text-center">
+              <h2 className="text-[21px] font-bold text-white">
+                {needsJoin ? "Confirme para criar seu acesso" : "Confirme o código"}
+              </h2>
+              <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
+                {otpSent ? (
+                  <>
+                    Enviamos um código de 6 dígitos para o WhatsApp{" "}
+                    <strong className="text-white">{phone || "seu número"}</strong>.
+                  </>
+                ) : (
+                  "Não conseguimos enviar um código agora. Se você já tem um válido, digite abaixo."
+                )}
+              </p>
+            </div>
+            <div className="gold-divider" />
+            <OtpInput
+              value={otp}
+              onChange={(v) => {
+                setOtp(v);
+                if (fieldErr.otp) setFieldErr({ otp: null });
+              }}
+              error={!!fieldErr.otp}
+              autoFocus
+            />
+            {(fieldErr.otp || error) && (
+              <p role="alert" className="text-center text-[13px] text-[#f0a3a3]">
+                {error?.detail ?? "O código tem 6 dígitos."}
+              </p>
+            )}
+            {notice && <p className="text-center text-[13px] text-[#f0d493]">{notice}</p>}
+            <Button type="submit" size="xl" loading={loading} className="w-full">
+              {loading
+                ? needsJoin
+                  ? "Criando acesso…"
+                  : "Entrando…"
+                : needsJoin
+                  ? "Confirmar e criar acesso"
+                  : "Entrar"}
+            </Button>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={resendOtp}
+                disabled={resendIn > 0 || resending}
+                className="min-h-[44px] rounded-full border border-[rgb(217_177_90/0.4)] px-4 text-[13px] font-semibold text-[#f0d493] transition-colors hover:bg-[rgb(217_177_90/0.08)] disabled:opacity-55 disabled:cursor-not-allowed"
+              >
+                {resending ? "Reenviando…" : resendIn > 0 ? `Reenviar código (${resendIn}s)` : "Reenviar código"}
+              </button>
+              <button
+                type="button"
+                onClick={restart}
+                className="min-h-[44px] px-3 text-[13px] text-[#b4b4bb] transition-colors hover:text-white"
+              >
+                Outro número
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Selos de confiança */}
+      <p className="mt-4 text-center text-[12.5px] text-[rgb(180_180_187/0.75)]">
+        Comissão por matrícula
+        <span className="text-[rgb(217_177_90/0.55)]"> · </span>
+        Recebimento via Pix
+        <span className="text-[rgb(217_177_90/0.55)]"> · </span>
+        100% online
+      </p>
+    </>
   );
 }

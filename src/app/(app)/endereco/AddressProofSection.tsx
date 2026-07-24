@@ -3,13 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  AddressProofExperience,
-  type AddressProofSubmission,
-} from "@/components/address/AddressProofExperience";
 import { Field, FieldError } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
+import { UploadActions } from "@/components/ui/upload-actions";
 import { NEXT_STAGE, wrongStatusHref } from "@/lib/candidate/funnel";
 import {
   compressImage,
@@ -56,27 +53,38 @@ export function AddressProofSection({ initial }: Props) {
     });
   }
 
-  async function submitProof({ file: rawFile, signal }: AddressProofSubmission) {
-    const file = await compressImage(rawFile);
-    if (file.size > MAX_UPLOAD_BYTES) throw new Error(FILE_TOO_LARGE_MSG);
-
-    const body = new FormData();
-    body.append("file", file, file.name);
-    const response = await fetch("/api/me/document/address-proof", {
-      method: "POST",
-      body,
-      signal,
-    });
-    const data: { detail?: string; code?: string; expected_status?: string } =
-      await response.json();
-    if (!response.ok) {
-      const redirectTo = wrongStatusHref(data.code, data.expected_status);
-      if (redirectTo) {
-        router.push(redirectTo);
-        throw new Error("Seu cadastro mudou de etapa. Estamos levando você ao ponto certo.");
+  function onFile(rawFile: File) {
+    if (pending) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        const file = await compressImage(rawFile);
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setError(FILE_TOO_LARGE_MSG);
+          return;
+        }
+        const body = new FormData();
+        body.append("file", file, file.name);
+        const response = await fetch("/api/me/document/address-proof", {
+          method: "POST",
+          body,
+        });
+        const data: { detail?: string; code?: string; expected_status?: string } =
+          await response.json();
+        if (!response.ok) {
+          const redirectTo = wrongStatusHref(data.code, data.expected_status);
+          if (redirectTo) {
+            router.push(redirectTo);
+            return;
+          }
+          setError(data.detail ?? "Não conseguimos receber o comprovante. Tente novamente.");
+          return;
+        }
+        router.push(NEXT_STAGE.address);
+      } catch {
+        setError("A conexão oscilou. Tente novamente — nada do cadastro foi perdido.");
       }
-      throw new Error(data.detail ?? "Não conseguimos receber o comprovante. Tente novamente.");
-    }
+    });
   }
 
   if (initial?.needs_kinship) {
@@ -101,17 +109,29 @@ export function AddressProofSection({ initial }: Props) {
     );
   }
 
-  const rejectedMessage = initial?.status === "rejected"
-    ? initial.reason ?? "Precisamos de outra foto legível do comprovante."
-    : null;
-
   return (
-    <AddressProofExperience
-      initialError={rejectedMessage}
-      maxBytes={MAX_UPLOAD_BYTES}
-      onBack={() => router.back()}
-      onSubmit={submitProof}
-      onComplete={() => router.push(NEXT_STAGE.address)}
-    />
+    <div className="space-y-4">
+      {pending && <LoadingOverlay label="Recebendo comprovante…" logo />}
+      <p id="address-proof-label" className="text-sm text-brand-muted">
+        Pode ser conta de luz, água, internet, telefone ou outro comprovante recente.
+        Se estiver no nome de outra pessoa, a gente pergunta o vínculo depois — sem travar o cadastro.
+      </p>
+      {initial?.status === "rejected" && (
+        <div className="banner banner-warn" role="status">
+          <p className="font-semibold">Precisamos de outra foto do comprovante.</p>
+          {initial.reason && <p className="mt-1 text-sm">{initial.reason}</p>}
+        </div>
+      )}
+      <UploadActions
+        onFile={onFile}
+        disabled={pending}
+        pending={pending}
+        retry={Boolean(initial?.photo)}
+      />
+      <p className="field-hint">
+        Depois do envio você já continua. A extração do endereço e a análise do titular rodam em segundo plano.
+      </p>
+      <FieldError>{error}</FieldError>
+    </div>
   );
 }

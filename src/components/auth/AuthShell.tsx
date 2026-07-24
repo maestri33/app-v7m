@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { LifeBuoy } from "lucide-react";
 
 import {
   LEGAL_PRIVACY_URL,
@@ -11,25 +10,21 @@ import {
 // + footer (legal + LGPD), ambas com a linha-gradiente dourada. Só a auth usa.
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="auth-screen">
-      <div className="auth-bg" aria-hidden />
+    <>
+      {/* Fundo animado (fixed, atrás de tudo) + grain reaproveitado */}
+      <div className="auth-bg grain" aria-hidden />
 
       {/* Navbar */}
-      <header className="auth-bar top-0 pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="V7M" className="h-6 w-auto" />
-            <span className="h-5 w-px bg-white/20" aria-hidden />
-            <span className="text-sm font-semibold text-white">Promotor</span>
-          </div>
+      <header className="auth-bar top-0 h-[60px] pt-[env(safe-area-inset-top)]">
+        <div className="flex h-[60px] items-center justify-between px-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="V7M" className="h-[22px] w-auto" />
           <a
             href={SUPPORT_WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+            className="inline-flex items-center min-h-[44px] rounded-full border border-[rgb(231_228_221/0.14)] px-4 text-[13.5px] font-semibold text-[#b4b4bb] transition-colors hover:text-white hover:border-[rgb(217_177_90/0.4)] hover:bg-[rgb(217_177_90/0.06)]"
           >
-            <LifeBuoy aria-hidden className="size-4" />
             Ajuda
           </a>
         </div>
@@ -39,15 +34,16 @@ export function AuthShell({ children }: { children: ReactNode }) {
       {/* Conteúdo (entre as barras, centralizado) */}
       <main
         id="main"
-        className="relative z-10 mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-6xl items-center px-5 py-10 sm:px-8"
+        className="fixed inset-x-0 top-[60px] bottom-[72px] overflow-hidden flex items-center justify-center px-5"
       >
-        <div className="w-full">{children}</div>
+        <div className="w-full max-w-[26rem]">{children}</div>
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto flex min-h-16 max-w-6xl flex-col items-center justify-center gap-1 border-t border-white/15 px-5 py-4 text-center sm:flex-row sm:justify-between sm:px-8">
-          <p className="text-xs text-white/75">
+      <footer className="auth-bar bottom-0 h-[72px] pb-[env(safe-area-inset-bottom)]">
+        <div className="gold-rule" />
+        <div className="flex h-[72px] flex-col items-center justify-center gap-0.5 text-center">
+          <p className="text-[12px] text-[rgb(180_180_187/0.8)]">
             <a href={LEGAL_TERMS_URL} className="hover:text-white transition-colors">Termos</a>
             {" · "}
             <a href={LEGAL_PRIVACY_URL} className="hover:text-white transition-colors">Privacidade</a>
@@ -55,12 +51,12 @@ export function AuthShell({ children }: { children: ReactNode }) {
             <a href="https://v7m.org" className="hover:text-white transition-colors">V7M</a>
             {" · © 2026"}
           </p>
-          <p className="text-xs text-white/55">
+          <p className="text-[11px] text-[rgb(180_180_187/0.55)]">
             Dados tratados conforme a LGPD.
           </p>
         </div>
       </footer>
-    </div>
+    </>
   );
 }
 

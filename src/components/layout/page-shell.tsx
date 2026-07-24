@@ -13,7 +13,13 @@ export function PageShell({
   width?: "default" | "narrow";
 }) {
   return (
-    <div className={width === "narrow" ? "page-shell page-shell-narrow" : "page-shell"}>
+    <div
+      className={
+        width === "narrow"
+          ? "max-w-md mx-auto space-y-5"
+          : "max-w-2xl mx-auto space-y-5"
+      }
+    >
       {children}
     </div>
   );
@@ -33,15 +39,15 @@ export function CompactHeader({
   subtitle?: ReactNode;
 }) {
   return (
-    <header className="page-heading">
+    <header className="space-y-1">
       {kicker && (
-        <p className="section-label">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-gold-light">
           {kicker}
         </p>
       )}
       <h1 className="page-title text-[var(--surface-text)]">{title}</h1>
       {subtitle && (
-        <p className="max-w-2xl text-[0.95rem] leading-relaxed text-[var(--surface-text-muted)]">{subtitle}</p>
+        <p className="text-sm text-[var(--surface-text-muted)]">{subtitle}</p>
       )}
     </header>
   );

@@ -48,8 +48,13 @@ export default async function EscolaridadePage() {
 
   return (
     <PageShell>
+      <CompactHeader
+        kicker="V7M · Cadastro"
+        title="Escolaridade"
+        subtitle="Informe a última série, se concluiu ou parou no meio e em que ano. Cidade e escola são opcionais."
+      />
       <FunnelStepper current="education" />
-      <div className="flex justify-center">
+      <div className="education-card">
         <EscolaridadeForm />
       </div>
     </PageShell>
