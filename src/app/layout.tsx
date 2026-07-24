@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import { AuroraBackground } from "@/components/ui/aurora-background";
 import { ServiceWorkerRegister } from "@/app/_components/service-worker-register";
 
 // Self-hosting automático via next/font (subset latin, font-display swap, zero FOUT).
@@ -36,8 +35,8 @@ export const metadata: Metadata = {
 // Sem travar zoom (a11y) — apenas viewport-fit cover + theme color por tema.
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f4f1" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0b0c" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f7f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#071521" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -56,7 +55,7 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              (function(){try{var t=localStorage.getItem('v7m-theme')||'system';var d=t==='system'?(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):t;document.documentElement.dataset.theme=d;}catch(e){}})();
+              (function(){try{var t=localStorage.getItem('v7m-theme')||'light';var d=t==='system'?(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):t;document.documentElement.dataset.theme=d;}catch(e){document.documentElement.dataset.theme='light';}})();
             `,
           }}
         />
@@ -65,7 +64,6 @@ export default function RootLayout({
         <a href="#main" className="skip-link">
           Pular para o conteúdo
         </a>
-        <AuroraBackground />
         {children}
         <ServiceWorkerRegister />
       </body>

@@ -12,6 +12,11 @@ const fixture = {
     "base64",
   ),
 };
+const proofFixture = {
+  name: "proof.pdf",
+  mimeType: "application/pdf",
+  buffer: Buffer.from("%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF"),
+};
 
 test("telefone → OTP → cadastro → treinamento → painel", async ({ page, request }) => {
   test.setTimeout(90_000);
@@ -24,31 +29,41 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
   await page.getByRole("button", { name: /entrar/i }).click();
 
   await expect(page).toHaveURL(/\/documento$/);
-  await page.getByLabel("RG").check();
-  const documentInput = page.locator('input[type="file"][accept="image/*,application/pdf"]');
+  await page.getByRole("button", { name: "RG" }).click();
+  await page.getByRole("button", { name: "Tirar foto" }).click();
+  await page.getByRole("button", { name: "OK, abrir câmera" }).click();
+  const documentInput = page.locator('input[type="file"][capture="environment"]');
   await documentInput.setInputFiles(fixture);
-  await expect(page.getByText(/VERSO do RG/i)).toBeVisible();
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
+  await expect(page.getByRole("dialog").getByText(/VERSO do RG/i)).toBeVisible();
   await request.post(`${mockBackend}/__classify?document=1&completeness=back&legible=1`);
+  await page.getByRole("button", { name: "OK, abrir câmera" }).click();
   await documentInput.setInputFiles(fixture);
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
 
   await expect(page).toHaveURL(/\/endereco$/, { timeout: 15_000 });
-  await page.locator('input[type="file"][accept="image/*,application/pdf"]').setInputFiles(fixture);
+  await page.getByRole("button", { name: "Enviar arquivo" }).click();
+  await page.locator('input[type="file"][accept*="application/pdf"]').setInputFiles(proofFixture);
 
   await expect(page).toHaveURL(/\/pix$/, { timeout: 15_000 });
-  await page.getByLabel("Chave").fill("e2e-promotor@v7m.test");
+  await page.getByRole("textbox", { name: "Chave Pix" }).fill("e2e-promotor@v7m.test");
+  await page.getByRole("button", { name: "Estou ciente" }).click();
   await page.getByRole("button", { name: /Validar chave/i }).click();
 
   await expect(page).toHaveURL(/\/escolaridade$/);
-  await page.getByRole("button", { name: "Responder por opções" }).click();
-  await page.getByRole("button", { name: "Ensino Médio" }).click();
-  await page.getByRole("button", { name: "Sim, concluí essa etapa" }).click();
-  await page.getByLabel("Em que ano isso aconteceu?").fill("2026");
-  await page.getByRole("button", { name: /Confirmar e continuar/i }).click();
+  await page.getByLabel("Resposta sobre sua escolaridade").fill("terminei o ensino médio");
+  await page.getByRole("button", { name: "Enviar" }).click();
+  await page.getByLabel("Ano").fill("2026");
+  await page.getByRole("button", { name: "Enviar" }).click();
+  await page.getByRole("button", { name: "não sei agora · continuar sem cidade" }).click();
+  await page.getByRole("button", { name: "Tá certo!" }).click();
 
   await expect(page).toHaveURL(/\/selfie$/);
-  await page.getByRole("button", { name: /Li e concordo/i }).click();
+  const agreement = page.locator('[class*="agreement"]');
+  await agreement.evaluate((element) => element.scrollTo(0, element.scrollHeight));
+  await page.getByRole("button", { name: "Li e aceito o acordo" }).click();
   await page.locator('input[type="file"][capture="user"]').setInputFiles(fixture);
-  await page.getByRole("button", { name: /Tirar selfie e assinar/i }).click();
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
 
   await expect(page).toHaveURL(/\/treinamento$/);
   await page.getByRole("link", { name: /Abrir e responder/i }).click();
@@ -58,6 +73,6 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
   await page.getByRole("button", { name: /Enviar resposta/i }).click();
 
   await expect(page).toHaveURL(/\/painel$/, { timeout: 15_000 });
-  await expect(page.getByText(/Olá, Promotor E2E V7M/i)).toBeVisible();
-  await expect(page.getByText("Seu link", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Olá, Promotor/i })).toBeVisible();
+  await expect(page.getByText("Seu link de indicação", { exact: true })).toBeVisible();
 });

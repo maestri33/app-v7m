@@ -120,9 +120,13 @@ test.describe("app-v7m · OTP honesto", () => {
     );
 
     await submitPhone(page);
-    await page.getByLabel(/^CPF$/i).fill("52998224725");
-    await page.getByLabel(/E-mail/i).fill("novo@v7m.test");
-    await page.getByRole("button", { name: /Criar cadastro/i }).click();
+    const cpf = "52998224725";
+    for (const [index, digit] of [...cpf].entries()) {
+      await page.getByLabel(`Digito ${index + 1} do CPF`).fill(digit);
+    }
+    await page.getByRole("button", { name: "Continuar para e-mail" }).click();
+    await page.getByRole("textbox", { name: "E-mail" }).fill("novo@v7m.test");
+    await page.getByRole("button", { name: "Continuar", exact: true }).click();
 
     await expect(page.getByText(/Não conseguimos enviar um código agora/i)).toBeVisible();
     await expect(page.getByRole("button", { name: "Reenviar código" })).toBeEnabled();

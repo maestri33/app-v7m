@@ -6,7 +6,7 @@
  * Screenshots vão pra /tmp/shots-v7m/ (sobrescreve via SCREENSHOT_DIR).
  */
 import { chromium } from "/tmp/node_modules/playwright/index.mjs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:4173";
 const SHOT_DIR = process.env.SCREENSHOT_DIR ?? "/tmp/shots-v7m";

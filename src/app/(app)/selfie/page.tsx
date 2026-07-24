@@ -11,7 +11,12 @@ import { SelfieForm } from "./SelfieForm";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Sua selfie" };
+export const metadata = { title: "Última confirmação" };
+
+type Contract = {
+  version: string;
+  text: string;
+};
 
 export default async function SelfiePage() {
   const session = await readSession();
@@ -22,22 +27,25 @@ export default async function SelfiePage() {
   // escolaridade — antes disso a pessoa lia o acordo, tirava a selfie e SÓ
   // ENTÃO tomava 409. Vai direto pra etapa real.
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
+  const contract = await djangoFetch<Contract>("/api/v1/collaborators/contract/current");
   const idx = FUNNEL_ORDER.indexOf(me.status);
   if (idx >= 0 && idx < FUNNEL_ORDER.indexOf("education")) {
     redirect(candidateStageHref(me));
+  }
+  const recoveryRoute = candidateStageHref(me);
+  if (recoveryRoute !== "/selfie" && recoveryRoute !== "/painel") {
+    redirect(recoveryRoute);
   }
 
   return (
     <PageShell>
       <CompactHeader
         kicker="V7M · Cadastro"
-        title="Sua selfie"
-        subtitle="Foto ao vivo, sem óculos escuros. A IA confere a vivacidade e compara com o rosto do documento. Se reprovar, ela te explica como refazer."
+        title="Última confirmação"
+        subtitle="Olhe para a câmera e tire uma foto. Leva poucos segundos e protege seu cadastro."
       />
       <FunnelStepper current="selfie" />
-      <div className="auth-card">
-        <SelfieForm />
-      </div>
+      <SelfieForm contractText={contract.text} contractVersion={contract.version} />
     </PageShell>
   );
 }
