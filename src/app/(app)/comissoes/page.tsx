@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
+import { CircleDollarSign, WalletCards } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Stat } from "@/components/ui/stat";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { Commission } from "@/lib/api/types";
@@ -44,26 +44,34 @@ export default async function ComissoesPage() {
   return (
     <PageShell>
       <CompactHeader
-        kicker="V7M · Promotor"
-        title="Suas comissões"
-        subtitle="R$100 por matrícula paga + R$500 de bônus fixo ao bater 5 na semana. Fecha toda sexta às 18h, pago via Pix."
+        kicker="Ganhos"
+        title="Comissões"
+        subtitle="R$ 100 por matrícula paga. Com 5 na semana, você ganha mais R$ 500. Fechamento na sexta-feira, às 18h, via Pix."
       />
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Stat label="Pendente" value={formatBRL(totalPending)} />
-        <Stat label="Pago" value={formatBRL(totalPaid)} />
+        <div className="metric-card border-l-4 border-l-[var(--brand-yellow)]">
+          <CircleDollarSign aria-hidden className="mb-3 size-5 text-[var(--brand-blue)]" />
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--surface-text-muted)]">A receber</p>
+          <p className="mt-1 text-2xl font-extrabold tabular-nums">{formatBRL(totalPending)}</p>
+        </div>
+        <div className="metric-card">
+          <WalletCards aria-hidden className="mb-3 size-5 text-[var(--brand-green)]" />
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--surface-text-muted)]">Recebido</p>
+          <p className="mt-1 text-2xl font-extrabold tabular-nums">{formatBRL(totalPaid)}</p>
+        </div>
       </div>
 
       {commissions.length === 0 ? (
-        <div className="auth-card text-[var(--surface-text-muted)]">
-          Suas comissões vão aparecer aqui depois do primeiro fechamento —
-          toda sexta às 18h, direto na sua chave Pix. Bora buscar a primeira?
+        <div className="empty-state text-[var(--surface-text-muted)]">
+          Ainda não há comissões. Compartilhe seu link ou use Matricular para
+          fazer a primeira indicação.
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid gap-3 md:grid-cols-2">
           {commissions.map((c) => (
             <li key={c.external_id}>
-              <div className="auth-card">
+              <div className="surface-card h-full">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-display text-lg">{formatBRL(c.amount)}</p>
@@ -82,10 +90,10 @@ export default async function ComissoesPage() {
                     }
                   >
                     {c.status === "paid"
-                      ? "Paga"
+                      ? "Recebida"
                       : c.status === "failed"
-                        ? "Falhou"
-                        : "Pendente"}
+                        ? "Falha no pagamento"
+                        : "A receber"}
                   </Badge>
                 </div>
               </div>

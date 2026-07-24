@@ -13,8 +13,14 @@ function freshState() {
     classifyIsDocument: true,
     classifyCompleteness: "front",
     classifyIsLegible: true,
+    failNextLogin: false,
     failNextClassify: false,
     failNextProof: false,
+    failNextPix: false,
+    failNextSelfie: false,
+    failNextTraining: false,
+    failNextInvite: false,
+    selfieOutcome: "approved",
     address: {
       zipcode: null,
       street: null,
@@ -124,6 +130,11 @@ function handle(request, response) {
     state.phase = "training";
     return json(response, 200, { ok: true });
   }
+  if (path === "/__promoter" && request.method === "POST") {
+    state.phase = "promoter";
+    state.status = "approved";
+    return json(response, 200, { ok: true });
+  }
   if (path === "/__classify" && request.method === "POST") {
     state.classifyIsDocument = url.searchParams.get("document") !== "0";
     state.classifyCompleteness = url.searchParams.get("completeness") ?? "front";
@@ -134,8 +145,32 @@ function handle(request, response) {
     state.failNextClassify = true;
     return json(response, 200, { ok: true });
   }
+  if (path === "/__fail-next-login" && request.method === "POST") {
+    state.failNextLogin = true;
+    return json(response, 200, { ok: true });
+  }
   if (path === "/__fail-next-proof" && request.method === "POST") {
     state.failNextProof = true;
+    return json(response, 200, { ok: true });
+  }
+  if (path === "/__fail-next-pix" && request.method === "POST") {
+    state.failNextPix = true;
+    return json(response, 200, { ok: true });
+  }
+  if (path === "/__fail-next-selfie" && request.method === "POST") {
+    state.failNextSelfie = true;
+    return json(response, 200, { ok: true });
+  }
+  if (path === "/__selfie-outcome" && request.method === "POST") {
+    state.selfieOutcome = url.searchParams.get("status") ?? "approved";
+    return json(response, 200, { ok: true });
+  }
+  if (path === "/__fail-next-training" && request.method === "POST") {
+    state.failNextTraining = true;
+    return json(response, 200, { ok: true });
+  }
+  if (path === "/__fail-next-invite" && request.method === "POST") {
+    state.failNextInvite = true;
     return json(response, 200, { ok: true });
   }
   if (path === "/__stage" && request.method === "POST") {
@@ -189,6 +224,13 @@ function handle(request, response) {
     });
   }
   if (path === "/api/v1/collaborators/auth/login" && request.method === "POST") {
+    if (state.failNextLogin) {
+      state.failNextLogin = false;
+      return json(response, 401, {
+        detail: "Código incorreto. Confira e tente novamente.",
+        code: "OTP_INVALID",
+      });
+    }
     return json(response, 200, {
       access_token: "access-e2e",
       refresh_token: "refresh-e2e",
@@ -210,6 +252,9 @@ function handle(request, response) {
     });
   }
   if (path === "/api/v1/collaborators/whoami") {
+    if (!request.headers.authorization) {
+      return json(response, 401, { detail: "Token ausente.", code: "UNAUTHORIZED" });
+    }
     return json(response, 200, {
       external_id: "candidate-e2e",
       roles: roles(),
@@ -218,6 +263,13 @@ function handle(request, response) {
   }
   if (path === "/api/v1/collaborators/candidate/me") {
     return json(response, 200, candidateMe());
+  }
+  if (path === "/api/v1/collaborators/contract/current" && request.method === "GET") {
+    return json(response, 200, {
+      version: "e2e-1",
+      hash: "mock-contract-hash",
+      text: "CONTRATO DE ADESÃO DO COLABORADOR\n\nA selfie confirma sua identidade e assinatura.\n\nSeus dados são tratados conforme a LGPD.",
+    });
   }
   if (path === "/api/v1/collaborators/candidate/profile" && request.method === "POST") {
     state.status = "profile";
@@ -306,6 +358,13 @@ function handle(request, response) {
     return json(response, 200, candidateMe());
   }
   if (path === "/api/v1/collaborators/candidate/pix" && request.method === "POST") {
+    if (state.failNextPix) {
+      state.failNextPix = false;
+      return json(response, 422, {
+        detail: "Chave Pix não pertence ao CPF informado.",
+        code: "PIX_INVALID",
+      });
+    }
     state.pixValidated = true;
     state.status = "pix";
     return json(response, 200, candidateMe());
@@ -332,14 +391,24 @@ function handle(request, response) {
       return json(response, 200, state.selfie);
     }
     if (request.method === "POST") {
+      if (state.failNextSelfie) {
+        state.failNextSelfie = false;
+        return json(response, 503, {
+          detail: "Análise de selfie temporariamente indisponível.",
+          code: "INTERNAL",
+        });
+      }
+      const approved = state.selfieOutcome === "approved";
       state.selfie = {
         taken_at: "2026-07-21T12:00:00Z",
-        analysis_status: "approved",
-        analysis_reason: "Aprovada pelo adapter KYC sintético.",
+        analysis_status: approved ? "approved" : "rejected",
+        analysis_reason: approved
+          ? "Aprovada pelo adapter KYC sintético."
+          : "Rosto parcialmente fora do enquadramento. Como resolver: centralize o rosto e tente novamente.",
         hub_whatsapp: "5511920062177",
       };
-      state.status = "approved";
-      state.phase = "training";
+      state.status = approved ? "approved" : "selfie";
+      state.phase = approved ? "training" : "candidate";
       state.transitioned = false;
       return json(response, 200, { accepted: true, poll_after_ms: 10 });
     }
@@ -361,6 +430,13 @@ function handle(request, response) {
     path === "/api/v1/collaborators/training/submissions" &&
     request.method === "POST"
   ) {
+    if (state.failNextTraining) {
+      state.failNextTraining = false;
+      return json(response, 409, {
+        detail: "Uma resposta anterior ainda está em correção.",
+        code: "ALREADY_GRADING",
+      });
+    }
     state.phase = "promoter";
     return json(response, 200, { accepted: true });
   }
@@ -381,6 +457,52 @@ function handle(request, response) {
       goal_reached: false,
       next_closing_at: "2026-07-25T21:00:00Z",
       lifetime: { total_received: "100.00", total_students: 1, goals_hit: 0 },
+    });
+  }
+  if (path === "/api/v1/collaborators/promoter/me/leads") {
+    return json(response, 200, [
+      {
+        external_id: "lead-1",
+        name: "Maria da Silva",
+        phone: "5511999990001",
+        status: "pending",
+        created_at: "2026-07-22T12:00:00Z",
+      },
+      {
+        external_id: "lead-2",
+        name: "João Pereira",
+        phone: "5511999990002",
+        status: "paid",
+        created_at: "2026-07-22T13:00:00Z",
+      },
+    ]);
+  }
+  if (path === "/api/v1/collaborators/promoter/me/commissions") {
+    return json(response, 200, [
+      {
+        external_id: "commission-1",
+        amount: "100.00",
+        source: "lead",
+        status: "pending",
+        created_at: "2026-07-22T13:00:00Z",
+      },
+    ]);
+  }
+  if (
+    path === "/api/v1/collaborators/promoter/me/leads/invite" &&
+    request.method === "POST"
+  ) {
+    if (state.failNextInvite) {
+      state.failNextInvite = false;
+      return json(response, 422, {
+        detail: "CPF inválido.",
+        code: "CPF_INVALID",
+      });
+    }
+    return json(response, 200, {
+      sent: true,
+      phone_last4: "9999",
+      expires_at: "2026-07-23T12:00:00Z",
     });
   }
 

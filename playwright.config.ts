@@ -27,7 +27,8 @@ export default defineConfig({
           env: { ...process.env, MOCK_BACKEND_PORT: mockBackendPort },
         },
         {
-          command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
+          command:
+            "node -e \"require('fs').rmSync('.next/dev',{recursive:true,force:true})\" && npm run build && npm run start -- --hostname 127.0.0.1 --port 3000",
           url: baseURL,
           reuseExistingServer: false,
           env: {

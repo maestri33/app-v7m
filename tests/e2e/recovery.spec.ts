@@ -12,6 +12,11 @@ const fixture = {
     "base64",
   ),
 };
+const proofFixture = {
+  name: "proof.pdf",
+  mimeType: "application/pdf",
+  buffer: Buffer.from("%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF"),
+};
 
 test("erros de documento e comprovante permitem corrigir sem recomeçar", async ({
   page,
@@ -26,41 +31,46 @@ test("erros de documento e comprovante permitem corrigir sem recomeçar", async 
   await expect(page).toHaveURL(/\/documento$/);
 
   await request.post(`${mockBackend}/__fail-next-classify`);
-  await page.getByLabel("RG").check();
-  const documentInput = page.locator('input[type="file"][accept="image/*,application/pdf"]');
+  await page.getByRole("button", { name: "RG" }).click();
+  await page.getByRole("button", { name: "Tirar foto" }).click();
+  await page.getByRole("button", { name: "OK, abrir câmera" }).click();
+  const documentInput = page.locator('input[type="file"][capture="environment"]');
   await documentInput.setInputFiles(fixture);
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(page.getByText(/Não conseguimos confirmar o documento agora/i)).toBeVisible();
-  await expect(page.getByText(/Primeiro envie a FRENTE do RG/i)).toBeVisible();
 
   await request.post(`${mockBackend}/__classify?document=0`);
-  await documentInput.setInputFiles(fixture);
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(page.getByText(/Essa imagem não parece ser um documento/i)).toBeVisible();
   await expect(page).toHaveURL(/\/documento$/);
 
   await request.post(`${mockBackend}/__classify?document=1&completeness=front&legible=0`);
-  await documentInput.setInputFiles(fixture);
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(page.getByText(/imagem está desfocada/i)).toBeVisible();
   await expect(page).toHaveURL(/\/documento$/);
 
   await request.post(`${mockBackend}/__classify?document=1&completeness=front&legible=1`);
-  await documentInput.setInputFiles(fixture);
-  await expect(page.getByText(/VERSO do RG/i)).toBeVisible();
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
+  await expect(page.getByRole("dialog").getByText(/VERSO do RG/i)).toBeVisible();
+  await page.getByRole("button", { name: "OK, abrir câmera" }).click();
 
   await request.post(`${mockBackend}/__classify?document=1&completeness=front&legible=0`);
   await documentInput.setInputFiles(fixture);
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(page.getByText(/parece ser a FRENTE do RG/i)).toBeVisible();
   await expect(page).toHaveURL(/\/documento$/);
 
   await request.post(`${mockBackend}/__classify?document=1&completeness=back&legible=1`);
-  await documentInput.setInputFiles(fixture);
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(page).toHaveURL(/\/endereco$/);
 
   await request.post(`${mockBackend}/__fail-next-proof`);
-  const proofInput = page.locator('input[type="file"][accept="image/*,application/pdf"]');
-  await proofInput.setInputFiles(fixture);
+  await page.getByRole("button", { name: "Enviar arquivo" }).click();
+  const proofInput = page.locator('input[type="file"][accept*="application/pdf"]');
+  await proofInput.setInputFiles(proofFixture);
   await expect(page.getByText(/Falha temporária ao armazenar/i)).toBeVisible();
   await expect(page).toHaveURL(/\/endereco$/);
 
-  await proofInput.setInputFiles(fixture);
+  await page.getByRole("button", { name: "Tentar novamente" }).click();
   await expect(page).toHaveURL(/\/pix$/);
 });

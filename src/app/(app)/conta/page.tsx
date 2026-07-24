@@ -59,21 +59,21 @@ export default async function ContaPage() {
 
   return (
     <PageShell>
-      <CompactHeader kicker="V7M · Você" title="Sua conta" />
+      <CompactHeader title="Conta" />
 
       {/* Identidade — thumb da selfie quando houver; senão, iniciais */}
-      <div className="auth-card flex items-center gap-4">
+      <div className="surface-card flex items-center gap-4 border-l-4 border-l-[var(--brand-green)]">
         {selfiePhoto ? (
           // eslint-disable-next-line @next/next/no-img-element -- foto vem do backend, domínio desconhecido em build
           <img
             src={selfiePhoto}
-            alt="Sua selfie"
+            alt="Sua foto de confirmação"
             className="h-14 w-14 shrink-0 rounded-2xl object-cover"
           />
         ) : (
           <div
             aria-hidden
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[image:var(--gold-grad)] font-display text-lg text-[var(--surface-text)]"
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[var(--brand-green)] text-lg font-extrabold text-white"
           >
             {initials}
           </div>
@@ -95,7 +95,7 @@ export default async function ContaPage() {
       </div>
 
       {/* Cadastro — telefone/CPF ficam de fora até o whoami expor (P2.1) */}
-      <div className="space-y-2">
+      <section className="grid gap-3 md:grid-cols-2" aria-label="Dados da conta">
         {docType && (
           <Row label="Documento">
             {docType}
@@ -112,15 +112,14 @@ export default async function ContaPage() {
         )}
         {pixValidated && <Row label="Chave Pix">validada ✓</Row>}
         {takenAt && (
-          <Row label="Selfie assinada em">
+          <Row label="Foto enviada em">
             {new Date(takenAt).toLocaleString("pt-BR", {
               dateStyle: "short",
               timeStyle: "short",
             })}
           </Row>
         )}
-        <Row label="Papéis ativos">{labels.join(" · ") || "—"}</Row>
-      </div>
+      </section>
 
       <LogoutButton className="inline-flex items-center justify-center rounded-full border border-[var(--surface-border)] bg-[var(--surface)] px-6 py-3 text-sm font-semibold text-[var(--surface-text-muted)] transition-colors hover:border-danger hover:text-danger" />
     </PageShell>
@@ -129,7 +128,7 @@ export default async function ContaPage() {
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="auth-card flex items-center justify-between gap-4 py-3.5">
+    <div className="surface-card flex items-center justify-between gap-4 py-3.5">
       <p className="text-sm font-medium">{label}</p>
       <p className="text-sm text-[var(--surface-text-muted)] text-right">{children}</p>
     </div>

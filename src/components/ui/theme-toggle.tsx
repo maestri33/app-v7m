@@ -6,10 +6,10 @@ import { Sun, Moon } from "lucide-react";
 type Theme = "light" | "dark" | "system";
 
 function readStoredTheme(): Theme {
-  if (typeof window === "undefined") return "system";
+  if (typeof window === "undefined") return "light";
   const stored = localStorage.getItem("v7m-theme");
   if (stored === "light" || stored === "dark" || stored === "system") return stored;
-  return "system";
+  return "light";
 }
 
 function resolveSystem(): "light" | "dark" {
