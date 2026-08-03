@@ -591,10 +591,12 @@ function EducationReview({ draft, onEdit }: { draft: EducationDraft; onEdit: () 
   );
 }
 
-function EducationAssistant() {
+function EducationAssistant({ assistantEnabled }: { assistantEnabled: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [mode, setMode] = useState<Mode>("assistant");
+  // Sem assistente configurado no servidor, abrir no chat é atrito garantido:
+  // toda pessoa bateria numa conversa que nunca responde. Começa no manual.
+  const [mode, setMode] = useState<Mode>(assistantEnabled ? "assistant" : "manual");
   const [draft, setDraft] = useState<EducationDraft>(initialDraft);
   const [prepared, setPrepared] = useState(false);
   const [restored, setRestored] = useState(false);
@@ -758,7 +760,7 @@ function EducationAssistant() {
         const data: { detail?: string; code?: string; expected_status?: string } =
           await response.json();
         if (!response.ok) {
-          const redirectTo = wrongStatusHref(data.code, data.expected_status);
+          const redirectTo = wrongStatusHref(data.code, data.expected_status, "/escolaridade");
           if (redirectTo) {
             router.push(redirectTo);
             return;
@@ -931,6 +933,11 @@ function EducationAssistant() {
   );
 }
 
-export function EscolaridadeForm() {
-  return <EducationAssistant />;
+export function EscolaridadeForm({
+  assistantEnabled = true,
+}: {
+  /** Falso quando o assistente não está configurado no servidor: abre no manual. */
+  assistantEnabled?: boolean;
+}) {
+  return <EducationAssistant assistantEnabled={assistantEnabled} />;
 }

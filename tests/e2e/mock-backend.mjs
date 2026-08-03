@@ -1,6 +1,13 @@
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
 
 const port = Number(process.env.MOCK_BACKEND_PORT ?? 8765);
+
+/** PNG real servido em /media/* — o proxy de mídia precisa de bytes de verdade. */
+const PNG_BYTES = Buffer.from(
+  readFileSync(new URL("../fixtures/identity.png.base64", import.meta.url), "utf8").trim(),
+  "base64",
+);
 
 function freshState() {
   return {
@@ -15,6 +22,8 @@ function freshState() {
     classifyIsLegible: true,
     failNextClassify: false,
     failNextProof: false,
+    // Próximo POST de selfie responde 409 WRONG_STATUS com este expected_status.
+    wrongStatusOnSelfie: null,
     address: {
       zipcode: null,
       street: null,
@@ -137,6 +146,20 @@ function handle(request, response) {
   if (path === "/__fail-next-proof" && request.method === "POST") {
     state.failNextProof = true;
     return json(response, 200, { ok: true });
+  }
+  if (path === "/__wrong-status-selfie" && request.method === "POST") {
+    state.wrongStatusOnSelfie = url.searchParams.get("expected") ?? "pix";
+    return json(response, 200, { ok: true });
+  }
+  // Mídia autenticada do backend (foto de aula, selfie, documento). Só responde
+  // com Authorization — é o que o proxy /api/me/media precisa provar que faz.
+  if (path.startsWith("/media/")) {
+    if (!request.headers.authorization) {
+      return json(response, 401, { detail: "Sem sessão.", code: "UNAUTHORIZED" });
+    }
+    response.writeHead(200, { "Content-Type": "image/png" });
+    response.end(PNG_BYTES);
+    return;
   }
   if (path === "/__stage" && request.method === "POST") {
     state.status = url.searchParams.get("status") ?? state.status;
@@ -332,10 +355,20 @@ function handle(request, response) {
       return json(response, 200, state.selfie);
     }
     if (request.method === "POST") {
+      if (state.wrongStatusOnSelfie) {
+        const expected = state.wrongStatusOnSelfie;
+        state.wrongStatusOnSelfie = null;
+        return json(response, 409, {
+          detail: "Etapa fora de ordem.",
+          code: "WRONG_STATUS",
+          expected_status: expected,
+        });
+      }
       state.selfie = {
         taken_at: "2026-07-21T12:00:00Z",
         analysis_status: "approved",
         analysis_reason: "Aprovada pelo adapter KYC sintético.",
+        photo: "/media/selfie.png",
         hub_whatsapp: "5511920062177",
       };
       state.status = "approved";
@@ -353,6 +386,7 @@ function handle(request, response) {
         kind: "text",
         question: "Como você explicaria a proposta para uma pessoa interessada?",
         text_content: "Explique o curso sem prometer aprovação ou emprego.",
+        photo: "/media/lesson.png",
         submission_status: state.phase === "promoter" ? "approved" : null,
       },
     ]);

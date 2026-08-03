@@ -103,7 +103,7 @@ export function SelfieForm() {
           setPollMs(result.poll_after_ms);
         }
         if (!res.ok) {
-          const redir = wrongStatusHref(result.code, result.expected_status);
+          const redir = wrongStatusHref(result.code, result.expected_status, "/selfie");
           if (redir) {
             router.push(redir);
             return;

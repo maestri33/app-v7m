@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { ContentBlock, TrainingMaterial } from "@/lib/api/types";
+import { mediaProxyUrl } from "@/lib/media";
 import { readSession } from "@/lib/auth/server";
 
 import { SubmissionForm } from "./SubmissionForm";
@@ -16,36 +17,36 @@ type Props = {
   params: Promise<{ materialId: string }>;
 };
 
-/** Só URL absoluta http(s) vira mídia embutida — o resto vira link/nada. */
-function isHttpUrl(u: string | null | undefined): u is string {
-  return typeof u === "string" && /^https?:\/\//i.test(u);
-}
-
-/** Um bloco genérico de `content_blocks[]` — texto, imagem, vídeo ou link. */
+/**
+ * Um bloco genérico de `content_blocks[]` — texto, imagem, vídeo ou link.
+ *
+ * Toda mídia passa pelo proxy de mesma origem (`mediaProxyUrl`): a CSP não
+ * libera host externo e o backend devolve tanto URL absoluta quanto caminho
+ * relativo (`/media/…`) — o proxy resolve os dois.
+ */
 function Block({ block }: { block: ContentBlock }) {
   if (block.text) {
     return <p className="whitespace-pre-line text-sm leading-relaxed">{block.text}</p>;
   }
-  if (isHttpUrl(block.url)) {
-    if (block.type === "image") {
-      // eslint-disable-next-line @next/next/no-img-element -- mídia externa da aula, domínio desconhecido em build
-      return <img src={block.url} alt={block.label ?? "Imagem da aula"} className="rounded-[var(--radius-sm)] max-w-full" />;
-    }
-    if (block.type === "video") {
-      return <video src={block.url} controls className="w-full rounded-[var(--radius-sm)]" />;
-    }
-    return (
-      <a
-        href={block.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-brand-gold-ink underline hover:text-brand-gold-dark text-sm"
-      >
-        {block.label ?? "Abrir material"}
-      </a>
-    );
+  const proxied = mediaProxyUrl(block.url);
+  if (!proxied) return null;
+  if (block.type === "image") {
+    // eslint-disable-next-line @next/next/no-img-element -- mídia da aula servida pelo proxy, sem dimensões conhecidas em build
+    return <img src={proxied} alt={block.label ?? "Imagem da aula"} className="rounded-[var(--radius-sm)] max-w-full" />;
   }
-  return null;
+  if (block.type === "video") {
+    return <video src={proxied} controls className="w-full rounded-[var(--radius-sm)]" />;
+  }
+  return (
+    <a
+      href={proxied}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-brand-gold-ink underline hover:text-brand-gold-dark text-sm"
+    >
+      {block.label ?? "Abrir material"}
+    </a>
+  );
 }
 
 export default async function MaterialPage({ params }: Props) {
@@ -60,6 +61,9 @@ export default async function MaterialPage({ params }: Props) {
   const material = materials.find((m) => m.material_external_id === materialId);
   if (!material) notFound();
 
+  const photoSrc = mediaProxyUrl(material.photo);
+  const videoSrc = mediaProxyUrl(material.video);
+
   return (
     <PageShell>
       <CompactHeader kicker="V7M · Treinamento" title={material.title} />
@@ -72,8 +76,8 @@ export default async function MaterialPage({ params }: Props) {
       <div className="space-y-4">
         {/* A aula: texto + mídia + blocos genéricos */}
         {(material.text_content ||
-          isHttpUrl(material.photo) ||
-          isHttpUrl(material.video) ||
+          photoSrc ||
+          videoSrc ||
           (material.content_blocks?.length ?? 0) > 0) && (
           <div className="auth-card space-y-4">
             {material.text_content && (
@@ -81,16 +85,16 @@ export default async function MaterialPage({ params }: Props) {
                 {material.text_content}
               </p>
             )}
-            {isHttpUrl(material.photo) && (
-              // eslint-disable-next-line @next/next/no-img-element -- mídia externa da aula, domínio desconhecido em build
+            {photoSrc && (
+              // eslint-disable-next-line @next/next/no-img-element -- mídia da aula servida pelo proxy, sem dimensões conhecidas em build
               <img
-                src={material.photo}
+                src={photoSrc}
                 alt={`Imagem da matéria ${material.title}`}
                 className="rounded-[var(--radius-sm)] max-w-full"
               />
             )}
-            {isHttpUrl(material.video) && (
-              <video src={material.video} controls className="w-full rounded-[var(--radius-sm)]" />
+            {videoSrc && (
+              <video src={videoSrc} controls className="w-full rounded-[var(--radius-sm)]" />
             )}
             {material.content_blocks?.map((b, i) => <Block key={i} block={b} />)}
           </div>

@@ -16,7 +16,19 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Ambientes que já trazem o Chromium (sandbox/imagem de CI) apontam o
+        // binário por env em vez de baixar outro. Vazio = comportamento padrão.
+        ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+          ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } }
+          : {}),
+      },
+    },
+  ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : [

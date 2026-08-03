@@ -25,6 +25,14 @@ type ClassifyResult = {
   reason?: string | null;
 };
 
+/** Veredito da conferência prévia: seguir, ou segurar com motivo (e escape). */
+type ClassifyDecision = {
+  proceed: boolean;
+  classification: ClassifyResult | null;
+  reason?: string;
+  notice?: string | null;
+};
+
 export function DocForm({ initial }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -36,6 +44,8 @@ export function DocForm({ initial }: Props) {
   );
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Foto segurada por um aviso da conferência — habilita "Enviar assim mesmo".
+  const [heldFile, setHeldFile] = useState<File | null>(null);
 
   const slot = docType === "rg" ? (rgFrontSent ? "rg_back" : "rg_front") : "cnh_full";
   const prompt =
@@ -45,67 +55,78 @@ export function DocForm({ initial }: Props) {
         : "Primeiro envie a FRENTE do RG"
       : "Envie a CNH aberta ou um PDF da CNH Digital";
 
-  async function confirmDocument(file: File): Promise<ClassifyResult | null> {
-    const body = new FormData();
-    body.append("file", file, file.name);
-    const response = await fetch("/api/me/document/classify", { method: "POST", body });
-    if (!response.ok) {
-      setError("Não conseguimos confirmar o documento agora. Tente enviar novamente.");
-      return null;
+  /**
+   * Confere a foto ANTES de subir — mas nunca prende ninguém.
+   *
+   * A conferência é um ajudante, não um portão: se ela falhar, responder fora
+   * do formato ou ficar em dúvida, o envio segue (o backend continua sendo a
+   * autoridade). Só um veredito NEGATIVO e confiante segura a foto, e mesmo
+   * assim a pessoa pode insistir com "Enviar assim mesmo" — antes, seis
+   * caminhos diferentes abortavam em silêncio e um serviço instável travava o
+   * cadastro na primeira etapa.
+   */
+  async function confirmDocument(file: File): Promise<ClassifyDecision> {
+    let classification: ClassifyResult;
+    try {
+      const body = new FormData();
+      body.append("file", file, file.name);
+      const response = await fetch("/api/me/document/classify", { method: "POST", body });
+      if (!response.ok) return { proceed: true, classification: null };
+      classification = (await response.json()) as ClassifyResult;
+    } catch {
+      // Conferência fora do ar/resposta ilegível → deixa enviar.
+      return { proceed: true, classification: null };
     }
-    const classification: ClassifyResult = await response.json();
+
+    // Só bloqueia com "não" explícito; ausente/nulo = não sei = deixa passar.
     if (classification.is_document === false) {
-      setError("Essa imagem não parece ser um documento. Confira a foto e tente novamente.");
-      return null;
-    }
-    if (classification.is_document !== true) {
-      setError("Não foi possível confirmar se o arquivo é um documento. Tente outra foto.");
-      return null;
-    }
-    if (classification.doc_type && classification.doc_type !== docType) {
-      setError(
-        `A foto parece ser ${classification.doc_type.toUpperCase()}, mas você escolheu ${docType?.toUpperCase()}. Corrija o tipo e envie novamente.`,
-      );
-      return null;
+      return {
+        proceed: false,
+        classification,
+        reason:
+          "Essa imagem não parece ser um documento. Confira a foto — se estiver certa, você pode enviar assim mesmo.",
+      };
     }
     if (docType === "rg") {
       const expectedSide = rgFrontSent ? "back" : "front";
       const detectedSide = classification.completeness;
-      if (detectedSide !== expectedSide && detectedSide !== "full") {
-        const expectedObject = expectedSide === "front" ? "a FRENTE" : "o VERSO";
+      // Só reclama quando reconheceu o OUTRO lado; "não sei" não bloqueia.
+      if (
+        (detectedSide === "front" || detectedSide === "back") &&
+        detectedSide !== expectedSide
+      ) {
+        const detectedObject = detectedSide === "front" ? "a FRENTE" : "o VERSO";
         const expectedRequest = expectedSide === "front" ? "da FRENTE" : "do VERSO";
-        const detectedObject =
-          detectedSide === "front"
-            ? "a FRENTE"
-            : detectedSide === "back"
-              ? "o VERSO"
-              : null;
-        setError(
-          detectedObject
-            ? `Essa foto parece ser ${detectedObject} do RG. Agora precisamos ${expectedRequest}.`
-            : `Não conseguimos identificar o lado do RG. Envie ${expectedObject} inteiro e legível.`,
-        );
-        return null;
+        return {
+          proceed: false,
+          classification,
+          reason: `Essa foto parece ser ${detectedObject} do RG. Agora precisamos ${expectedRequest}.`,
+        };
       }
     }
-    if (docType === "cnh" && classification.completeness !== "full") {
-      setError("Envie a CNH aberta, mostrando o documento inteiro, ou o PDF da CNH Digital.");
-      return null;
+    if (classification.is_legible === false) {
+      return {
+        proceed: false,
+        classification,
+        reason:
+          classification.reason ??
+          "O documento parece pouco legível. Tire outra com boa luz e sem cortes — ou envie assim mesmo.",
+      };
     }
-    if (classification.is_legible !== true) {
-      setError(
-        classification.reason ??
-          "O documento não está legível o suficiente. Tire outra foto com boa luz e sem cortes.",
-      );
-      return null;
-    }
-    return classification;
+    // Tipo divergente é só aviso: o promotor pode usar RG ou CNH, e quem define
+    // o tipo pro backend é o slot do upload.
+    const notice =
+      classification.doc_type && classification.doc_type !== docType
+        ? `Reconhecemos a foto como ${classification.doc_type.toUpperCase()}. Se você escolheu ${docType?.toUpperCase()} por engano, dá pra corrigir depois.`
+        : null;
+    return { proceed: true, classification, notice };
   }
 
   function onUpload(rawFile: File) {
     if (!docType || pending) return;
     setError(null);
     setNotice(null);
+    setHeldFile(null);
     startTransition(async () => {
       try {
         const file = await compressImage(rawFile);
@@ -113,10 +134,25 @@ export function DocForm({ initial }: Props) {
           setError(FILE_TOO_LARGE_MSG);
           return;
         }
-        const classification = await confirmDocument(file);
-        if (!classification) return;
+        const decision = await confirmDocument(file);
+        if (!decision.proceed) {
+          // Guarda a foto: o aviso vem com escape "Enviar assim mesmo".
+          setHeldFile(file);
+          setError(decision.reason ?? "Confira a foto e tente novamente.");
+          return;
+        }
+        if (decision.notice) setNotice(decision.notice);
+        await sendPhoto(file, decision.classification);
+      } catch {
+        setError("A conexão oscilou. Tente novamente — a etapa pode ser retomada sem recomeçar.");
+      }
+    });
+  }
+
+  /** Envia a foto já conferida (ou forçada pelo "Enviar assim mesmo"). */
+  async function sendPhoto(file: File, classification: ClassifyResult | null) {
         const uploadSlot =
-          docType === "rg" && classification.completeness === "full" ? "rg_full" : slot;
+          docType === "rg" && classification?.completeness === "full" ? "rg_full" : slot;
 
         const body = new FormData();
         body.append("slot", uploadSlot);
@@ -125,7 +161,7 @@ export function DocForm({ initial }: Props) {
         const data: { detail?: string; code?: string; expected_status?: string } =
           await response.json();
         if (!response.ok) {
-          const redirectTo = wrongStatusHref(data.code, data.expected_status);
+          const redirectTo = wrongStatusHref(data.code, data.expected_status, "/documento");
           if (redirectTo) {
             router.push(redirectTo);
             return;
@@ -140,6 +176,17 @@ export function DocForm({ initial }: Props) {
           return;
         }
         router.push(NEXT_STAGE.documents);
+  }
+
+  /** Escape do aviso: a pessoa confirma que a foto está certa e envia mesmo. */
+  function onSendAnyway() {
+    const file = heldFile;
+    if (!file || pending) return;
+    setError(null);
+    setHeldFile(null);
+    startTransition(async () => {
+      try {
+        await sendPhoto(file, null);
       } catch {
         setError("A conexão oscilou. Tente novamente — a etapa pode ser retomada sem recomeçar.");
       }
@@ -192,6 +239,18 @@ export function DocForm({ initial }: Props) {
 
       {notice && <div className="banner banner-ok" role="status">{notice}</div>}
       <FieldError>{error}</FieldError>
+      {heldFile && (
+        // A conferência é ajudante, não juiz: se a pessoa garante que a foto
+        // está certa, ela envia — quem decide de verdade é a análise do backend.
+        <button
+          type="button"
+          onClick={onSendAnyway}
+          disabled={pending}
+          className="w-full rounded-full border border-[var(--surface-border)] px-4 py-3 text-sm font-semibold text-[var(--surface-text)] transition-colors hover:border-brand-gold disabled:opacity-50"
+        >
+          Enviar assim mesmo
+        </button>
+      )}
     </div>
   );
 }

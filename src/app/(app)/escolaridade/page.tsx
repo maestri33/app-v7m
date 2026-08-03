@@ -6,6 +6,7 @@ import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
 import { candidateStageHref, stageCompleted } from "@/lib/candidate/funnel";
+import { isEducationAssistantConfigured } from "@/lib/education/assistant-config";
 import { readSession } from "@/lib/auth/server";
 
 import { EscolaridadeForm } from "./EscolaridadeForm";
@@ -55,7 +56,7 @@ export default async function EscolaridadePage() {
       />
       <FunnelStepper current="education" />
       <div className="education-card">
-        <EscolaridadeForm />
+        <EscolaridadeForm assistantEnabled={isEducationAssistantConfigured()} />
       </div>
     </PageShell>
   );

@@ -50,7 +50,7 @@ export function PerfilForm({ initial }: Props) {
         const data: { detail?: string; code?: string; expected_status?: string } =
           await res.json();
         if (!res.ok) {
-          const redir = wrongStatusHref(data.code, data.expected_status);
+          const redir = wrongStatusHref(data.code, data.expected_status, "/perfil");
           if (redir) {
             window.location.assign(redir);
             return;
