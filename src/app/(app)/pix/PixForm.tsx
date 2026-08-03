@@ -128,7 +128,7 @@ export function PixForm() {
           result = await validate(detected);
         }
         if (!result.ok) {
-          const redir = wrongStatusHref(result.data.code, result.data.expected_status);
+          const redir = wrongStatusHref(result.data.code, result.data.expected_status, "/pix");
           if (redir) {
             router.push(redir);
             return;

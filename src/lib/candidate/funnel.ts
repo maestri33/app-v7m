@@ -124,13 +124,24 @@ export function stageCompleted(stage: CandidateStatus, me: CandidateMe): boolean
 
 /**
  * `WRONG_STATUS` (409): a etapa desta tela não é a atual do funil (aba velha /
- * fora de ordem). Em vez de mostrar erro, os forms navegam pra etapa que o
- * backend espera (`expected_status` vem no envelope do erro).
+ * fora de ordem). NÃO adivinhamos o destino aqui: mandamos pro resolvedor
+ * `/continuar`, que lê o `candidate/me` fresco no servidor e aplica o
+ * `candidateStageHref` (que considera `blocks`, comprovante e pix).
+ *
+ * Adivinhar pelo `STAGE_HREF` fechava laço: `expected_status: "education"`
+ * devolvia `/selfie` — a MESMA tela que acabou de recusar — e, quando o destino
+ * era a própria página, o push virava no-op silencioso (o botão não fazia nada).
+ * O `from` deixa o resolvedor detectar esse caso e escapar pro painel.
  */
 export function wrongStatusHref(
   code: string | undefined,
   expectedStatus: string | undefined,
+  from?: string,
 ): string | null {
   if (code !== "WRONG_STATUS") return null;
-  return STAGE_HREF[expectedStatus as CandidateStatus] ?? "/painel";
+  const params = new URLSearchParams();
+  if (expectedStatus) params.set("expected", expectedStatus);
+  if (from) params.set("from", from);
+  const query = params.toString();
+  return query ? `/continuar?${query}` : "/continuar";
 }

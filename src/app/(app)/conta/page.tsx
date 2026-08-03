@@ -7,6 +7,7 @@ import { LogoutButton } from "@/app/(app)/LogoutButton";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, PromoterMe } from "@/lib/api/types";
 import { roleLabels } from "@/lib/candidate/labels";
+import { mediaProxyUrl } from "@/lib/media";
 import { readUnlockedSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
@@ -44,10 +45,8 @@ export default async function ContaPage() {
   const docType = me?.documents?.rg ? "RG" : me?.documents?.cnh ? "CNH" : null;
   const address = me?.address ?? null;
   const takenAt = me?.selfie?.taken_at ?? null;
-  const selfiePhoto =
-    typeof me?.selfie?.photo === "string" && /^https?:\/\//i.test(me.selfie.photo)
-      ? me.selfie.photo
-      : null;
+  // Foto do backend só aparece pelo proxy de mesma origem (CSP + cookie).
+  const selfiePhoto = mediaProxyUrl(me?.selfie?.photo);
   const signatureVerified = me?.selfie?.analysis_status === "approved";
   const pixValidated = me?.pix_validated === true;
   const labels = roleLabels(session.roles);
@@ -64,7 +63,7 @@ export default async function ContaPage() {
       {/* Identidade — thumb da selfie quando houver; senão, iniciais */}
       <div className="auth-card flex items-center gap-4">
         {selfiePhoto ? (
-          // eslint-disable-next-line @next/next/no-img-element -- foto vem do backend, domínio desconhecido em build
+          // eslint-disable-next-line @next/next/no-img-element -- foto servida pelo proxy, sem dimensões conhecidas em build
           <img
             src={selfiePhoto}
             alt="Sua selfie"

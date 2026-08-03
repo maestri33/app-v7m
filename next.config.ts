@@ -13,7 +13,10 @@ const csp = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
+  // Mídia do backend (selfie, aulas) entra pelo proxy /api/me/media, que é
+  // MESMA origem — por isso 'self' basta e nenhum host externo é liberado.
   "img-src 'self' data: blob:",
+  "media-src 'self' blob:",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   // Next injeta runtime/hydration inline; em dev o React Refresh precisa de eval.

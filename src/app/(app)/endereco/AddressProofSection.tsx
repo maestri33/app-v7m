@@ -72,7 +72,7 @@ export function AddressProofSection({ initial }: Props) {
         const data: { detail?: string; code?: string; expected_status?: string } =
           await response.json();
         if (!response.ok) {
-          const redirectTo = wrongStatusHref(data.code, data.expected_status);
+          const redirectTo = wrongStatusHref(data.code, data.expected_status, "/endereco");
           if (redirectTo) {
             router.push(redirectTo);
             return;

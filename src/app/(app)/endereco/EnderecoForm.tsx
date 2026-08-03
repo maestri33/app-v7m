@@ -60,7 +60,7 @@ export function EnderecoForm({ initial }: Props) {
           address?: AddressSection;
         } = await res.json();
         if (!res.ok) {
-          const redir = wrongStatusHref(data.code, data.expected_status);
+          const redir = wrongStatusHref(data.code, data.expected_status, "/endereco");
           if (redir) {
             router.push(redir);
             return;
@@ -108,7 +108,7 @@ export function EnderecoForm({ initial }: Props) {
           status?: string;
         } = await res.json();
         if (!res.ok) {
-          const redir = wrongStatusHref(data.code, data.expected_status);
+          const redir = wrongStatusHref(data.code, data.expected_status, "/endereco");
           if (redir) {
             router.push(redir);
             return;
