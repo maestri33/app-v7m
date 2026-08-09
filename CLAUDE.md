@@ -1,21 +1,28 @@
 @AGENTS.md
 
-# CLAUDE.md — App do Promotor (V7M) · `/root/app-v7m`
+# CLAUDE.md — App do Promotor (V7M)
 
 Frontend Next.js — o app do **lado interno/V7M**, **role-gated**: quem trabalha
 com a gente. **candidato a promotor** (afiliado em onboarding) → **promotor
-pleno** (com treinamento obrigatório) → **coordenador de polo** (papel aditivo:
-é um promotor com acesso a mais áreas do app). Cobre os grupos da API
-**collaborators** (base — candidato → treinamento → promotor) e **leadership**
-(painel do coordenador, aberto por botão conforme o papel); **staff** (painel
-global, qualquer polo/hub) é superfície prevista (expansão 2026-06-21).
+pleno** (com treinamento obrigatório). Cobre o grupo da API **collaborators**
+(candidato → treinamento → promotor).
 
-NÃO é o app do **cliente** final — esse mora em `/root/app-supletivo` (cliente =
-lead → enrollment → student → veteran; é outra base de código, mesmo backend).
+NÃO é o app do **cliente** final — esse é o repositório `app-supletivo`
+(`app.supletivo.net.br`; cliente = lead → enrollment → student → veteran; outra
+base de código, mesmo backend).
 
-NÃO toca no `~/mvp/backend/` (monólito Django+Ninja); o backend é dependência
-externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor),
-`/api/v1/leadership/` (papel do coordenador) e `/api/v1/staff/` (futuro).
+NÃO é o portal do **coordenador** — esse é o repositório `hub-v7m`
+(`hub.v7m.org`), que consome `/api/v1/leadership/`. Quem tem a role
+`coordinator` acessa este app **como promotor**; a área de coordenação abre no
+hub. É o que `src/lib/auth/roles.ts` implementa hoje: não existe rota nem route
+handler de leadership nesta árvore — só o arquivo de tipos
+`src/lib/api/leadership.ts`, que sobrou do escopo antigo.
+
+NÃO é o painel **staff** — esse é o repositório `admin-v7m` (`admin.v7m.org`),
+que consome `/api/v1/staff/`.
+
+O backend é dependência externa, consumida via HTTP: repositório
+`maestri33/backend-supletivo`, grupo `/api/v1/collaborators/`.
 
 ## Vocabulário travado (NÃO renomear sem perguntar)
 
@@ -23,8 +30,8 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor),
 |---|---|---|
 | **candidato** | `app-v7m` | `candidates` (candidato a virar promotor) |
 | **promotor** | `app-v7m` | `promoter` (afiliado pleno) |
-| **coordenador** | `app-v7m` | aditivo em cima de promotor (`coordinator` role) — todo coordenador é promotor, sempre |
-| **staff** | `app-v7m` (superfície futura) | `staff` — painel global, role-gated por botão (expansão 2026-06-21) |
+| **coordenador** | `hub-v7m` (`hub.v7m.org`) | aditivo em cima de promotor (`coordinator` role) — todo coordenador é promotor, sempre; neste app ele entra **como promotor** |
+| **staff** | `admin-v7m` (`admin.v7m.org`) | `staff` — painel global; este app só reconhece a role pra rotear pra fora |
 | **lead / enrollment / student / veteran** | `app-supletivo` | cliente final, este app **NÃO mexe** |
 
 **Vínculos do ciclo do cliente** (referência, não implementado aqui):
@@ -43,9 +50,9 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor),
 - **Candidato/promotor** cadastra **a chave PIX dele** pra **receber comissões**
   — entrada de dinheiro pro afiliado — front: `app-v7m` (`/me/pix`).
 - **Coordenador** paga a **instituição parceira** (taxa de matrícula) — saída de
-  dinheiro da empresa — front: `app-v7m` (aba de coordenação). O coordenador
-  obtém login/senha e QR Pix **na plataforma parceira** e cola aqui no nosso
-  app, usando:
+  dinheiro da empresa — front: **`hub-v7m`**, não este app. Fica aqui como
+  referência do ciclo; a implementação é lá. O coordenador obtém login/senha e
+  QR Pix **na plataforma parceira** e cola no hub, usando:
   - `POST /api/v1/leadership/enrollments/{id}/fee/pay` — `{ qr_code, amount? }`
     (1ª parcela à vista).
   - `POST /api/v1/leadership/enrollments/{id}/fee/schedule` — `{ qr_code, amount? }`
@@ -53,8 +60,9 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor),
   - `POST /api/v1/leadership/enrollments/{id}/conclude` —
     `{ platform_login, platform_password, platform_url?, platform_notes? }`
     (login do aluno na instituição parceira; promove enrollment → student).
-  - Fronts: route handlers em `app/api/leadership/enrollments/...` + UI
-    `MatriculaActions` com confirmação em 2 passos + `switch(code)` no envelope.
+  - Esses três endpoints **não** têm route handler nem UI nesta árvore. Se
+    aparecer referência a `app/api/leadership/enrollments/...` ou a um
+    componente `MatriculaActions`, é de escopo antigo — não existe mais aqui.
 
 ## Modelo de roles (no código)
 
@@ -68,14 +76,18 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor),
 ## Fonte da verdade
 
 - **Palavra do Victor nesta sessão** > este arquivo.
-- **Escopo expandido pelo Victor (2026-06-21):** o app cobre os **3 grupos**
-  (collaborators + leadership/coordenador + staff), superfícies role-gated por
-  botão. Isso **substitui** o recorte antigo "só collaborators / telas do
-  coordenador são FUTURO proibido" dos planos antigos. A área do coordenador
-  (leadership) está **em produção desde o PR #4 (2026-06-21)**.
+- **O código vence a prosa.** Havia aqui uma nota de "escopo expandido
+  (2026-06-21)" dizendo que este app cobria os 3 grupos e que a área do
+  coordenador estaria em produção desde o PR #4. **A árvore atual não confirma
+  isso:** não existe rota, tela nem route handler de leadership ou staff —
+  só o arquivo de tipos `src/lib/api/leadership.ts`. O `roles.ts` diz o mesmo,
+  que a coordenação mora em `hub.v7m.org`, e o repositório `hub-v7m` existe e é
+  publicado. Escopo real deste app hoje: **collaborators**. Se a intenção for
+  trazer leadership de volta pra cá, isso é decisão do Victor — confirme antes
+  de escrever código de coordenador em qualquer um dos dois repos.
 - **Plano:** `.claude/plan/16-frontend-promotor.md` (CONFIRMADO Portões 1+2 em
-  2026-06-15) — válido para a base **collaborators**; para leadership/staff vale
-  a expansão acima. **Não confiar em PRD/doc de IA antigo.**
+  2026-06-15) — válido para a base **collaborators**. **Não confiar em PRD/doc
+  de IA antigo.**
 - **Backend consumido:** repositório `maestri33/backend-supletivo` —
   `docs/api/collaborators.md`, `docs/api/leadership.md` e `wiki/frontend-integracao.md`
   (guia de integração dos apps) + OpenAPI vivo em

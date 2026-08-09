@@ -7,13 +7,24 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # app-v7m — app do promotor
 
 Next.js **16.2.9**, App Router, Turbopack, `output: "standalone"`. Frontend role-gated do lado
-interno da V7M: **candidato → promotor → coordenador**. Consome o backend Django + Ninja pelos
-grupos `/api/v1/collaborators/` e `/api/v1/leadership/`.
+interno da V7M: **candidato a promotor → promotor pleno**. Consome o grupo
+`/api/v1/collaborators/` do backend Django + Ninja.
 
-Não é o app do cliente final (lead → enrollment → student → veteran) — esse é o `app-supletivo`,
-publicado em `app.supletivo.net.br`. Não é o backend — esse é o repositório
-[`maestri33/backend-supletivo`](https://github.com/maestri33/backend-supletivo), consumido só por
-HTTP.
+Três apps irmãos, um por público — não escreva no repositório errado:
+
+| Público | App | Grupo da API |
+|---|---|---|
+| candidato / promotor | **este repositório** | `/api/v1/collaborators/` |
+| coordenador de polo | `hub-v7m` (`hub.v7m.org`) | `/api/v1/leadership/` |
+| staff / superuser | `admin-v7m` (`admin.v7m.org`) | `/api/v1/staff/` |
+| cliente final (lead → student) | `app-supletivo` (`app.supletivo.net.br`) | `/api/v1/clients/` |
+
+Quem tem a role `coordinator` entra **neste** app como promotor; a área de coordenação abre no hub.
+Não existe rota nem route handler de leadership nesta árvore — só o arquivo de tipos
+`src/lib/api/leadership.ts`, resquício de um escopo antigo.
+
+O backend é o repositório [`maestri33/backend-supletivo`](https://github.com/maestri33/backend-supletivo),
+consumido só por HTTP.
 
 O `CLAUDE.md` importa este arquivo (`@AGENTS.md`) e acrescenta vocabulário, produto e roadmap. O que
 vale para **qualquer** agente (Claude Code, Codex, Cursor, Copilot) fica aqui.
@@ -31,7 +42,7 @@ ao que a maioria dos modelos viu no treino. A doc **da versão instalada** vem e
 | Mensagem de erro do Next | `https://nextjs.org/docs/messages/<slug>.md` — não vem empacotada |
 | Como o app conversa com a API | `backend-supletivo` → [`wiki/frontend-integracao.md`](https://github.com/maestri33/backend-supletivo/blob/main/wiki/frontend-integracao.md) |
 | O que mudou no backend | `backend-supletivo` → [`wiki/frontend-changes.md`](https://github.com/maestri33/backend-supletivo/blob/main/wiki/frontend-changes.md) |
-| Fluxo de um grupo da API | `backend-supletivo` → [`docs/api/collaborators.md`](https://github.com/maestri33/backend-supletivo/blob/main/docs/api/collaborators.md), [`docs/api/leadership.md`](https://github.com/maestri33/backend-supletivo/blob/main/docs/api/leadership.md) |
+| Fluxo do grupo collaborators | `backend-supletivo` → [`docs/api/collaborators.md`](https://github.com/maestri33/backend-supletivo/blob/main/docs/api/collaborators.md) |
 | Schema exato de um endpoint | OpenAPI vivo: `$BACKEND_URL/api/v1/<grupo>/openapi.json` |
 
 O backend é **outro repositório**, não um diretório deste. Caminhos como `~/mvp/backend/` ou
@@ -138,3 +149,7 @@ Fluxo: suba o `npm run dev`, abra a página no browser, e consulte o agente. Det
   é preservado. Mantenha o conteúdo próprio fora deles.
 - **Playwright é obrigatório no CI**, mesmo que documentos antigos digam que teste automatizado é
   "decisão futura". `npm run test:e2e` roda no gate e precisa passar.
+- **Documento antigo pode dizer que a área do coordenador roda aqui.** Não roda: não há rota, tela
+  nem route handler de leadership nesta árvore, e o `roles.ts` manda a coordenação para
+  `hub.v7m.org`. Se um pedido envolver tela de coordenador, confirme o repositório antes de
+  escrever código.
