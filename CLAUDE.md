@@ -76,9 +76,12 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor),
 - **Plano:** `.claude/plan/16-frontend-promotor.md` (CONFIRMADO Portões 1+2 em
   2026-06-15) — válido para a base **collaborators**; para leadership/staff vale
   a expansão acima. **Não confiar em PRD/doc de IA antigo.**
-- **Backend consumido:** `~/mvp/.claude/CONVENTION.md` §1/§3 +
-  `~/mvp/backend/wiki/api/collaborators.md` + OpenAPI vivo em
+- **Backend consumido:** repositório `maestri33/backend-supletivo` —
+  `docs/api/collaborators.md`, `docs/api/leadership.md` e `wiki/frontend-integracao.md`
+  (guia de integração dos apps) + OpenAPI vivo em
   `/api/v1/{collaborators,leadership,staff}/docs` (NÃO uma spec congelada).
+  Os caminhos `~/mvp/...` são da máquina do Victor e não resolvem numa sessão
+  limpa; ver a tabela de fontes no `AGENTS.md`.
 - **Workflow (3 portões):** `~/mvp/.claude/WORKFLOW.md` (questionário → plano
   confirmado → testes aprovados). **Sem pressa.** Cada milestone vai ao Portão 3
   separado.
@@ -107,8 +110,9 @@ externa, consumida via HTTP em `/api/v1/collaborators/` (papel do promotor),
 ## Fora do escopo deste app (mesmo que pareça boa ideia)
 
 - Telas do **cliente** (lead/enrollment/student/veteran) — mora em `/root/app-supletivo`.
-- Testes automatizados (vitest/playwright) — decisão futura (harness de QA
-  manual `scripts/shot.mjs` segue valendo).
+- Testes unitários (vitest) — decisão futura. **Playwright NÃO é futuro:**
+  `npm run test:e2e` já roda no gate do CI (`.github/workflows/ci.yml`) e precisa
+  passar. O harness de QA manual `scripts/shot.mjs` segue valendo em paralelo.
 - Storybook / Figma / observability / CMS.
 - Banco local / persistência no front.
 - Refactor "preventivo" sem pedido.

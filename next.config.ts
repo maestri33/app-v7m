@@ -35,6 +35,13 @@ const nextConfig: NextConfig = {
   // gera `.next/standalone` com o server Node mínimo (sem node_modules inteiro).
   output: "standalone",
 
+  // Erro e warning do console do browser saem no terminal do `next dev`. É o que
+  // torna uma falha de client component visível pra quem só lê o log — inclusive
+  // um agente de código. Vale só em desenvolvimento; o build ignora.
+  logging: {
+    browserToTerminal: "warn",
+  },
+
   async headers() {
     return [
       {
