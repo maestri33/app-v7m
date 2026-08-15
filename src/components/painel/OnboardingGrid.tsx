@@ -8,7 +8,6 @@ import {
   RefreshCcw,
   TriangleAlert,
 } from "lucide-react";
-import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import type { OnboardingStep, OnboardingSteps } from "@/lib/api/types";
@@ -104,7 +103,7 @@ function TileCard({ tile }: { tile: Tile }) {
   if (done) {
     return (
       <li>
-        <Link
+        <a
           href={tile.href}
           aria-label={`${tile.label}: concluído. Toque para revisar.`}
           className="group flex h-full min-h-[112px] flex-col justify-between gap-2 rounded-[var(--radius)] border border-ok/40 bg-ok/8 p-3 transition-colors hover:border-ok focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ok"
@@ -121,7 +120,7 @@ function TileCard({ tile }: { tile: Tile }) {
               Concluído
             </p>
           </div>
-        </Link>
+        </a>
       </li>
     );
   }
@@ -130,7 +129,7 @@ function TileCard({ tile }: { tile: Tile }) {
   if (status === "review" || status === "pending") {
     return (
       <li>
-        <Link
+        <a
           href={tile.href}
           aria-label={`${tile.label}: em análise. Toque para ver detalhes.`}
           className="group flex h-full min-h-[112px] flex-col justify-between gap-2 rounded-[var(--radius)] border border-info/40 bg-info/8 p-3 transition-colors hover:border-info focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-info"
@@ -147,7 +146,7 @@ function TileCard({ tile }: { tile: Tile }) {
               Em análise
             </p>
           </div>
-        </Link>
+        </a>
       </li>
     );
   }
@@ -156,7 +155,7 @@ function TileCard({ tile }: { tile: Tile }) {
   if (status === "rejected" || (reason && status !== "approved")) {
     return (
       <li>
-        <Link
+        <a
           href={tile.href}
           aria-label={`${tile.label}: precisa refazer. ${reason ?? ""} Toque para abrir.`}
           className="group flex h-full min-h-[112px] flex-col justify-between gap-2 rounded-[var(--radius)] border border-warn/40 bg-warn/10 p-3 transition-colors hover:border-warn focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warn"
@@ -173,7 +172,7 @@ function TileCard({ tile }: { tile: Tile }) {
               {reason ? "Refazer · " + truncate(reason, 40) : "Refazer"}
             </p>
           </div>
-        </Link>
+        </a>
       </li>
     );
   }
@@ -181,7 +180,7 @@ function TileCard({ tile }: { tile: Tile }) {
   // ── pendente (ainda não enviado) ──────────────────────────────────────────
   return (
     <li>
-      <Link
+      <a
         href={tile.href}
         aria-label={`${tile.label}: pendente. ${tile.hint}. Toque para concluir.`}
         className="group flex h-full min-h-[112px] flex-col justify-between gap-2 rounded-[var(--radius)] border border-[var(--surface-border)] bg-[var(--surface)] p-3 transition-colors hover:border-brand-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold"
@@ -201,7 +200,7 @@ function TileCard({ tile }: { tile: Tile }) {
             {tile.hint}
           </p>
         </div>
-      </Link>
+      </a>
     </li>
   );
 }

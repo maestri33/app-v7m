@@ -767,7 +767,7 @@ function EducationAssistant() {
           return;
         }
         window.sessionStorage.removeItem(STORAGE_KEY);
-        router.push(NEXT_STAGE.education);
+        window.location.replace(NEXT_STAGE.education);
       } catch {
         setError("A conexão oscilou. Tente novamente — suas respostas continuam aqui.");
       }

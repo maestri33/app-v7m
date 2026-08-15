@@ -121,7 +121,7 @@ export function EnderecoForm({ initial }: Props) {
         // avançou, o refresh re-renderiza a página, que mostra o sub-passo do
         // comprovante (AddressProofSection).
         if (data.status && data.status !== "profile" && data.status !== "started") {
-          router.push(NEXT_STAGE.address);
+          window.location.replace(NEXT_STAGE.address);
         } else {
           router.refresh();
         }

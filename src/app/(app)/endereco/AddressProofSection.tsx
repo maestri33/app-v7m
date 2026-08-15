@@ -46,7 +46,7 @@ export function AddressProofSection({ initial }: Props) {
           setError("Explique um pouco melhor de quem é a conta e qual é o vínculo com você.");
           return;
         }
-        router.push("/painel");
+        window.location.replace("/painel");
       } catch {
         setError("A conexão oscilou. Tente novamente — nada foi perdido.");
       }
@@ -80,7 +80,7 @@ export function AddressProofSection({ initial }: Props) {
           setError(data.detail ?? "Não conseguimos receber o comprovante. Tente novamente.");
           return;
         }
-        router.push(NEXT_STAGE.address);
+        window.location.replace(NEXT_STAGE.address);
       } catch {
         setError("A conexão oscilou. Tente novamente — nada do cadastro foi perdido.");
       }

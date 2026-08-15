@@ -13,31 +13,45 @@ const fixture = {
   ),
 };
 
-test("telefone → OTP → cadastro → treinamento → painel", async ({ page, request }) => {
+async function uploadAddressProof(page: import("@playwright/test").Page) {
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: /Enviar arquivo/i }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(fixture);
+}
+
+test("CPF → OTP → cadastro → treinamento → painel", async ({ page, request }) => {
   test.setTimeout(90_000);
   await request.post(`${mockBackend}/__reset`);
 
   await page.goto("/");
-  await page.getByLabel(/telefone/i).fill("11999990001");
+  await page.getByLabel(/^CPF$/i).fill("52998224725");
   await page.getByRole("button", { name: /continuar/i }).click();
   await page.getByLabel(/Código de 6 dígitos/i).fill("000000");
   await page.getByRole("button", { name: /entrar/i }).click();
 
-  await expect(page).toHaveURL(/\/documento$/);
-  await page.getByLabel("RG").check();
-  const documentInput = page.locator('input[type="file"][accept="image/*,application/pdf"]');
+  await expect(page).toHaveURL(/\/painel$/);
+  const documentGate = page.getByRole("dialog", { name: /Envie seu RG ou CNH/i });
+  await documentGate.getByLabel("RG").check();
+  const documentInput = documentGate.locator('input[type="file"][accept="image/*,application/pdf"]');
   await documentInput.setInputFiles(fixture);
   await expect(page.getByText(/VERSO do RG/i)).toBeVisible();
   await request.post(`${mockBackend}/__classify?document=1&completeness=back&legible=1`);
   await documentInput.setInputFiles(fixture);
 
+  await expect(page).toHaveURL(/\/painel$/, { timeout: 15_000 });
+  await page.getByRole("link", { name: /Comprovante/i }).click();
   await expect(page).toHaveURL(/\/endereco$/, { timeout: 15_000 });
-  await page.locator('input[type="file"][accept="image/*,application/pdf"]').setInputFiles(fixture);
+  await uploadAddressProof(page);
 
+  await expect(page).toHaveURL(/\/painel$/, { timeout: 15_000 });
+  await page.getByRole("link", { name: /Chave Pix/i }).click();
   await expect(page).toHaveURL(/\/pix$/, { timeout: 15_000 });
   await page.getByLabel("Chave").fill("e2e-promotor@v7m.test");
   await page.getByRole("button", { name: /Validar chave/i }).click();
 
+  await expect(page).toHaveURL(/\/painel$/);
+  await page.getByRole("link", { name: /Escolaridade/i }).click();
   await expect(page).toHaveURL(/\/escolaridade$/);
   await page.getByRole("button", { name: "Responder por opções" }).click();
   await page.getByRole("button", { name: "Ensino Médio" }).click();
@@ -45,6 +59,8 @@ test("telefone → OTP → cadastro → treinamento → painel", async ({ page, 
   await page.getByLabel("Em que ano isso aconteceu?").fill("2026");
   await page.getByRole("button", { name: /Confirmar e continuar/i }).click();
 
+  await expect(page).toHaveURL(/\/painel$/);
+  await page.getByRole("link", { name: /Selfie/i }).click();
   await expect(page).toHaveURL(/\/selfie$/);
   await page.getByRole("button", { name: /Li e concordo/i }).click();
   await page.locator('input[type="file"][capture="user"]').setInputFiles(fixture);

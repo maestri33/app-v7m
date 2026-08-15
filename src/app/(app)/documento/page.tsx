@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { FunnelStepper } from "@/components/ui/stepper";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
-import type { CandidateMe, DocumentSection } from "@/lib/api/types";
+import type { DocumentSection } from "@/lib/api/types";
 import { readSession } from "@/lib/auth/server";
 
 import { DocForm } from "./DocForm";

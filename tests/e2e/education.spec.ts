@@ -5,11 +5,11 @@ const mockBackend = process.env.MOCK_BACKEND_URL ?? "http://127.0.0.1:8765";
 async function openEducation(page: Page, request: APIRequestContext) {
   await request.post(`${mockBackend}/__reset`);
   await page.goto("/");
-  await page.getByLabel(/telefone/i).fill("11999990001");
+  await page.getByLabel(/^CPF$/i).fill("52998224725");
   await page.getByRole("button", { name: /continuar/i }).click();
   await page.getByLabel(/Código de 6 dígitos/i).fill("000000");
   await page.getByRole("button", { name: /entrar/i }).click();
-  await expect(page).toHaveURL(/\/documento$/);
+  await expect(page).toHaveURL(/\/painel$/);
   await request.post(`${mockBackend}/__stage?status=pix&pix=1`);
   await page.goto("/escolaridade");
 }
@@ -136,7 +136,7 @@ test("escolaridade continua pelas opções quando a IA estiver indisponível", a
   await page.getByLabel("Cidade onde estudou (opcional)").fill("Ponta Grossa");
   await page.getByRole("button", { name: "Confirmar e continuar" }).click();
 
-  await expect(page).toHaveURL(/\/selfie$/);
+  await expect(page).toHaveURL(/\/painel$/);
 });
 
 test("rascunho manual sobrevive ao recarregamento", async ({ page, request }) => {
@@ -186,7 +186,7 @@ test("corrige o caminho sem perder respostas e salva o último ano concluído", 
     city: null,
     school: null,
   });
-  await expect(page).toHaveURL(/\/selfie$/);
+  await expect(page).toHaveURL(/\/painel$/);
 });
 
 test("entende superior incompleto sem perder a comprovação do médio", async ({ page, request }) => {
@@ -241,7 +241,7 @@ test("fluxo guiado superior distingue formação frequentada da concluída", asy
     education_status: "stopped",
     completed: false,
   });
-  await expect(page).toHaveURL(/\/selfie$/);
+  await expect(page).toHaveURL(/\/painel$/);
 });
 
 test("graduação iniciada permite registrar nenhuma formação superior concluída", async ({ page, request }) => {
@@ -253,5 +253,5 @@ test("graduação iniciada permite registrar nenhuma formação superior conclu�
   await expect(page.getByText("Confirmado: Nenhuma formação superior concluída.", { exact: true })).toBeVisible();
   await page.getByLabel("Em que ano começou essa formação?").fill("2025");
   await page.getByRole("button", { name: "Confirmar e continuar" }).click();
-  await expect(page).toHaveURL(/\/selfie$/);
+  await expect(page).toHaveURL(/\/painel$/);
 });

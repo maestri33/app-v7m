@@ -14,7 +14,7 @@ import {
 } from "@/lib/images/compress";
 import type { DocumentSection } from "@/lib/api/types";
 
-type Props = { initial: DocumentSection };
+type Props = { initial: DocumentSection; onComplete?: () => void };
 type DocType = "rg" | "cnh";
 
 type ClassifyResult = {
@@ -25,7 +25,7 @@ type ClassifyResult = {
   reason?: string | null;
 };
 
-export function DocForm({ initial }: Props) {
+export function DocForm({ initial, onComplete }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [docType, setDocType] = useState<DocType | null>(
@@ -139,7 +139,11 @@ export function DocForm({ initial }: Props) {
           setNotice("Frente recebida. A leitura continua em segundo plano.");
           return;
         }
-        router.push(NEXT_STAGE.documents);
+        if (onComplete) {
+          onComplete();
+        } else {
+          window.location.replace(NEXT_STAGE.documents);
+        }
       } catch {
         setError("A conexão oscilou. Tente novamente — a etapa pode ser retomada sem recomeçar.");
       }

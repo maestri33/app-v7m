@@ -83,7 +83,7 @@ export function SelfieForm() {
     if (navigatingRef.current) return;
     if (takenAt && status === "approved") {
       navigatingRef.current = true;
-      router.push(NEXT_STAGE.selfie);
+      window.location.replace(NEXT_STAGE.selfie);
     }
   }, [takenAt, status, router]);
 

@@ -4,11 +4,11 @@ import { test, expect } from "@playwright/test";
 // falhou). O front NUNCA pode prometer "mandamos o código" nesse caso.
 // Stub da rota — não toca no backend nem dispara WhatsApp real.
 test.describe("app-v7m · OTP honesto", () => {
-  const phone = "11987654321";
+  const cpf = "52998224725";
 
-  async function submitPhone(page: import("@playwright/test").Page) {
+  async function submitCpf(page: import("@playwright/test").Page) {
     await page.goto("/");
-    await page.getByLabel(/telefone/i).fill(phone);
+    await page.getByLabel(/^CPF$/i).fill(cpf);
     await page.getByRole("button", { name: /continuar/i }).click();
   }
 
@@ -18,7 +18,7 @@ test.describe("app-v7m · OTP honesto", () => {
         json: { found: true, external_id: "u-1", otp_sent: true, otp_wait: null },
       }),
     );
-    await submitPhone(page);
+    await submitCpf(page);
     await expect(page.getByText(/Enviamos um código de 6 dígitos/i)).toBeVisible();
   });
 
@@ -28,19 +28,19 @@ test.describe("app-v7m · OTP honesto", () => {
         json: { found: true, external_id: "u-1", otp_sent: false, otp_wait: 45 },
       }),
     );
-    await submitPhone(page);
+    await submitCpf(page);
     await expect(page.getByText(/Não conseguimos enviar um código/i)).toBeVisible();
     await expect(page.getByText(/Enviamos um código de 6 dígitos/i)).toHaveCount(0);
   });
 
-  test("OTP_NOT_SENT → fica no telefone, com o motivo", async ({ page }) => {
+  test("OTP_NOT_SENT → fica no CPF, com o motivo", async ({ page }) => {
     await page.route("**/api/auth/check", (route) =>
       route.fulfill({
         status: 502,
         json: { detail: "falha no dispatch", code: "OTP_NOT_SENT" },
       }),
     );
-    await submitPhone(page);
+    await submitCpf(page);
     await expect(page.getByText(/Confira se esse número tem WhatsApp ativo/i)).toBeVisible();
     // não avançou pra tela de código
     await expect(page.getByLabel(/Código de 6 dígitos/i)).toHaveCount(0);
@@ -56,7 +56,7 @@ test.describe("app-v7m · OTP honesto", () => {
         json: { detail: "Usuário não faz parte do funil do colaborador.", code: "NOT_IN_FUNNEL" },
       }),
     );
-    await submitPhone(page);
+    await submitCpf(page);
     await page.getByLabel(/Código de 6 dígitos/i).fill("000000");
     await page.getByRole("button", { name: /entrar/i }).click();
     await expect(page.getByText(/ainda não está no programa de promotores/i)).toBeVisible();
@@ -86,7 +86,7 @@ test.describe("app-v7m · OTP honesto", () => {
       return route.fulfill({ json: { ok: true } });
     });
 
-    await submitPhone(page);
+    await submitCpf(page);
     await expect(page.getByText(/Confirme para criar seu acesso/i)).toBeVisible();
     await page.getByLabel(/Código de 6 dígitos/i).fill("000000");
     await page.getByRole("button", { name: /Confirmar e criar acesso/i }).click();
@@ -101,7 +101,7 @@ test.describe("app-v7m · OTP honesto", () => {
       route.fulfill({ json: { found: false, otp_sent: false, whatsapp: false } }),
     );
 
-    await submitPhone(page);
+    await submitCpf(page);
 
     await expect(page.getByRole("heading", { name: /Criar cadastro/i })).toBeVisible();
     await expect(page.getByText(/ainda pode criar o cadastro/i)).toBeVisible();
@@ -119,8 +119,8 @@ test.describe("app-v7m · OTP honesto", () => {
       }),
     );
 
-    await submitPhone(page);
-    await page.getByLabel(/^CPF$/i).fill("52998224725");
+    await submitCpf(page);
+    await page.getByLabel(/Telefone \(WhatsApp\)/i).fill("11987654321");
     await page.getByLabel(/E-mail/i).fill("novo@v7m.test");
     await page.getByRole("button", { name: /Criar cadastro/i }).click();
 

@@ -4,11 +4,14 @@ import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Countdown } from "@/components/ui/countdown";
+import { DocumentUploadGate } from "@/components/painel/DocumentUploadGate";
 import { OnboardingGrid } from "@/components/painel/OnboardingGrid";
 import { PaymentHoldAlert } from "@/components/painel/PaymentHoldAlert";
+import { djangoFetch } from "@/lib/api/client";
 import { readUnlockedSession } from "@/lib/auth/server";
 import { isOnboarding, isPromoter, OUTSIDE_APP_URL } from "@/lib/auth/roles";
 import { getMe, pendingStepsCount, payoutStatus, type Summary } from "@/lib/api/me";
+import type { DocumentSection } from "@/lib/api/types";
 import { formatBRL } from "@/lib/format";
 
 /**
@@ -70,6 +73,18 @@ export default async function PainelPage() {
   const showAwaitingPolo =
     isOnboarding(session.roles) && onboardingDone && candidate?.status !== "approved";
 
+  const documentStep = candidate?.steps.documents;
+  const showDocumentUploadGate =
+    showOnboardingGrid &&
+    Boolean(documentStep && !documentStep.done) &&
+    documentStep?.status !== "pending" &&
+    documentStep?.status !== "review";
+  const documentInitial = showDocumentUploadGate
+    ? await djangoFetch<DocumentSection>(
+        "/api/v1/collaborators/candidate/document",
+      ).catch(() => ({} as DocumentSection))
+    : null;
+
   // Payout hold: o back é a fonte. Fallback: derivar do estado de onboarding.
   const hold = payoutStatus(me);
   const effectiveReason = showOnboardingGrid
@@ -88,6 +103,13 @@ export default async function PainelPage() {
 
   return (
     <div className="space-y-4">
+      {documentInitial && (
+        <DocumentUploadGate
+          initial={documentInitial}
+          reason={documentStep?.reason}
+        />
+      )}
+
       {/* ── Alerta de hold / aprovado ──────────────────────────────────────── */}
       {showAlert && (
         <PaymentHoldAlert

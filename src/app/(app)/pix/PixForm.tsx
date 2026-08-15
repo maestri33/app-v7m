@@ -139,7 +139,7 @@ export function PixForm() {
         }
         setSuccess(true);
         // Wizard auto-avançante: chave validada → direto pra selfie.
-        router.push(NEXT_STAGE.pix);
+        window.location.replace(NEXT_STAGE.pix);
       } catch {
         setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       } finally {
@@ -167,7 +167,7 @@ export function PixForm() {
         }
         setSuccess(true);
         // Wizard auto-avançante: chave validada → direto pra selfie.
-        router.push(NEXT_STAGE.pix);
+        window.location.replace(NEXT_STAGE.pix);
       } catch {
         setError("A conexão oscilou. Tente de novo — nada foi perdido.");
       } finally {

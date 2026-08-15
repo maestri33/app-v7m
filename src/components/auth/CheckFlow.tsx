@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { animate } from "motion";
 
 import { Button } from "@/components/ui/button";
@@ -26,8 +25,8 @@ type CheckOut = {
 
 const COLLABORATOR_ROLES = new Set(["candidate", "training", "promoter", "coordinator"]);
 
-// Debounce do auto-disparo do telefone (ms): folga pra terminar o 11º dígito
-// do celular antes de atirar num número de 10 (fixo). Qualquer tecla reinicia.
+// Debounce do auto-disparo do CPF (ms): dá tempo de concluir a digitação antes
+// de consultar o cadastro. Qualquer tecla reinicia.
 const DEBOUNCE_MS = 800;
 
 // Erros do cadastro/entrada roteados por `code` (envelope {detail, code, …}) —
@@ -43,11 +42,11 @@ function authErrorMessage(
         extra?.retry_after_s ? `${extra.retry_after_s} segundos` : "um instante"
       } e tente de novo.`;
     case "CPF_EXISTS":
-      return "Esse CPF já tem cadastro por aqui — entre com o telefone dele.";
+      return "Esse CPF já tem cadastro por aqui — volte e entre com ele.";
     case "PHONE_EXISTS":
-      return "Esse telefone já tem cadastro — volte e entre com ele.";
+      return "Esse WhatsApp já está ligado a outro cadastro. Entre com o CPF associado a ele.";
     case "EMAIL_EXISTS":
-      return "Esse e-mail já está em uso — se a conta é sua, entre com o telefone dela.";
+      return "Esse e-mail já está em uso — se a conta é sua, entre com o CPF dela.";
     case "CPF_INVALID":
       return "Esse CPF não fechou — confira os números e tente de novo.";
     case "CPF_NOT_FOUND":
@@ -57,7 +56,7 @@ function authErrorMessage(
     case "OTP_NOT_SENT":
       return "Não conseguimos enviar o código. Confira se esse número tem WhatsApp ativo e tente de novo.";
     case "NOT_IN_FUNNEL":
-      return "Seu número existe, mas ainda não está no programa de promotores. Entre pelo link de indicação ou fale com o suporte.";
+      return "Seu CPF existe, mas ainda não está no programa de promotores. Entre pelo link de indicação ou fale com o suporte.";
     case "JOIN_PROFILE_INCOMPLETE":
       return "Seu cadastro anterior está incompleto. Fale com o suporte para confirmar seus dados e liberar o acesso de promotor.";
     default:
@@ -65,11 +64,10 @@ function authErrorMessage(
   }
 }
 
-// check → (login | cadastro inline) → otp. Um fluxo só, a partir do telefone.
+// check → (login | cadastro inline) → otp. Um fluxo só, a partir do CPF.
 type Stage = "check" | "register" | "otp";
 
 export function CheckFlow() {
-  const router = useRouter();
   const [stage, setStage] = useState<Stage>("check");
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
@@ -136,22 +134,22 @@ export function CheckFlow() {
   }
 
   // Corpo do check extraído: o form (Enter) e o auto-disparo (debounce) usam o
-  // mesmo caminho. useCallback p/ o effect do auto-fire depender só de `phone`.
+  // mesmo caminho. useCallback p/ o effect do auto-fire depender só de `cpf`.
   const runCheck = useCallback(async () => {
-    const pErr = validatePhone(phone);
-    setFieldErr({ phone: pErr });
-    if (pErr) {
+    const cErr = validateCpf(cpf);
+    setFieldErr({ cpf: cErr });
+    if (cErr) {
       shake(panelRef.current);
       return;
     }
     setError(null);
     setLoading(true);
-    const phoneDigits = phone.replace(/\D/g, "");
+    const cpfDigits = cpf.replace(/\D/g, "");
     try {
       const res = await fetch("/api/auth/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phoneDigits }),
+        body: JSON.stringify({ cpf: cpfDigits }),
       });
       const data: CheckOut | { detail: string; code?: string; retry_after_s?: number } =
         await res.json();
@@ -178,36 +176,36 @@ export function CheckFlow() {
     } finally {
       setLoading(false);
     }
-  }, [phone]);
+  }, [cpf]);
 
   async function onCheck(e: React.FormEvent) {
     e.preventDefault();
+    firedRef.current = cpf.replace(/\D/g, "");
     return runCheck();
   }
 
-  // ── Auto-disparo: sem botão. Quando o telefone fica válido (10 ou 11 dígitos,
-  //    fixo ou celular) e para de mudar por DEBOUNCE_MS, dispara o check sozinho.
-  //    O debounce dá folga pra terminar o 11º dígito do celular sem atirar no 10.
+  // ── Auto-disparo: sem botão. Quando o CPF fica válido e para de mudar por
+  //    DEBOUNCE_MS, dispara o check sozinho.
   //    firedRef impede re-disparar o mesmo número (p. ex. num re-render).
   const firedRef = useRef<string | null>(null);
   useEffect(() => {
     if (loading || stage !== "check") return;
-    if (validatePhone(phone) !== null) return; // incompleto/inválido
-    const digits = phone.replace(/\D/g, "");
+    if (validateCpf(cpf) !== null) return; // incompleto/inválido
+    const digits = cpf.replace(/\D/g, "");
     if (firedRef.current === digits) return; // já disparou pra esse número
     const id = setTimeout(() => {
       firedRef.current = digits;
       void runCheck();
     }, DEBOUNCE_MS);
     return () => clearTimeout(id);
-  }, [phone, loading, stage, runCheck]);
+  }, [cpf, loading, stage, runCheck]);
 
   async function onRegister(e: React.FormEvent) {
     e.preventDefault();
-    const cErr = validateCpf(cpf);
+    const pErr = validatePhone(phone);
     const eErr = validateEmail(email);
-    setFieldErr({ cpf: cErr, email: eErr });
-    if (cErr || eErr) {
+    setFieldErr({ phone: pErr, email: eErr });
+    if (pErr || eErr) {
       shake(panelRef.current);
       return;
     }
@@ -258,7 +256,7 @@ export function CheckFlow() {
       const res = await fetch("/api/auth/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phone.replace(/\D/g, "") }),
+        body: JSON.stringify({ cpf: cpf.replace(/\D/g, "") }),
       });
       const data: CheckOut & { detail?: string; code?: string; retry_after_s?: number } =
         await res.json();
@@ -307,8 +305,10 @@ export function CheckFlow() {
       }
       // Sucesso → overlay + navegação direta pro painel (sem tela de sucesso).
       setNavigating(true);
-      router.push("/painel");
-      router.refresh();
+      // O cookie HttpOnly acabou de ser gravado pelo route handler. Uma navegação
+      // completa garante que o primeiro render do painel já leia essa sessão e
+      // evita a URL mudar enquanto a árvore antiga continua montada.
+      window.location.replace("/painel");
     } catch {
       setError({ detail: "A conexão oscilou. Tente de novo — nada foi perdido." });
     } finally {
@@ -335,59 +335,61 @@ export function CheckFlow() {
         {stage === "check" && (
           <form onSubmit={onCheck} className="space-y-4">
             <div className="text-center">
-              <h2 className="text-[21px] font-bold text-white">Passa seu WhatsApp pra mim?</h2>
+              <h2 className="text-[21px] font-bold text-white">Qual é o seu CPF?</h2>
               <p className="mt-1 text-[14px] leading-relaxed text-[var(--muted-on-dark)]">
-                Pode ficar sossegado — é só pra confirmar seu acesso. Sem cadastro? A gente cria na hora.
+                Ele identifica seu cadastro. Se já existir, o código vai para o WhatsApp associado.
               </p>
             </div>
             <div className="gold-divider" />
             <div className="mx-auto max-w-[17.5rem]">
-              <label htmlFor="auth-phone" className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">
-                Telefone (WhatsApp)
+              <label htmlFor="auth-cpf" className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">
+                CPF
               </label>
-              {/* Sem +55 (só roda no Brasil). Máscara ao digitar; auto-dispara
-                  quando o número fica válido — ver effect DEBOUNCE_MS acima.
+              {/* Máscara ao digitar; auto-dispara quando o CPF fica válido —
+                  ver effect DEBOUNCE_MS acima.
                   Enter continua funcionando pra teclado/leitor de tela. */}
               <input
-                id="auth-phone"
-                value={phone}
+                id="auth-cpf"
+                value={cpf}
                 onChange={(e) => {
-                  const masked = maskPhone(e.target.value);
-                  setPhone(masked);
-                  if (fieldErr.phone) setFieldErr({ phone: validatePhone(masked) });
+                  const masked = maskCpf(e.target.value);
+                  setCpf(masked);
+                  if (fieldErr.cpf) setFieldErr({ cpf: validateCpf(masked) });
                 }}
-                onBlur={() => setFieldErr({ phone: validatePhone(phone) })}
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder="(11) 98765-4321"
-                aria-invalid={!!fieldErr.phone}
-                aria-describedby="auth-phone-status"
+                onBlur={() => setFieldErr({ cpf: validateCpf(cpf) })}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="000.000.000-00"
+                aria-invalid={!!fieldErr.cpf}
+                aria-describedby="auth-cpf-status"
                 autoFocus
                 className={`input input-dark text-center text-[16.5px] tabular-nums tracking-[0.03em] transition-[box-shadow,border-color] duration-300 ${
-                  phone && !validatePhone(phone) ? "phone-ready" : ""
+                  cpf && !validateCpf(cpf) ? "phone-ready" : ""
                 }`}
               />
               {/* Linha de status ao vivo (substitui o botão). */}
-              <div id="auth-phone-status" className="mt-3 min-h-[1.25rem] text-center text-[13px]" aria-live="polite">
+              <div id="auth-cpf-status" className="mt-3 min-h-[1.25rem] text-center text-[13px]" aria-live="polite">
                 {loading ? (
                   <span className="inline-flex items-center gap-2 text-[var(--gold-soft)]">
                     <span className="spinner" aria-hidden /> Verificando…
                   </span>
-                ) : phone && !validatePhone(phone) ? (
+                ) : cpf && !validateCpf(cpf) ? (
                   <span className="inline-flex items-center gap-1.5 text-[var(--gold-soft)]">
-                    <span aria-hidden>✓</span> Número válido — verificando…
+                    <span aria-hidden>✓</span> CPF válido — verificando…
                   </span>
-                ) : fieldErr.phone ? (
-                  <span className="text-[var(--danger-soft)]">{fieldErr.phone}</span>
+                ) : fieldErr.cpf ? (
+                  <span className="text-[var(--danger-soft)]">{fieldErr.cpf}</span>
                 ) : (
                   <span className="text-[var(--muted-on-dark)]">
-                    Digite DDD + número — a gente verifica sozinho.
+                    Digite os 11 números — a gente verifica sozinho.
                   </span>
                 )}
               </div>
             </div>
             {error && <p role="alert" className="text-center text-[13px] text-[var(--danger-soft)]">{error.detail}</p>}
+            <Button type="submit" size="xl" loading={loading} className="w-full">
+              {loading ? "Verificando…" : "Continuar"}
+            </Button>
           </form>
         )}
 
@@ -396,7 +398,7 @@ export function CheckFlow() {
             <div className="text-center">
               <h2 className="text-[21px] font-bold text-white">Criar cadastro</h2>
               <p className="mt-1 text-[14px] leading-relaxed text-[var(--muted-on-dark)]">
-                Este número ainda não possui cadastro. Confirme seus dados para continuar.
+                Este CPF ainda não possui cadastro. Informe seu WhatsApp e e-mail para continuar.
               </p>
             </div>
             <div className="gold-divider" />
@@ -407,33 +409,35 @@ export function CheckFlow() {
               </div>
             )}
             <div>
-              <span className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">Telefone (WhatsApp)</span>
+              <span className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">CPF</span>
               <div className="flex items-center gap-2">
-                <div className="input input-dark flex-1 text-white/70">{phone}</div>
+                <div className="input input-dark flex-1 text-white/70">{cpf}</div>
                 <button type="button" onClick={restart} className="min-h-[44px] px-3 text-[13px] font-semibold text-brand-gold-light">
                   Alterar
                 </button>
               </div>
-              <p className="mt-2 text-[12.5px] text-[var(--muted-on-dark)]">O código de confirmação será enviado para este número.</p>
             </div>
             <div>
-              <label htmlFor="auth-cpf" className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">CPF</label>
+              <label htmlFor="auth-phone" className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">Telefone (WhatsApp)</label>
               <input
-                id="auth-cpf"
-                value={cpf}
+                id="auth-phone"
+                value={phone}
                 onChange={(e) => {
-                  const masked = maskCpf(e.target.value);
-                  setCpf(masked);
-                  if (fieldErr.cpf) setFieldErr({ ...fieldErr, cpf: validateCpf(masked) });
+                  const masked = maskPhone(e.target.value);
+                  setPhone(masked);
+                  if (fieldErr.phone) setFieldErr({ ...fieldErr, phone: validatePhone(masked) });
                 }}
-                onBlur={() => setFieldErr({ ...fieldErr, cpf: validateCpf(cpf) })}
-                inputMode="numeric"
-                placeholder="000.000.000-00"
-                aria-invalid={!!fieldErr.cpf}
+                onBlur={() => setFieldErr({ ...fieldErr, phone: validatePhone(phone) })}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="(11) 98765-4321"
+                aria-invalid={!!fieldErr.phone}
                 autoFocus
                 className="input input-dark tabular-nums"
               />
-              {fieldErr.cpf && <p role="alert" className="mt-2 text-[13px] text-[var(--danger-soft)]">{fieldErr.cpf}</p>}
+              {fieldErr.phone && <p role="alert" className="mt-2 text-[13px] text-[var(--danger-soft)]">{fieldErr.phone}</p>}
+              <p className="mt-2 text-[12.5px] text-[var(--muted-on-dark)]">O código de confirmação será enviado para este número.</p>
             </div>
             <div>
               <label htmlFor="auth-email" className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">E-mail</label>
@@ -471,7 +475,7 @@ export function CheckFlow() {
                 {otpSent ? (
                   <>
                     Enviamos um código de 6 dígitos para o WhatsApp{" "}
-                    <strong className="text-white">{phone || "seu número"}</strong>.
+                    <strong className="text-white">{phone || "cadastrado"}</strong>.
                   </>
                 ) : (
                   "Não conseguimos enviar um código agora. Se você já tem um válido, digite abaixo."
@@ -521,7 +525,7 @@ export function CheckFlow() {
                 onClick={restart}
                 className="min-h-[44px] px-3 text-[13px] text-[var(--muted-on-dark)] transition-colors hover:text-white"
               >
-                Outro número
+                Outro CPF
               </button>
             </div>
           </form>

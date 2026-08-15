@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Mic, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,6 @@ function submitErrorMessage(code: string | undefined, detail: string | undefined
 
 /** Resposta por texto OU áudio; enviada, a IA corrige e a página re-renderiza. */
 export function SubmissionForm({ materialExternalId, submissionStatus, justification }: Props) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +118,7 @@ export function SubmissionForm({ materialExternalId, submissionStatus, justifica
           return;
         }
         setSent(true);
-        router.refresh();
+        window.location.reload();
       } catch {
         setError("A conexão oscilou. Tente de novo — sua resposta continua aqui.");
       }
@@ -146,7 +144,7 @@ export function SubmissionForm({ materialExternalId, submissionStatus, justifica
           return;
         }
         setSent(true);
-        router.refresh();
+        window.location.reload();
       } catch {
         setError("A conexão oscilou. Tente de novo — sua resposta continua aqui.");
       }
