@@ -40,6 +40,10 @@ export function SelfieForm() {
   // Backoff exponencial (piso→2x→…→teto 30s) só enquanto `pending`: análise por
   // IA leva 10–60s e revisão humana leva horas; alinhado ao DocForm.
   const pendingPolls = useRef(0);
+  // Guarda contra duplo push: o SWR revalida após o upload e o efeito abaixo
+  // pode disparar mais de uma vez com `status === "approved"`. Ref não causa
+  // re-render — uma vez travado, fica travado até o componente desmontar.
+  const navigatingRef = useRef(false);
 
   const { data, mutate } = useSWR<SelfieSection>(
     "/api/me/selfie",
@@ -76,7 +80,9 @@ export function SelfieForm() {
   // Aprovada → wizard auto-avançante: direto pro painel (visão "aguardando
   // aprovação do polo").
   useEffect(() => {
+    if (navigatingRef.current) return;
     if (takenAt && status === "approved") {
+      navigatingRef.current = true;
       router.push(NEXT_STAGE.selfie);
     }
   }, [takenAt, status, router]);
@@ -199,7 +205,7 @@ export function SelfieForm() {
           <Button
             href={`https://wa.me/${hubWhatsapp.replace(/\D/g, "")}`}
             variant="ghost"
-            className="w-full text-brand-gold-ink border-brand-gold-dark/50"
+            className="w-full"
             target="_blank"
             rel="noopener noreferrer"
           >

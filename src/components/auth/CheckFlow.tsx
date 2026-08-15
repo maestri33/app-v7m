@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { animate } from "motion";
 
@@ -25,6 +25,10 @@ type CheckOut = {
 };
 
 const COLLABORATOR_ROLES = new Set(["candidate", "training", "promoter", "coordinator"]);
+
+// Debounce do auto-disparo do telefone (ms): folga pra terminar o 11º dígito
+// do celular antes de atirar num número de 10 (fixo). Qualquer tecla reinicia.
+const DEBOUNCE_MS = 800;
 
 // Erros do cadastro/entrada roteados por `code` (envelope {detail, code, …}) —
 // nunca parseando detail. Copy pt-BR acolhedora, com o caminho de saída.
@@ -131,8 +135,9 @@ export function CheckFlow() {
     setNotice(null);
   }
 
-  async function onCheck(e: React.FormEvent) {
-    e.preventDefault();
+  // Corpo do check extraído: o form (Enter) e o auto-disparo (debounce) usam o
+  // mesmo caminho. useCallback p/ o effect do auto-fire depender só de `phone`.
+  const runCheck = useCallback(async () => {
     const pErr = validatePhone(phone);
     setFieldErr({ phone: pErr });
     if (pErr) {
@@ -173,7 +178,29 @@ export function CheckFlow() {
     } finally {
       setLoading(false);
     }
+  }, [phone]);
+
+  async function onCheck(e: React.FormEvent) {
+    e.preventDefault();
+    return runCheck();
   }
+
+  // ── Auto-disparo: sem botão. Quando o telefone fica válido (10 ou 11 dígitos,
+  //    fixo ou celular) e para de mudar por DEBOUNCE_MS, dispara o check sozinho.
+  //    O debounce dá folga pra terminar o 11º dígito do celular sem atirar no 10.
+  //    firedRef impede re-disparar o mesmo número (p. ex. num re-render).
+  const firedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (loading || stage !== "check") return;
+    if (validatePhone(phone) !== null) return; // incompleto/inválido
+    const digits = phone.replace(/\D/g, "");
+    if (firedRef.current === digits) return; // já disparou pra esse número
+    const id = setTimeout(() => {
+      firedRef.current = digits;
+      void runCheck();
+    }, DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [phone, loading, stage, runCheck]);
 
   async function onRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -295,13 +322,13 @@ export function CheckFlow() {
 
       {/* Bloco de marca */}
       <div className="text-center mb-5">
-        <p className="text-[11.5px] font-bold uppercase tracking-[0.16em] text-[#f0d493]">
+        <p className="text-[11.5px] font-bold uppercase tracking-[0.16em] text-brand-gold-light">
           Sua renda extra começa aqui
         </p>
         <h1 className="mt-2 font-display text-[clamp(24px,6vw,28px)] font-extrabold tracking-[-0.01em] text-white">
           Promotor V7M
         </h1>
-        <p className="mt-1 text-[13.5px] text-[#b4b4bb]">Entrar ou criar cadastro</p>
+        <p className="mt-1 text-[13.5px] text-[var(--muted-on-dark)]">Entrar ou criar cadastro</p>
       </div>
 
       <div className="auth-card" ref={panelRef}>
@@ -309,43 +336,58 @@ export function CheckFlow() {
           <form onSubmit={onCheck} className="space-y-4">
             <div className="text-center">
               <h2 className="text-[21px] font-bold text-white">Passa seu WhatsApp pra mim?</h2>
-              <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
+              <p className="mt-1 text-[14px] leading-relaxed text-[var(--muted-on-dark)]">
                 Pode ficar sossegado — é só pra confirmar seu acesso. Sem cadastro? A gente cria na hora.
               </p>
             </div>
             <div className="gold-divider" />
             <div className="mx-auto max-w-[17.5rem]">
-              <label htmlFor="auth-phone" className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">
+              <label htmlFor="auth-phone" className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">
                 Telefone (WhatsApp)
               </label>
-              <div className="relative">
-                <span className="phone-prefix">+55</span>
-                <input
-                  id="auth-phone"
-                  value={phone}
-                  onChange={(e) => {
-                    const masked = maskPhone(e.target.value);
-                    setPhone(masked);
-                    if (fieldErr.phone) setFieldErr({ phone: validatePhone(masked) });
-                  }}
-                  onBlur={() => setFieldErr({ phone: validatePhone(phone) })}
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="(11) 98765-4321"
-                  aria-invalid={!!fieldErr.phone}
-                  autoFocus
-                  className="input input-dark text-center text-[16.5px] tabular-nums tracking-[0.03em] pl-16"
-                />
+              {/* Sem +55 (só roda no Brasil). Máscara ao digitar; auto-dispara
+                  quando o número fica válido — ver effect DEBOUNCE_MS acima.
+                  Enter continua funcionando pra teclado/leitor de tela. */}
+              <input
+                id="auth-phone"
+                value={phone}
+                onChange={(e) => {
+                  const masked = maskPhone(e.target.value);
+                  setPhone(masked);
+                  if (fieldErr.phone) setFieldErr({ phone: validatePhone(masked) });
+                }}
+                onBlur={() => setFieldErr({ phone: validatePhone(phone) })}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="(11) 98765-4321"
+                aria-invalid={!!fieldErr.phone}
+                aria-describedby="auth-phone-status"
+                autoFocus
+                className={`input input-dark text-center text-[16.5px] tabular-nums tracking-[0.03em] transition-[box-shadow,border-color] duration-300 ${
+                  phone && !validatePhone(phone) ? "phone-ready" : ""
+                }`}
+              />
+              {/* Linha de status ao vivo (substitui o botão). */}
+              <div id="auth-phone-status" className="mt-3 min-h-[1.25rem] text-center text-[13px]" aria-live="polite">
+                {loading ? (
+                  <span className="inline-flex items-center gap-2 text-[var(--gold-soft)]">
+                    <span className="spinner" aria-hidden /> Verificando…
+                  </span>
+                ) : phone && !validatePhone(phone) ? (
+                  <span className="inline-flex items-center gap-1.5 text-[var(--gold-soft)]">
+                    <span aria-hidden>✓</span> Número válido — verificando…
+                  </span>
+                ) : fieldErr.phone ? (
+                  <span className="text-[var(--danger-soft)]">{fieldErr.phone}</span>
+                ) : (
+                  <span className="text-[var(--muted-on-dark)]">
+                    Digite DDD + número — a gente verifica sozinho.
+                  </span>
+                )}
               </div>
-              {fieldErr.phone && (
-                <p role="alert" className="mt-2 text-[13px] text-[#f0a3a3]">{fieldErr.phone}</p>
-              )}
             </div>
-            {error && <p role="alert" className="text-center text-[13px] text-[#f0a3a3]">{error.detail}</p>}
-            <Button type="submit" size="xl" loading={loading} className="w-full">
-              {loading ? "Verificando…" : "Continuar"}
-            </Button>
+            {error && <p role="alert" className="text-center text-[13px] text-[var(--danger-soft)]">{error.detail}</p>}
           </form>
         )}
 
@@ -353,7 +395,7 @@ export function CheckFlow() {
           <form onSubmit={onRegister} className="space-y-4">
             <div className="text-center">
               <h2 className="text-[21px] font-bold text-white">Criar cadastro</h2>
-              <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
+              <p className="mt-1 text-[14px] leading-relaxed text-[var(--muted-on-dark)]">
                 Este número ainda não possui cadastro. Confirme seus dados para continuar.
               </p>
             </div>
@@ -365,17 +407,17 @@ export function CheckFlow() {
               </div>
             )}
             <div>
-              <span className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">Telefone (WhatsApp)</span>
+              <span className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">Telefone (WhatsApp)</span>
               <div className="flex items-center gap-2">
                 <div className="input input-dark flex-1 text-white/70">{phone}</div>
-                <button type="button" onClick={restart} className="min-h-[44px] px-3 text-[13px] font-semibold text-[#f0d493]">
+                <button type="button" onClick={restart} className="min-h-[44px] px-3 text-[13px] font-semibold text-brand-gold-light">
                   Alterar
                 </button>
               </div>
-              <p className="mt-2 text-[12.5px] text-[#b4b4bb]">O código de confirmação será enviado para este número.</p>
+              <p className="mt-2 text-[12.5px] text-[var(--muted-on-dark)]">O código de confirmação será enviado para este número.</p>
             </div>
             <div>
-              <label htmlFor="auth-cpf" className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">CPF</label>
+              <label htmlFor="auth-cpf" className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">CPF</label>
               <input
                 id="auth-cpf"
                 value={cpf}
@@ -391,10 +433,10 @@ export function CheckFlow() {
                 autoFocus
                 className="input input-dark tabular-nums"
               />
-              {fieldErr.cpf && <p role="alert" className="mt-2 text-[13px] text-[#f0a3a3]">{fieldErr.cpf}</p>}
+              {fieldErr.cpf && <p role="alert" className="mt-2 text-[13px] text-[var(--danger-soft)]">{fieldErr.cpf}</p>}
             </div>
             <div>
-              <label htmlFor="auth-email" className="mb-2 block text-[13.5px] font-semibold text-[#e7e4dd]">E-mail</label>
+              <label htmlFor="auth-email" className="mb-2 block text-[13.5px] font-semibold text-[var(--line-light)]">E-mail</label>
               <input
                 id="auth-email"
                 value={email}
@@ -410,9 +452,9 @@ export function CheckFlow() {
                 aria-invalid={!!fieldErr.email}
                 className="input input-dark"
               />
-              {fieldErr.email && <p role="alert" className="mt-2 text-[13px] text-[#f0a3a3]">{fieldErr.email}</p>}
+              {fieldErr.email && <p role="alert" className="mt-2 text-[13px] text-[var(--danger-soft)]">{fieldErr.email}</p>}
             </div>
-            {error && <p role="alert" className="text-center text-[13px] text-[#f0a3a3]">{error.detail}</p>}
+            {error && <p role="alert" className="text-center text-[13px] text-[var(--danger-soft)]">{error.detail}</p>}
             <Button type="submit" size="xl" loading={loading} className="w-full">
               {loading ? "Criando…" : "Criar cadastro"}
             </Button>
@@ -425,7 +467,7 @@ export function CheckFlow() {
               <h2 className="text-[21px] font-bold text-white">
                 {needsJoin ? "Confirme para criar seu acesso" : "Confirme o código"}
               </h2>
-              <p className="mt-1 text-[14px] leading-relaxed text-[#b4b4bb]">
+              <p className="mt-1 text-[14px] leading-relaxed text-[var(--muted-on-dark)]">
                 {otpSent ? (
                   <>
                     Enviamos um código de 6 dígitos para o WhatsApp{" "}
@@ -447,11 +489,15 @@ export function CheckFlow() {
               autoFocus
             />
             {(fieldErr.otp || error) && (
-              <p role="alert" className="text-center text-[13px] text-[#f0a3a3]">
+              <p role="alert" className="text-center text-[13px] text-[var(--danger-soft)]">
                 {error?.detail ?? "O código tem 6 dígitos."}
               </p>
             )}
-            {notice && <p className="text-center text-[13px] text-[#f0d493]">{notice}</p>}
+            {notice && (
+              <p role="status" aria-live="polite" className="text-center text-[13px] text-brand-gold-light">
+                {notice}
+              </p>
+            )}
             <Button type="submit" size="xl" loading={loading} className="w-full">
               {loading
                 ? needsJoin
@@ -466,14 +512,14 @@ export function CheckFlow() {
                 type="button"
                 onClick={resendOtp}
                 disabled={resendIn > 0 || resending}
-                className="min-h-[44px] rounded-full border border-[rgb(217_177_90/0.4)] px-4 text-[13px] font-semibold text-[#f0d493] transition-colors hover:bg-[rgb(217_177_90/0.08)] disabled:opacity-55 disabled:cursor-not-allowed"
+                className="min-h-[44px] rounded-full border border-[rgb(var(--gold-rgb)_/_0.4)] px-4 text-[13px] font-semibold text-brand-gold-light transition-colors hover:bg-[rgb(var(--gold-rgb)_/_0.08)] disabled:opacity-55 disabled:cursor-not-allowed"
               >
                 {resending ? "Reenviando…" : resendIn > 0 ? `Reenviar código (${resendIn}s)` : "Reenviar código"}
               </button>
               <button
                 type="button"
                 onClick={restart}
-                className="min-h-[44px] px-3 text-[13px] text-[#b4b4bb] transition-colors hover:text-white"
+                className="min-h-[44px] px-3 text-[13px] text-[var(--muted-on-dark)] transition-colors hover:text-white"
               >
                 Outro número
               </button>
@@ -483,11 +529,11 @@ export function CheckFlow() {
       </div>
 
       {/* Selos de confiança */}
-      <p className="mt-4 text-center text-[12.5px] text-[rgb(180_180_187/0.75)]">
+      <p className="mt-4 text-center text-[12.5px] text-[rgb(var(--muted-on-dark-rgb)_/_0.75)]">
         Comissão por matrícula
-        <span className="text-[rgb(217_177_90/0.55)]"> · </span>
+        <span className="text-[rgb(var(--gold-rgb)_/_0.55)]"> · </span>
         Recebimento via Pix
-        <span className="text-[rgb(217_177_90/0.55)]"> · </span>
+        <span className="text-[rgb(var(--gold-rgb)_/_0.55)]"> · </span>
         100% online
       </p>
     </>

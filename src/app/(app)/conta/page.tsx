@@ -95,7 +95,7 @@ export default async function ContaPage() {
       </div>
 
       {/* Cadastro — telefone/CPF ficam de fora até o whoami expor (P2.1) */}
-      <div className="space-y-2">
+      <div className="auth-card divide-y divide-[var(--surface-border)]">
         {docType && (
           <Row label="Documento">
             {docType}
@@ -120,16 +120,17 @@ export default async function ContaPage() {
           </Row>
         )}
         <Row label="Papéis ativos">{labels.join(" · ") || "—"}</Row>
+        <div className="pt-3">
+          <LogoutButton className="inline-flex items-center justify-center rounded-full border border-[var(--surface-border)] bg-[var(--surface)] px-6 py-3 text-sm font-semibold text-[var(--surface-text-muted)] transition-colors hover:border-danger hover:text-danger" />
+        </div>
       </div>
-
-      <LogoutButton className="inline-flex items-center justify-center rounded-full border border-[var(--surface-border)] bg-[var(--surface)] px-6 py-3 text-sm font-semibold text-[var(--surface-text-muted)] transition-colors hover:border-danger hover:text-danger" />
     </PageShell>
   );
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="auth-card flex items-center justify-between gap-4 py-3.5">
+    <div className="flex items-center justify-between gap-4 py-2.5">
       <p className="text-sm font-medium">{label}</p>
       <p className="text-sm text-[var(--surface-text-muted)] text-right">{children}</p>
     </div>

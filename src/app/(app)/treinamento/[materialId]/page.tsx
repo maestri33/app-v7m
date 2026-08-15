@@ -39,7 +39,7 @@ function Block({ block }: { block: ContentBlock }) {
         href={block.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-brand-gold-ink underline hover:text-brand-gold-dark text-sm"
+        className="text-brand-gold-ink underline hover:text-brand-gold-deep-ink text-sm"
       >
         {block.label ?? "Abrir material"}
       </a>

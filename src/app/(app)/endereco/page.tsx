@@ -4,7 +4,6 @@ import { FunnelStepper } from "@/components/ui/stepper";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
-import { candidateStageHref } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { AddressProofSection } from "./AddressProofSection";
@@ -17,9 +16,11 @@ export default async function EnderecoPage() {
   if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
 
+  // Página livre — candidato entra aqui pelo tile do painel. O
+  // AddressProofSection cuida do upload + kinship fallback. O back lê
+  // o endereço via OCR do comprovante (não há edição manual de CEP/rua
+  // aqui — esse é o fluxo de outra página, fora do escopo desta task).
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
-  const target = candidateStageHref(me);
-  if (target !== "/endereco") redirect(target);
 
   return (
     <PageShell>

@@ -60,7 +60,7 @@ export function UploadActions({
         variant="ghost"
         disabled={disabled}
         onClick={() => fileRef.current?.click()}
-        className="px-3 whitespace-nowrap text-brand-ink border-brand-border"
+        className="px-3 whitespace-nowrap"
       >
         <FileUp size={18} aria-hidden /> Enviar arquivo
       </Button>

@@ -4,10 +4,6 @@ import { FunnelStepper } from "@/components/ui/stepper";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe, DocumentSection } from "@/lib/api/types";
-import {
-  candidateStageHref,
-  documentSectionCaptured,
-} from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { DocForm } from "./DocForm";
@@ -20,15 +16,13 @@ export default async function DocumentoPage() {
   if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
 
-  const [me, doc] = await Promise.all([
-    djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me"),
-    djangoFetch<DocumentSection>("/api/v1/collaborators/candidate/document").catch(
-      () => ({}) as DocumentSection,
-    ),
-  ]);
-
-  const target = candidateStageHref(me);
-  if (documentSectionCaptured(doc) && target !== "/documento") redirect(target);
+  // O candidato chega aqui a partir do tile do `/painel` (não mais do
+  // wizard forçado). O DocForm trata o caso "já concluído" via seu próprio
+  // estado (slot captured). Não redirecionamos — o usuário pode revisar
+  // e reenviar se quiser.
+  const doc = await djangoFetch<DocumentSection>(
+    "/api/v1/collaborators/candidate/document",
+  ).catch(() => ({}) as DocumentSection);
 
   return (
     <PageShell>

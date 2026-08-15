@@ -41,7 +41,9 @@ export function CompactHeader({
   return (
     <header className="space-y-1">
       {kicker && (
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-gold-light">
+        // gold-ink (--gold-ink = #8a6526) tem contraste AA sobre --paper-soft.
+        // gold-light (--gold-soft = #f0d493) só é legível sobre escuro (auth).
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-gold-ink">
           {kicker}
         </p>
       )}

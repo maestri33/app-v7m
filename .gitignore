@@ -49,3 +49,7 @@ __pycache__/
 # ruflo/claude-flow workspace
 .claude-flow/
 .hive-mind/
+
+# limpeza 2026-08-14
+*.log
+.zcode/

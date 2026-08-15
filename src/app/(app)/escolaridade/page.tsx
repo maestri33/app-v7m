@@ -5,7 +5,7 @@ import { FunnelStepper } from "@/components/ui/stepper";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
-import { candidateStageHref, stageCompleted } from "@/lib/candidate/funnel";
+import { stageCompleted } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { EscolaridadeForm } from "./EscolaridadeForm";
@@ -21,10 +21,9 @@ export default async function EscolaridadePage() {
 
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
   const educationComplete = stageCompleted("education", me);
-  const target = candidateStageHref(me);
-  if (!educationComplete && target !== "/escolaridade") redirect(target);
 
-  // Escolaridade já gravada (etapa passou) → resumo sem form.
+  // Página livre — candidato entra aqui pelo tile. Se já preencheu,
+  // mostra resumo; senão, o form (que também detecta sozinho no fim).
   if (educationComplete) {
     return (
       <PageShell>
@@ -32,14 +31,14 @@ export default async function EscolaridadePage() {
         <FunnelStepper current={me.status} />
         <div className="education-card space-y-5">
           <div className="banner banner-ok" role="status">
-            <p className="font-display">Escolaridade registrada ✓</p>
+            <p className="font-display">Escolaridade registrada</p>
             <p className="text-sm mt-1 opacity-90">
-              Guardamos seu nível de ensino. Falta só a selfie pra fechar o
-              cadastro.
+              Guardamos seu nível de ensino. Você pode revisar aqui ou voltar
+              pro painel e seguir pras próximas etapas.
             </p>
           </div>
-          <Button href={candidateStageHref(me)} size="xl" className="w-full">
-            Continuar
+          <Button href="/painel" size="xl" className="w-full">
+            Voltar pro painel
           </Button>
         </div>
       </PageShell>

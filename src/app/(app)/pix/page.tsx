@@ -5,10 +5,7 @@ import { FunnelStepper } from "@/components/ui/stepper";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
-import {
-  candidateStageHref,
-  stageCompleted,
-} from "@/lib/candidate/funnel";
+import { stageCompleted } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { PixForm } from "./PixForm";
@@ -24,11 +21,9 @@ export default async function PixPage() {
 
   const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
 
-  const target = candidateStageHref(me);
-  if (!me.pix_validated && target !== "/pix") redirect(target);
-
-  // Chave já validada (etapa passou) → resumo sem form. A chave em si não vem
-  // no contrato (P2.1); revalidar mexeria R$0,01 no DICT à toa.
+  // Página livre — candidato entra aqui pelo tile do painel. Se a chave já
+  // está validada, mostra resumo; senão, mostra o form (o form também
+  // detecta sozinho e mostra "Chave validada ✓" depois do submit).
   if (stageCompleted("pix", me)) {
     return (
       <PageShell>
@@ -36,14 +31,14 @@ export default async function PixPage() {
         <FunnelStepper current="pix" />
         <div className="auth-card space-y-5">
           <div className="banner banner-ok" role="status">
-            <p className="font-display">Chave validada ✓</p>
+            <p className="font-display">Chave validada</p>
             <p className="text-sm mt-1 opacity-90">
               Confirmada no seu nome. É pra essa chave que as suas comissões
               vão, toda sexta.
             </p>
           </div>
-          <Button href={candidateStageHref(me)} size="xl" className="w-full">
-            Continuar
+          <Button href="/painel" size="xl" className="w-full">
+            Voltar pro painel
           </Button>
         </div>
       </PageShell>

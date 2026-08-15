@@ -45,5 +45,18 @@ export function Countdown({
   }, [target, urgentBelowHours]);
 
   if (!text) return <span aria-hidden>…</span>;
-  return <span className={urgent ? "font-bold text-brand-warn-soft" : undefined}>{text}</span>;
+  return (
+    <span
+      // role=timer + aria-live: leitores de tela anunciam o prazo (antes o
+      // valor final nunca era exposto à AT). Mantém o "fecha em …" visível no
+      // pill pai como contexto.
+      role="timer"
+      aria-live="polite"
+      // text-warn-ink: --warn (#b07a13) dá ~3.4:1 no pill claro (<4.5 p/ texto
+      // pequeno); --warn-ink (#8a5e0c, →warn-soft no dark) passa AA nos dois temas.
+      className={urgent ? "font-bold text-warn-ink" : undefined}
+    >
+      {text}
+    </span>
+  );
 }

@@ -341,7 +341,7 @@ function EducationFields({
                 key={stage}
                 type="button"
                 onClick={() => chooseStage(stage)}
-                className="group snap-start overflow-hidden rounded-[var(--radius)] border border-[var(--surface-border)] bg-[#171714] text-left shadow-sm transition-transform duration-200 hover:-translate-y-1 hover:border-brand-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold"
+                className="group snap-start overflow-hidden rounded-[var(--radius)] border border-[var(--surface-border)] bg-[var(--surface-deep)] text-left shadow-sm transition-transform duration-200 hover:-translate-y-1 hover:border-brand-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold"
               >
                 <span className="block aspect-[16/9] overflow-hidden"><StageScene stage={stage} /></span>
                 <span className="block border-t border-white/10 px-4 py-4 font-display text-lg text-white">{stageLabel(stage)}</span>
@@ -885,15 +885,17 @@ function EducationAssistant() {
                   placeholder="Ex.: parei no 8º ano em 2022"
                   className="min-h-12 flex-1 resize-none bg-transparent px-2 py-1 text-base text-[var(--surface-text)] outline-none placeholder:text-[var(--surface-text-muted)]"
                 />
-                <button
+                <Button
                   type="submit"
-                  disabled={thinking || !input.trim()}
-                  className="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] bg-brand-gold px-4 text-sm font-semibold text-brand-ink transition-colors duration-200 hover:bg-brand-gold-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold disabled:cursor-not-allowed disabled:opacity-50"
+                  size="md"
+                  loading={thinking}
+                  disabled={!input.trim()}
+                  className="shrink-0 gap-2"
                   aria-label="Enviar resposta"
                 >
                   <ArrowUp aria-hidden className="size-4" />
                   Enviar
-                </button>
+                </Button>
               </div>
             </form>
             <p className="px-4 pb-4 text-xs leading-relaxed text-[var(--surface-text-muted)]">

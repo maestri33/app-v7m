@@ -1,7 +1,19 @@
 /**
  * Funil do candidato (ordem do backend) — helpers compartilhados entre o painel
- * e as páginas de etapa. O wizard é auto-avançante: concluir uma etapa navega
- * direto pra próxima, nunca volta pra um hub de cards.
+ * e as páginas de etapa.
+ *
+ * Modelo "tudo-async-até-receber" (ver .reviews/api-spec-me-unificado.md):
+ * as 5 etapas viraram componentes independentes acessíveis a partir dos
+ * tiles do `/painel`. Não há mais wizard forçado: ao concluir uma etapa o
+ * usuário volta pro `/painel` e decide qual fazer a seguir (ou ver os
+ * números da semana). `NEXT_STAGE` aponta tudo pra `/painel`.
+ *
+ * Mantemos `STAGE_HREF` + `candidateStageHref` porque o back ainda
+ * responde com `WRONG_STATUS`/`expected_status` quando o candidato
+ * tenta enviar uma foto numa etapa que o backend considera passada
+ * (ex.: reenviar RG depois de status=approved). Nesse caso, o form
+ * navega pra `STAGE_HREF[expected]` em vez de quebrar — o destino
+ * provável é `/painel` mesmo, e o front usa isso como fallback.
  */
 import type { CandidateMe, CandidateStatus } from "@/lib/api/types";
 
@@ -87,13 +99,24 @@ export function documentSectionCaptured(doc: {
   return false;
 }
 
-/** Próximo passo depois de concluir cada etapa (navegação direta dos forms). */
+/**
+ * Próximo passo depois de concluir cada etapa.
+ *
+ * **Mudou:** antes era wizard auto-avançante (concluir `documents` →
+ * `address`, etc.). Agora todas as etapas voltam pro `/painel` — o
+ * candidato decide a próxima, vê os números da semana, e o
+ * `OnboardingGrid` mostra o estado atualizado de cada tile.
+ *
+ * Mantido como `Record<string, string>` por compatibilidade com os
+ * `*Form.tsx` que referenciam `NEXT_STAGE.documents`, `NEXT_STAGE.pix`,
+ * etc. — todos retornam `/painel`.
+ */
 export const NEXT_STAGE: Record<string, string> = {
-  profile: "/documento",
-  address: "/pix",
-  documents: "/endereco",
-  pix: "/escolaridade",
-  education: "/selfie",
+  profile: "/painel",
+  address: "/painel",
+  documents: "/painel",
+  pix: "/painel",
+  education: "/painel",
   selfie: "/painel",
 };
 

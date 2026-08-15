@@ -7,18 +7,19 @@
 
 :root {
   /* Neutros (preto → branco) */
-  --black: #0b0b0c;
+  --black: #0b0b0c; /* keep in sync with viewport.themeColor in src/app/layout.tsx (dark) */
   --char: #141416; /* grafite (superfície escura principal) */
   --char-2: #1d1d20; /* grafite mais claro (cards no escuro) */
   --paper: #ffffff;
-  --paper-soft: #f5f4f1; /* cinza quente claro */
+  --paper-soft: #f5f4f1; /* cinza quente claro — keep in sync with viewport.themeColor in src/app/layout.tsx (light) */
   --line-light: #e7e4dd;
 
   /* Dourado (acento único) */
   --gold: #d9b15a;
   --gold-soft: #f0d493;
   --gold-deep: #a87b2e;
-  --gold-ink: #8a6526; /* dourado legível sobre fundo claro (AA) */
+  --gold-ink: #8a6526; /* dourado legível sobre fundo claro (AA). No dark mode vira --gold-soft (ver :root[data-theme="dark"]). */
+  --gold-deep-ink: #a87b2e; /* dourado hover/decoração sobre fundo claro. No dark vira --gold-soft (AA, ~13:1). */
   /* sheen metálico — CTA + palavra de destaque */
   --gold-grad: linear-gradient(135deg, #f4dca0 0%, #d9b15a 42%, #b07f30 72%, #ecc97f 100%);
 
@@ -37,10 +38,23 @@
   --ok-soft: #79d39b; /* verde legível sobre escuro */
   --danger: #c0392b; /* vermelho AA sobre claro */
   --danger-soft: #ff9a8f; /* vermelho legível sobre escuro */
-  --warn: #b07a13; /* âmbar AA sobre claro */
+  --warn: #b07a13; /* âmbar AA sobre claro (apenas texto grande/UI; p/ texto pequeno use --warn-ink) */
   --warn-soft: #f0c361; /* âmbar legível sobre escuro */
+  --warn-ink: #8a5e0c; /* âmbar escuro legível como TEXTO pequeno sobre claro (AA 4.5:1). No dark vira --warn-soft. */
   --info: #2f6fb0; /* azul AA sobre claro */
   --info-soft: #93c2ee; /* azul legível sobre escuro */
+
+  /* RGB triplets das marcas (sem o #) para compor alpha no Tailwind v4
+     sem reescrever o canal a cada uso: rgb(var(--gold-rgb) / 0.4). */
+  --gold-rgb: 217 177 90;
+  --gold-soft-rgb: 240 212 147;
+  --gold-deep-rgb: 168 123 46;
+  --line-light-rgb: 231 228 221;
+  --muted-on-dark-rgb: 180 180 187;
+  --paper-rgb: 255 255 255;
+  --black-rgb: 11 11 12;
+  --char-rgb: 20 20 22;
+  --char-2-rgb: 29 29 32;
 
   /* Tipografia — Geist (uma família, pesos variáveis) via next/font no layout.
      Títulos e corpo usam a mesma família; a diferença é o font-weight. */
@@ -87,6 +101,15 @@
   --surface-border-hover: var(--gold-deep);
   /* scrim de modal (preto translúcido) */
   --scrim: rgb(11 11 12 / 0.55);
+  /* Hero/destaque: cartão escuro de alto contraste no claro, brilho dourado no escuro */
+  --hero-bg: var(--char);
+  --hero-border: var(--gold);
+  --hero-text: var(--paper);
+  --hero-text-muted: var(--muted-on-dark);
+  --hero-kicker: var(--gold-soft);
+  /* Card sempre-escuro (cards com imagem/label de design dark, como a escolha
+     de etapa da escolaridade). No dark mode, sobe 1 nível p/ se destacar do shell. */
+  --surface-deep: var(--char);
 }
 
 /* ── Dark mode ── */
@@ -105,6 +128,11 @@
   --danger: var(--danger-soft);
   --warn: var(--warn-soft);
   --info: var(--info-soft);
+  /* gold-ink → gold-soft: #8a6526 cai p/ ~3:1 sobre --char-2; gold-soft sobe p/ ~13:1 (AA) */
+  --gold-ink: var(--gold-soft);
+  --gold-deep-ink: var(--gold-soft);
+  /* warn-ink → warn-soft: #8a5e0c é AA p/ texto pequeno no claro; no dark precisa do soft */
+  --warn-ink: var(--warn-soft);
 
   /* elevação em dark: sombra não funciona sobre preto → tom sobre tom */
   --shadow-card: none;
@@ -112,6 +140,14 @@
 
   /* anel de foco — mais visível sobre escuro */
   --ring: 0 0 0 4px rgb(240 212 147 / 0.5);
+
+  /* Hero no dark: usa --char-2 (1 nível acima do shell) + borda gold-soft mais visível */
+  --hero-bg: var(--char-2);
+  --hero-border: var(--gold-soft);
+  --hero-text: var(--paper);
+  --hero-text-muted: var(--muted-on-dark);
+  --hero-kicker: var(--gold-soft);
+  --surface-deep: var(--char-2);
 
   /* aurora: reduz opacidade no dark (já está sobre --char) */
   & .aurora::before { opacity: 0.3; }
@@ -133,9 +169,17 @@
     --danger: var(--danger-soft);
     --warn: var(--warn-soft);
     --info: var(--info-soft);
+    --gold-ink: var(--gold-soft);
+    --warn-ink: var(--warn-soft);
     --shadow-card: none;
     --shadow-card-hover: 0 0 0 1px rgb(240 212 147 / 0.25);
     --ring: 0 0 0 4px rgb(240 212 147 / 0.5);
+    --hero-bg: var(--char-2);
+    --hero-border: var(--gold-soft);
+    --hero-text: var(--paper);
+    --hero-text-muted: var(--muted-on-dark);
+    --hero-kicker: var(--gold-soft);
+    --surface-deep: var(--char-2);
   }
 }
 
@@ -162,6 +206,7 @@
   --color-danger-soft: var(--danger-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-warn-ink: var(--warn-ink);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
 
@@ -183,6 +228,7 @@
   --color-brand-gold: var(--gold);
   --color-brand-gold-light: var(--gold-soft);
   --color-brand-gold-dark: var(--gold-deep);
+  --color-brand-gold-deep-ink: var(--gold-deep-ink);
   --color-brand-gold-ink: var(--gold-ink);
   --color-brand-ok: var(--ok);
   --color-brand-ok-soft: var(--ok-soft);
@@ -423,17 +469,19 @@ strong {
     font-size: clamp(1.05rem, 0.97rem + 0.45vw, 1.25rem);
   }
 
-  /* Variante fantasma p/ superfícies escuras (faltava — Button usava .btn-ghost) */
+  /* Variante fantasma — segue a surface-text (claro/escuro flipa junto), borda
+     dourada translúcida. Funciona em qualquer surface (escura da auth, clara do
+     app) sem hack de className. */
   .btn-ghost {
     background: transparent;
-    color: var(--paper);
-    border: 1px solid rgb(240 212 147 / 0.4);
+    color: var(--surface-text);
+    border: 1px solid rgb(var(--gold-rgb) / 0.4);
     border-radius: 999px; /* handoff §4: secundário = pill outline (base já é radius 10) */
     box-shadow: none;
   }
   .btn-ghost:hover {
-    background: rgb(240 212 147 / 0.1);
-    border-color: rgb(240 212 147 / 0.65);
+    background: rgb(var(--gold-rgb) / 0.1);
+    border-color: rgb(var(--gold-rgb) / 0.65);
     box-shadow: none;
   }
   .btn-ghost:focus-visible {
@@ -529,7 +577,7 @@ strong {
     margin-top: 0.5rem;
   }
   .field-error-dark {
-    color: #f0a3a3; /* handoff §5: vermelho suave em superfície escura (mesmo tom inline da auth) */
+    color: var(--danger-soft); /* handoff §5: vermelho suave em superfície escura */
   }
 
   /* Input de arquivo (selfie/documento) */
@@ -898,6 +946,18 @@ strong {
   padding: clamp(1rem, 0.8rem + 1.5vw, 1.5rem);
 }
 
+/* Card sólido do painel — sem glass, theme-aware.
+   Usado no MoneyRow e ref-URL: substitui o padrão "bg-surface border
+   shadow-card inline" pra ter 1 fonte de verdade (este arquivo) e poder
+   evoluir (radius, padding, border) em 1 lugar só. */
+.panel-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  padding: 0.625rem 0.75rem; /* py-2.5 px-3 — combina com o respiro do hero/grid */
+}
+
 /* Divider-gradiente (separa header do card do conteúdo) */
 .gold-divider {
   height: 1px;
@@ -938,6 +998,21 @@ strong {
 }
 @keyframes otp-blink {
   50% { opacity: 0; }
+}
+
+/* Input de telefone válido no auth (auto-disparo iminente): halo dourado suave
+   + leve "respiração". Especificidade .input.phone-ready vence .input/.input-dark. */
+.input.phone-ready {
+  border-color: rgb(var(--gold-rgb) / 0.8);
+  box-shadow: 0 0 0 3px rgb(var(--gold-rgb) / 0.16);
+  animation: phone-ready-pulse 1.8s var(--ease-out) infinite;
+}
+@keyframes phone-ready-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgb(var(--gold-rgb) / 0.14); }
+  50%      { box-shadow: 0 0 0 5px rgb(var(--gold-rgb) / 0.24); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .input.phone-ready { animation: none; }
 }
 
 /* Prefixo +55 fixo dentro do input de telefone */
@@ -1070,14 +1145,26 @@ strong {
 .theme-icon {
   display: inline-flex;
 }
-.theme-icon-moon {
+/* Por padrão (estado "light") só o sol aparece; em "dark" só a lua; em
+   "system" só o monitor. data-theme-choice guarda a ESCOLHA do usuário. */
+.theme-icon-sun,
+.theme-icon-moon,
+.theme-icon-monitor {
   display: none;
 }
-html[data-theme="dark"] .theme-icon-moon {
+html[data-theme-choice="light"] .theme-icon-sun {
   display: inline-flex;
 }
-html[data-theme="dark"] .theme-icon-sun {
-  display: none;
+html[data-theme-choice="dark"] .theme-icon-moon {
+  display: inline-flex;
+}
+html[data-theme-choice="system"] .theme-icon-monitor {
+  display: inline-flex;
+}
+/* Fallback p/ o primeiro paint antes do script rodar (data-theme-choice ainda
+   não existe): mostra o sol por padrão. */
+html:not([data-theme-choice]) .theme-icon-sun {
+  display: inline-flex;
 }
 
 .education-card {

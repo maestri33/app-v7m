@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { AuroraBackground } from "@/components/ui/aurora-background";
+import { ThemeColorSync } from "@/components/layout/theme-color-sync";
 import { ServiceWorkerRegister } from "@/app/_components/service-worker-register";
 
 // Self-hosting automático via next/font (subset latin, font-display swap, zero FOUT).
@@ -35,6 +36,8 @@ export const metadata: Metadata = {
 // Casca tipo app: ocupa toda a viewport com safe-area (notch/home indicator).
 // Sem travar zoom (a11y) — apenas viewport-fit cover + theme color por tema.
 export const viewport: Viewport = {
+  // keep in sync with --paper-soft / --black (globals.css). Metadata API exige
+  // literal estático em build time — não dá pra ler o token CSS em runtime.
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f5f4f1" },
     { media: "(prefers-color-scheme: dark)", color: "#0b0b0c" },
@@ -52,11 +55,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${geist.variable} h-full`} suppressHydrationWarning>
       <head>
-        {/* Anti-FOUC: seta data-theme antes do primeiro paint (CSP permite unsafe-inline) */}
+        {/* Anti-FOUC: seta data-theme (resolvido) E data-theme-choice (escolha do
+            usuário) antes do primeiro paint (CSP permite unsafe-inline). */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              (function(){try{var t=localStorage.getItem('v7m-theme')||'system';var d=t==='system'?(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):t;document.documentElement.dataset.theme=d;}catch(e){}})();
+              (function(){try{var t=localStorage.getItem('v7m-theme')||'system';var d=t==='system'?(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):t;document.documentElement.dataset.theme=d;document.documentElement.dataset.themeChoice=t;}catch(e){}})();
             `,
           }}
         />
@@ -67,6 +71,7 @@ export default function RootLayout({
         </a>
         <AuroraBackground />
         {children}
+        <ThemeColorSync />
         <ServiceWorkerRegister />
       </body>
     </html>

@@ -49,7 +49,7 @@ export default async function ComissoesPage() {
         subtitle="R$100 por matrícula paga + R$500 de bônus fixo ao bater 5 na semana. Fecha toda sexta às 18h, pago via Pix."
       />
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="auth-card grid gap-3 sm:grid-cols-2">
         <Stat label="Pendente" value={formatBRL(totalPending)} />
         <Stat label="Pago" value={formatBRL(totalPaid)} />
       </div>

@@ -209,6 +209,7 @@ export function SubmissionForm({ materialExternalId, submissionStatus, justifica
             type="button"
             variant="ghost"
             onClick={stopRecording}
+            disabled={pending}
             className="w-full border-brand-danger/50 text-brand-danger"
           >
             <Square size={16} aria-hidden /> Parar e enviar (

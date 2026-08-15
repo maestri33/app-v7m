@@ -178,7 +178,7 @@ export function DocForm({ initial }: Props) {
         </div>
       </fieldset>
 
-      <div className="rounded-[var(--radius)] border border-dashed border-brand-gold-dark/45 bg-[var(--surface)] p-4 space-y-3">
+      <div className="rounded-[var(--radius)] border border-dashed border-[var(--surface-border-hover)] bg-[var(--surface)] p-4 space-y-3">
         <p className="font-semibold">{docType ? prompt : "Escolha RG ou CNH para continuar"}</p>
         <p className="text-xs text-[var(--surface-text-muted)]">
           A foto só precisa mostrar o documento inteiro e legível. A conferência detalhada não prende você nesta tela.

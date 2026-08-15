@@ -11,10 +11,10 @@ import { validateCpf } from "@/lib/auth/masks";
 
 /**
  * Sem seletor de tipo: detectamos pelo formato do que foi digitado/colado.
- * 11 dígitos é ambíguo (CPF ou celular) → no submit tenta CPF e, se o DICT
- * reprovar (422 PIX_INVALID), tenta PHONE (+55…). ⚠️ Cada chamada move R$0,01
- * no DICT — submit explícito ÚNICO, nunca validar por tecla; no caso ambíguo
- * são no máximo 2 chamadas.
+ * 11 dígitos é ambíguo (CPF ou celular) → perguntamos ao usuário qual tipo
+ * validar antes de gastar a chamada no DICT (cada chamada move R$0,01 e
+ * valida errado = PIX na chave de outra pessoa). Submit explícito ÚNICO,
+ * nunca validar por tecla.
  */
 type DetectedType = "EMAIL" | "EVP" | "CNPJ" | "PHONE" | "CPF" | "AMBIGUOUS";
 
@@ -75,6 +75,9 @@ export function PixForm() {
   const [error, setError] = useState<string | null>(null);
   const [checkingLabel, setCheckingLabel] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // 11 dígitos podem ser CPF ou celular — não é seguro decidir sozinho, é
+  // dinheiro de PIX em jogo. Pede confirmação antes de gastar a chamada no DICT.
+  const [awaitingChoice, setAwaitingChoice] = useState(false);
 
   const detected = detectKeyType(key);
 
@@ -92,29 +95,27 @@ export function PixForm() {
     return { ok: res.ok, status: res.status, data };
   }
 
+  function handleKeyChange(value: string) {
+    setKey(value);
+    // Editou a chave depois de pedir a escolha? Volta pro estado normal pra
+    // não validar dígitos diferentes dos que estão na tela agora.
+    if (awaitingChoice) setAwaitingChoice(false);
+  }
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!detected || pending) return;
     setError(null);
+    if (detected === "AMBIGUOUS") {
+      // 11 dígitos → pergunta antes de gastar a chamada no DICT. Se validar
+      // errado, o PIX cai na chave de outra pessoa.
+      setAwaitingChoice(true);
+      return;
+    }
     startTransition(async () => {
       try {
         let result;
-        if (detected === "AMBIGUOUS") {
-          // 11 dígitos: se não passam nos DVs do CPF, é celular — pula direto o
-          // DICT do CPF (economiza a chamada paga). DV ok → tenta CPF; 422
-          // PIX_INVALID → tenta celular. Aprovou = ficou. NÃO bloqueia: celular
-          // legítimo nunca passa em validateCpf, então bloquear quebraria PHONE.
-          if (validateCpf(key)) {
-            setCheckingLabel("Conferindo como celular…");
-            result = await validate("PHONE");
-          } else {
-            setCheckingLabel("Conferindo como CPF e celular…");
-            result = await validate("CPF");
-            if (!result.ok && result.status === 422 && result.data.code === "PIX_INVALID") {
-              result = await validate("PHONE");
-            }
-          }
-        } else if (detected === "CPF") {
+        if (detected === "CPF") {
           // CPF puro: valida DVs no cliente antes de gastar R$0,01 no DICT.
           const cpfError = validateCpf(key);
           if (cpfError) {
@@ -127,6 +128,34 @@ export function PixForm() {
           setCheckingLabel(`Conferindo como ${TYPE_LABELS[detected]}…`);
           result = await validate(detected);
         }
+        if (!result.ok) {
+          const redir = wrongStatusHref(result.data.code, result.data.expected_status);
+          if (redir) {
+            router.push(redir);
+            return;
+          }
+          setError(pixErrorMessage(result.data.code, result.data.detail));
+          return;
+        }
+        setSuccess(true);
+        // Wizard auto-avançante: chave validada → direto pra selfie.
+        router.push(NEXT_STAGE.pix);
+      } catch {
+        setError("A conexão oscilou. Tente de novo — nada foi perdido.");
+      } finally {
+        setCheckingLabel(null);
+      }
+    });
+  }
+
+  function onChooseType(keyType: "CPF" | "PHONE") {
+    if (pending) return;
+    setAwaitingChoice(false);
+    setError(null);
+    startTransition(async () => {
+      try {
+        setCheckingLabel(`Conferindo como ${TYPE_LABELS[keyType]}…`);
+        const result = await validate(keyType);
         if (!result.ok) {
           const redir = wrongStatusHref(result.data.code, result.data.expected_status);
           if (redir) {
@@ -164,7 +193,7 @@ export function PixForm() {
       <Field
         label="Chave"
         value={key}
-        onChange={setKey}
+        onChange={handleKeyChange}
         placeholder="CPF, e-mail, celular ou chave aleatória"
         hint={
           detected
@@ -181,15 +210,50 @@ export function PixForm() {
         </p>
       )}
       <FieldError>{error}</FieldError>
-      <Button
-        type="submit"
-        size="xl"
-        loading={pending}
-        disabled={!detected}
-        className="w-full"
-      >
-        {pending ? "Validando…" : "Validar chave"}
-      </Button>
+      {awaitingChoice ? (
+        <div
+          className="auth-card space-y-3"
+          role="group"
+          aria-labelledby="pix-ambiguous-title"
+        >
+          <p id="pix-ambiguous-title" className="font-display text-base">
+            CPF ou celular?
+          </p>
+          <p className="text-sm text-[var(--surface-text-muted)]">
+            Você digitou 11 dígitos. Pra ter certeza de validar a chave certa, me
+            diz: você quer conferir como CPF ou como celular?
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              size="xl"
+              onClick={() => onChooseType("CPF")}
+              className="w-full"
+            >
+              Como CPF
+            </Button>
+            <Button
+              type="button"
+              size="xl"
+              variant="ghost"
+              onClick={() => onChooseType("PHONE")}
+              className="w-full"
+            >
+              Como celular
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button
+          type="submit"
+          size="xl"
+          loading={pending}
+          disabled={!detected}
+          className="w-full"
+        >
+          {pending ? "Validando…" : "Validar chave"}
+        </Button>
+      )}
       <p className="field-hint">
         A conferência é oficial e feita uma única vez, com toda a segurança — por
         isso vale revisar a chave antes de enviar.

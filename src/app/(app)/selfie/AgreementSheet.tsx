@@ -50,7 +50,7 @@ export function AgreementSheet({ onAccept }: { onAccept: () => void }) {
   return (
     <div
       ref={dialogRef}
-      className="fixed inset-0 z-50 flex flex-col justify-end bg-black/55"
+      className="fixed inset-0 z-50 flex flex-col justify-end bg-[var(--scrim)]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="selfie-agreement-title"

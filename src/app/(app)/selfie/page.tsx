@@ -4,7 +4,6 @@ import { FunnelStepper } from "@/components/ui/stepper";
 import { CompactHeader, PageShell } from "@/components/layout/page-shell";
 import { djangoFetch } from "@/lib/api/client";
 import type { CandidateMe } from "@/lib/api/types";
-import { candidateStageHref, FUNNEL_ORDER } from "@/lib/candidate/funnel";
 import { readSession } from "@/lib/auth/server";
 
 import { SelfieForm } from "./SelfieForm";
@@ -18,14 +17,13 @@ export default async function SelfiePage() {
   if (!session) redirect("/");
   if (!session.roles.includes("candidate")) redirect("/painel");
 
-  // Etapa FUTURA (deep-link/aba velha): o back só aceita a selfie a partir da
-  // escolaridade — antes disso a pessoa lia o acordo, tirava a selfie e SÓ
-  // ENTÃO tomava 409. Vai direto pra etapa real.
-  const me = await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me");
-  const idx = FUNNEL_ORDER.indexOf(me.status);
-  if (idx >= 0 && idx < FUNNEL_ORDER.indexOf("education")) {
-    redirect(candidateStageHref(me));
-  }
+  // Página livre — o SelfieForm já trata a foto via SWR + a status
+  // banner, e o back devolve 409 com `expected_status` se o candidato
+  // tentar enviar antes da hora. O `wrongStatusHref` no form
+  // navega pro destino certo. Não pré-validamos nada aqui.
+  await djangoFetch<CandidateMe>("/api/v1/collaborators/candidate/me").catch(
+    () => null,
+  );
 
   return (
     <PageShell>

@@ -49,7 +49,10 @@ export function isTrainingLocked(roles: string[]): boolean {
 
 /**
  * Onboarding do candidato: ainda é `candidate` e NÃO virou `promoter`. Enquanto
- * isso, vê só o wizard (perfil → endereço → documento → selfie → pix → análise).
+ * isso, vê o dashboard com o `OnboardingGrid` (5 tiles para as etapas) e o
+ * alerta de hold de pagamento. As 5 etapas são acessíveis a partir dos tiles
+ * — não há mais wizard forçado.
+ *
  * Quem já é promoter não está mais em onboarding, mesmo que a flag candidate
  * sobreviva no back.
  */
@@ -94,6 +97,6 @@ export function can(roles: string[], area: Area): boolean {
  */
 export function landingFor(roles: string[]): string {
   if (isTrainingLocked(roles)) return "/treinamento";
-  if (isOnboarding(roles)) return "/painel"; // painel renderiza a visão de wizard do candidato
+  if (isOnboarding(roles)) return "/painel"; // dashboard com grid de etapas + alerta de hold
   return "/painel";
 }

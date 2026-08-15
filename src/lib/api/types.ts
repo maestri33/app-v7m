@@ -170,6 +170,14 @@ export type PromoterSummary = {
     total_students: number;
     goals_hit: number;
   };
+  /**
+   * NOVO (fluxo async-até-receber): enquanto `held == true`, o back NÃO
+   * repassa Pix na sexta — soma o saldo na semana seguinte. O front usa
+   * isto para renderizar "Acumulado (libera próxima sexta)".
+   * Opcional no shape para tolerar back ainda não-deployado: front
+   * trata ausência como `held: false, reason: "none"`.
+   */
+  payout_hold?: PayoutHold;
 };
 
 /** `PromoterLeadOut = {external_id, status, name?, phone?, created_at}` — só isso. */
@@ -227,6 +235,85 @@ export type Commission = {
   source: string;
   created_at: string;
   paid_at?: string | null;
+};
+
+// =============================================================================
+// Fluxo "tudo-async-até-receber" — shape unificado `MeResponse` (ver
+// .reviews/api-spec-me-unificado.md). O front tenta `GET /me` primeiro; se 404,
+// monta o mesmo shape a partir dos 3 endpoints antigos via `getMe()` em
+// `lib/api/me.ts`. Mantemos estes tipos sincronizados com o spec — quando o
+// back divergir, é aqui que se corrige primeiro.
+// =============================================================================
+
+/** `me.steps[].status` — reuso do `AnalysisStatus` quando aplicável. */
+export type StepStatus = AnalysisStatus | "pending_review" | null;
+
+/** Bloco por etapa do onboarding. `done` é derivado pelo back. */
+export type OnboardingStep = {
+  /** Verdade quando a etapa passou (RG/CNH aprovado, comprovante aprovado, etc.). */
+  done: boolean;
+  /** `null` enquanto não enviada. Igual ao `analysis_status` quando há análise por IA. */
+  status: StepStatus;
+  /** Motivo da reprovação (rejected) ou observação. `null` quando ok/pendente. */
+  reason: string | null;
+};
+
+/** As 5 etapas do funil, na ordem do backend. */
+export type OnboardingSteps = {
+  documents: OnboardingStep;
+  address: OnboardingStep;
+  pix: OnboardingStep;
+  education: OnboardingStep;
+  selfie: OnboardingStep;
+};
+
+/** Motivo de segurar o payout da semana. */
+export type PayoutHoldReason =
+  | "none"
+  | "onboarding_incomplete"
+  | "pending_polo_approval";
+
+export type PayoutHold = {
+  held: boolean;
+  reason: PayoutHoldReason;
+  /** Soma das comissões retidas na semana corrente. String decimal. */
+  amount_held: string;
+  /** ISO da próxima sexta 18h estimada. `null` quando `held == false`. */
+  next_payout_at: string | null;
+};
+
+/** Bloco de candidato dentro de `MeResponse`. Sempre presente enquanto
+ *  `candidate` estiver nas roles do JWT. */
+export type MeCandidate = {
+  status: CandidateStatus;
+  approved_at: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  onboarding_complete: boolean;
+  steps: OnboardingSteps;
+  /** WhatsApp do polo (espelhado de selfie.hub_whatsapp) p/ contato de hold. */
+  hub_whatsapp?: string | null;
+};
+
+/** Bloco de promotor dentro de `MeResponse`. Presente a partir do cadastro
+ *  (não espera virar `promoter` role). Pode ser `null` em sessão degenerada. */
+export type MePromoter = {
+  external_id: string;
+  hub_external_id: string;
+  status: "active" | "suspended";
+  ref_url: string;
+  pre_matriculado?: boolean;
+  blocks?: ValidationBlock[];
+  summary: PromoterSummary | null;
+};
+
+/** `GET /api/v1/collaborators/me` — unificado. */
+export type MeResponse = {
+  external_id: string;
+  name: string;
+  roles: string[];
+  candidate: MeCandidate | null;
+  promoter: MePromoter | null;
 };
 
 /** `GET /promoter/study/pricing` — preço da auto-matrícula do promotor. */

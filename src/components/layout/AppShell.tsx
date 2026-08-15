@@ -7,7 +7,7 @@ import { AppFooter } from "@/components/layout/AppFooter";
 import { TrainingGate } from "@/components/layout/TrainingGate";
 import { FitViewport } from "@/components/ui/fit-viewport";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { isPromoter, isTrainingLocked } from "@/lib/auth/roles";
+import { isOnboarding, isPromoter, isTrainingLocked } from "@/lib/auth/roles";
 import type { Session } from "@/lib/auth/server";
 
 /**
@@ -16,12 +16,13 @@ import type { Session } from "@/lib/auth/server";
  * App-like, alinhado à Auth: fundo animado dark-luxury; navbar fixa (logo +
  * tema) com a linha-gradiente dourada; UMA área de conteúdo que NUNCA scrolla —
  * se transborda, FitViewport escala pra caber (handoff §23). Rodapé do frame é
- * a bottom-nav do promotor (Início·Leads·Comissões·Conta) ou o footer
+ * a bottom-nav (4 abas p/ promotor, 2 p/ candidato em onboarding) ou o footer
  * institucional quando não há nav. safe-area no topo e na base.
  *
- * Quem vê o quê: candidato em onboarding (sem nav, só o wizard); training
- * travado (TrainingGate empurra pro LMS); promotor (bottom-nav). coordinator/
- * staff acessam como promotor (coordenação mora em hub.v7m.org).
+ * Quem vê o quê: candidato em onboarding (2 abas + dashboard com grid);
+ * training travado (TrainingGate empurra pro LMS, sem nav); promotor
+ * (4 abas). coordinator/ staff acessam como promotor (coordenação mora
+ * em hub.v7m.org).
  */
 export function AppShell({
   session,
@@ -31,7 +32,18 @@ export function AppShell({
   children: ReactNode;
 }) {
   const locked = isTrainingLocked(session.roles);
-  const showPromoterNav = isPromoter(session.roles) && !locked;
+  const promoter = isPromoter(session.roles);
+  const onboarding = isOnboarding(session.roles);
+
+  // Treinado (training trava) → sem nav, sem footer. Candidato puro em
+  // onboarding → 2 abas. Promotor → 4 abas. Sem role interna → footer.
+  const navVariant: "promoter" | "candidate" | null = locked
+    ? null
+    : promoter
+      ? "promoter"
+      : onboarding
+        ? "candidate"
+        : null;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -64,7 +76,9 @@ export function AppShell({
       <main id="main" className="flex-1 overflow-hidden px-[var(--gutter)] py-5">
         <FitViewport className="h-full">{children}</FitViewport>
       </main>
-      {showPromoterNav ? <AppNav /> : <AppFooter />}
+      {navVariant === "promoter" && <AppNav variant="promoter" />}
+      {navVariant === "candidate" && <AppNav variant="candidate" />}
+      {navVariant === null && !locked && <AppFooter />}
     </div>
   );
 }

@@ -23,7 +23,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
             href={SUPPORT_WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center min-h-[44px] rounded-full border border-[rgb(231_228_221/0.14)] px-4 text-[13.5px] font-semibold text-[#b4b4bb] transition-colors hover:text-white hover:border-[rgb(217_177_90/0.4)] hover:bg-[rgb(217_177_90/0.06)]"
+            className="inline-flex items-center min-h-[44px] rounded-full border border-[rgb(var(--line-light-rgb)_/_0.14)] px-4 text-[13.5px] font-semibold text-[var(--muted-on-dark)] transition-colors hover:text-white hover:border-[rgb(var(--gold-rgb)_/_0.4)] hover:bg-[rgb(var(--gold-rgb)_/_0.06)]"
           >
             Ajuda
           </a>
@@ -43,7 +43,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
       <footer className="auth-bar bottom-0 h-[72px] pb-[env(safe-area-inset-bottom)]">
         <div className="gold-rule" />
         <div className="flex h-[72px] flex-col items-center justify-center gap-0.5 text-center">
-          <p className="text-[12px] text-[rgb(180_180_187/0.8)]">
+          <p className="text-[12px] text-[rgb(var(--muted-on-dark-rgb)_/_0.8)]">
             <a href={LEGAL_TERMS_URL} className="hover:text-white transition-colors">Termos</a>
             {" · "}
             <a href={LEGAL_PRIVACY_URL} className="hover:text-white transition-colors">Privacidade</a>
@@ -51,7 +51,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
             <a href="https://v7m.org" className="hover:text-white transition-colors">V7M</a>
             {" · © 2026"}
           </p>
-          <p className="text-[11px] text-[rgb(180_180_187/0.55)]">
+          <p className="text-[11px] text-[rgb(var(--muted-on-dark-rgb)_/_0.55)]">
             Dados tratados conforme a LGPD.
           </p>
         </div>

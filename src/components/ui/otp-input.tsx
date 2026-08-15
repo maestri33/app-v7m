@@ -1,11 +1,15 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * OTP de 6 dígitos (handoff auth): 6 caixas visuais + 1 input real invisível
  * por cima (inputmode numeric, autocomplete one-time-code p/ autofill do SMS).
  * O input transparente cobre as caixas — foco/digitação nele, pintura nelas.
+ *
+ * `autoFocus` é aplicado via useEffect (e não pelo atributo do <input>) porque
+ * o autoFocus nativo dispara foco durante a hidratação e, em alguns browsers,
+ * causa warning "Cannot read properties of null (reading 'removeChild')".
  */
 export function OtpInput({
   value,
@@ -24,6 +28,10 @@ export function OtpInput({
   const digits = value.padEnd(length, " ").slice(0, length).split("");
   // Caixa "ativa" = próxima posição vazia (ou a última quando cheio).
   const activeIndex = Math.min(value.length, length - 1);
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus();
+  }, [autoFocus]);
 
   return (
     <div
@@ -53,7 +61,6 @@ export function OtpInput({
         maxLength={length}
         aria-label="Código de 6 dígitos"
         aria-invalid={error}
-        autoFocus={autoFocus}
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-center tracking-[999px]"
       />
     </div>

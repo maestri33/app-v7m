@@ -1,87 +1,139 @@
 import { notFound } from "next/navigation";
 
-import { AppShell } from "@/components/layout/AppShell";
-import { Container } from "@/components/layout/Container";
-import { GrainSection } from "@/components/layout/GrainSection";
-import { PageHeader } from "@/components/ui/page-header";
-import type { Session } from "@/lib/auth/server";
+import { SectionNav } from "@/components/dev/section-nav";
+import { SECTIONS } from "@/components/dev/sections";
+import { DevThemeControl } from "@/components/dev/theme-control";
+import { Showcase } from "@/components/dev/showcase";
+import { AuthSection } from "@/components/dev/showcase/auth-section";
+import { mockSessions } from "@/lib/dev/mocks";
+import { AuthShellDev } from "@/components/dev/auth-shell-dev";
 
-// Preview dev-only do shell: renderiza o AppShell com sessões FALSAS pra QA
-// visual (screenshot 390x844) sem login nem backend. 404 em produção — NÃO é
-// rota de produto. Acesse /dev-preview?role=<estado>.
+// Preview dev-only: renderiza TODOS os estados do app sem backend, em layout
+// próprio (NÃO usa AppShell — o FitViewport não aguenta 8000+px de showcase).
+// 404 em produção — NÃO é rota de produto. Acesse
+// /dev-preview?section=...&role=...&theme=...
+//
+// Seções (em `?section=`):
+//   overview    índice + what's new (default)
+//   components  primitivos de UI em todos os estados
+//   forms       forms em todos os estados (visual only)
+//   pages       mock de cada página real com mock data
+//   states      loading/empty/error/success/404
+//   auth        3 estágios do CheckFlow (AuthShell em vez do DevLayout)
 export const dynamic = "force-dynamic";
-
-type Mock = { session: Session; lockedOverlay?: boolean };
-
-const MOCKS: Record<string, Mock> = {
-  // candidato em onboarding: casca sem nav (só o wizard depois)
-  candidate: {
-    session: { external_id: "demo", name: "Ana Candidata", roles: ["candidate"] },
-  },
-  // promotor puro: aba Início · Leads · Comissões
-  promoter: {
-    session: { external_id: "demo", name: "Bia Promotora", roles: ["promoter"] },
-  },
-  // coordinator cai no painel como promotor (área de coordenação mora em hub.v7m.org)
-  coordinator: {
-    session: {
-      external_id: "demo",
-      name: "Cau Coordenador",
-      roles: ["promoter", "coordinator"],
-    },
-  },
-  // training travado: a casca esconde nav; o overlay do TrainingGate cobre a
-  // tela. Aqui mostramos o overlay ESTÁTICO (sem o redirect real, que num
-  // preview sem sessão bateria de volta no login).
-  training: {
-    session: {
-      external_id: "demo",
-      name: "Dudu Trainee",
-      roles: ["promoter", "training"],
-    },
-    lockedOverlay: true,
-  },
-};
 
 export default async function DevPreviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; section?: string; theme?: string }>;
 }) {
   if (process.env.NODE_ENV === "production") notFound();
 
-  const { role = "promoter" } = await searchParams;
-  const mock = MOCKS[role] ?? MOCKS.promoter;
+  const { role = "promoter", section = "overview" } = await searchParams;
+  const mock = mockSessions[role] ?? mockSessions.promoter;
+
+  // Auth é o único caso que NÃO usa DevLayout — ele tem o próprio AuthShell
+  // (fundo animado + header/footer próprios, em vez do fundo neutro do dev).
+  if (section === "auth") {
+    return (
+      <>
+        <AuthShellDev>
+          <SectionNavBare role={role} />
+          <div className="space-y-3 text-center">
+            <p className="text-[11.5px] font-bold uppercase tracking-[0.16em] text-brand-gold-light">
+              Dev preview · Auth
+            </p>
+            <h1 className="font-display text-[clamp(24px,6vw,28px)] font-extrabold tracking-[-0.01em] text-white">
+              Promotor V7M
+            </h1>
+            <p className="text-[13.5px] text-[var(--muted-on-dark)]">
+              CheckFlow estático · 3 estágios do login
+            </p>
+          </div>
+          <AuthSection />
+        </AuthShellDev>
+        <DevThemeControl hidden={true} />
+      </>
+    );
+  }
 
   return (
-    <AppShell session={mock.session}>
-      <GrainSection className="bg-brand-bg min-h-[60dvh]">
-        <Container>
-          <PageHeader
-            kicker={`preview · ${role}`}
-            title="Conteúdo da página"
-            subtitle="Placeholder pra ver a casca (header, bottom-nav) no viewport real."
-          />
-          <p className="text-sm text-brand-muted max-w-prose">
-            Esta tela existe só pra QA visual do shell. Troque o estado com{" "}
-            <code className="text-brand-ink">?role=</code>: candidate · promoter ·
-            coordinator · training.
-          </p>
-        </Container>
-      </GrainSection>
+    <>
+      <DevHeader role={role} name={mock.session.name ?? "Preview"} />
+      <DevBody>
+        <SectionNav current={section} role={role} />
+        <Showcase section={section} role={role} />
+      </DevBody>
+      <DevThemeControl />
+    </>
+  );
+}
 
-      {/* réplica estática do overlay do TrainingGate (sem o router.replace real) */}
-      {mock.lockedOverlay && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-brand-bg px-6 text-center"
-        >
-          <p className="text-brand-muted">
-            Treinamento obrigatório — levando você para as matérias…
-          </p>
+// Header simples do dev (NÃO usa AppShell — precisa scrollar 8000+px de
+// showcase). Sem aurora animada pra não embaçar a leitura.
+function DevHeader({ role, name }: { role: string; name: string }) {
+  return (
+    <header className="sticky top-0 z-30 border-b border-[var(--surface-border)] bg-[var(--surface)]/90 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3">
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="V7M" className="h-5 w-auto" />
+          <span className="text-brand-gold-ink font-display" aria-hidden="true">·</span>
+          <span className="font-display text-sm text-[var(--surface-text-muted)]">
+            Dev preview
+          </span>
         </div>
-      )}
-    </AppShell>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="hidden text-[var(--surface-text-muted)] sm:inline">
+            {name} · <span className="font-semibold">{role}</span>
+          </span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// Body com scroll nativo (sem FitViewport, sem overflow-hidden). O conteúdo
+// é uma coluna com max-w-6xl e padding consistente.
+function DevBody({ children }: { children: React.ReactNode }) {
+  return (
+    <main
+      id="main"
+      className="min-h-[calc(100dvh-58px-env(safe-area-inset-bottom))] bg-[var(--bg)]"
+    >
+      <div className="mx-auto max-w-6xl space-y-6 px-5 py-6">{children}</div>
+    </main>
+  );
+}
+
+/**
+ * Nav simplificada pro caso `auth` (sem AppShell, fundo escuro). Reaproveita
+ * o `SECTIONS` exportado pelo componente client.
+ */
+function SectionNavBare({ role }: { role: string }) {
+  return (
+    <nav
+      aria-label="Seções do dev preview"
+      className="mb-6 flex flex-wrap items-center gap-2"
+    >
+      {SECTIONS.map((s) => {
+        const active = s.id === "auth";
+        return (
+          <a
+            key={s.id}
+            href={`/dev-preview?section=${s.id}&role=${role}`}
+            aria-current={active ? "page" : undefined}
+            className={
+              "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors " +
+              (active
+                ? "border-brand-gold bg-[var(--gold-grad)] text-[var(--black)]"
+                : "border-white/10 bg-white/5 text-[var(--muted-on-dark)] hover:border-brand-gold hover:text-white")
+            }
+          >
+            {s.label}
+          </a>
+        );
+      })}
+    </nav>
   );
 }
