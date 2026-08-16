@@ -9,6 +9,8 @@ name: Loop de Melhoria (gerador de propostas)
 #    Victor revisa e re-etiqueta pra `agent` → aí sim o devagent resolve. O loop nunca executa código.
 #  - dedup: se já existe issue `agent-candidate` aberta, NÃO abre outra (não empilha ruído).
 #  - o Claude aqui é READ-ONLY: só lê o repo e escreve o corpo da proposta; não commita, não builda.
+#  - token: GITHUB_TOKEN nativo (não expira). Este job só lê/abre issue, e issue criada por ele NÃO
+#    dispara outros workflows — reforça o portão humano. O PAT AGENT_GH_TOKEN fica só no agent.yml.
 on:
   schedule:
     - cron: "17 11 * * 1-5"   # ~08:17 BRT (UTC-3), dias úteis — 1 proposta/dia no máximo
@@ -35,7 +37,7 @@ jobs:
       - name: Pula se já há proposta aberta (dedup)
         id: guard
         env:
-          GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           OPEN=$(gh issue list --label agent-candidate --state open --json number --jq 'length')
@@ -53,7 +55,7 @@ jobs:
           ANTHROPIC_API_KEY: dummy
           ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
           IS_SANDBOX: "1"
-          GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           PROMPT="Voce e um engenheiro senior revisando este app (Next.js). Analise o codigo e proponha UMA UNICA melhoria pequena, concreta e de baixo risco — algo que um agente consiga resolver com mudanca minima. Priorize, nesta ordem: bug real, problema de acessibilidade, inconsistencia de UX, simplificacao de codigo duplicado. REGRAS DURAS: (1) NAO proponha mudanca em infra/CI (.github/, Dockerfile, deploy, next.config). (2) NAO proponha refactor grande nem nova feature. (3) A proposta tem que ser especifica: cite arquivo(s) e o que mudar e por que. (4) Se o app ja estiver bom e voce nao achar nada que valha a pena, responda APENAS a palavra NADA. Escreva a proposta em portugues, pronta pra virar uma issue: comece com um TITULO curto na primeira linha (sem prefixo), depois uma linha em branco, depois a descricao com contexto, arquivos e criterio de aceite."
