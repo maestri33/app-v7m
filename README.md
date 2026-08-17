@@ -3,8 +3,8 @@
 App do colaborador (candidato → treinamento → promotor pleno) do projeto V7M.
 
 - Stack: Next.js (App Router) + TypeScript + Tailwind v4 (`@theme inline`).
-- Backend consumido: `~/mvp/backend/` (Django + Ninja), em
-  `/api/v1/collaborators/`.
+- Backend consumido: `maestri33/backend-supletivo` (Django + Ninja), em
+  `/api/v1/collaborators/` e `/api/v1/leadership/`.
 - Plano + decisões: `.claude/plan/16-frontend-promotor.md`.
 
 ## Comandos
